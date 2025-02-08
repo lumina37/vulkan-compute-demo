@@ -48,10 +48,10 @@ Context::Context(const DeviceManager& deviceMgr, const CommandPoolManager& comma
     : deviceMgr_(deviceMgr),
       commandPoolMgr_(commandPoolMgr),
       pipelineMgr_(pipelineMgr),
-      extent_(extent),
-      queueMgr_(queueMgr),
       pipelineLayoutMgr_(pipelineLayoutMgr),
       descSetMgr_(descSetMgr),
+      extent_(extent),
+      queueMgr_(queueMgr),
       commandBufferMgr_(deviceMgr, commandPoolMgr) {
     vk::FenceCreateInfo fenceInfo;
     const auto& device = deviceMgr.getDevice();
