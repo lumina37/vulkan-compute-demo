@@ -1,3 +1,4 @@
+#include <array>
 #include <print>
 
 #include "vkc.hpp"
@@ -20,8 +21,8 @@ int main(int argc, char** argv) {
 
     vkc::Context context{deviceMgr, commandPoolMgr, pipelineMgr, pipelineLayoutMgr, descSetMgr, queueMgr, extent};
 
-    const std::vector<uint8_t> src{1, 2, 3, 4, 5, 6};
-    std::vector<uint8_t> dst(src.size());
+    std::array<uint8_t, 6> src{1, 2, 3, 4, 5, 6};
+    std::array<uint8_t, 6> dst{};
     vkc::BufferManager bufferMgr{phyDeviceMgr, deviceMgr, extent};
     descSetMgr.updateDescSets(bufferMgr.srcImageMgr_, bufferMgr.dstImageMgr_);
 

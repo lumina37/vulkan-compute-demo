@@ -4,7 +4,7 @@
 #include <iostream>
 #include <limits>
 #include <print>
-#include <vector>
+#include <span>
 
 #include <vulkan/vulkan.hpp>
 
@@ -26,7 +26,7 @@ public:
                    const DescSetManager& descSetMgr, const QueueManager& queueMgr, const vk::Extent2D& extent);
     inline ~Context() noexcept;
 
-    inline void execute(const std::vector<uint8_t>& src, std::vector<uint8_t>& dst, BufferManager& bufferMgr);
+    inline void execute(const std::span<uint8_t> src, std::span<uint8_t> dst, BufferManager& bufferMgr);
 
 private:
     // FIXME: lots of UAF
@@ -63,7 +63,7 @@ inline Context::~Context() noexcept {
     device.destroyFence(commandCompleteFence_);
 }
 
-void Context::execute(const std::vector<uint8_t>& src, std::vector<uint8_t>& dst, BufferManager& bufferMgr) {
+void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, BufferManager& bufferMgr) {
     const auto& device = deviceMgr_.getDevice();
     const auto& srcImage = bufferMgr.srcImageMgr_.getImage();
     const auto& dstImage = bufferMgr.dstImageMgr_.getImage();
