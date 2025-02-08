@@ -1,0 +1,19 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0, r8ui) uniform readonly uimage2D inputImage;
+layout(binding = 1, r8ui) uniform writeonly uimage2D outputImage;
+
+void main() {
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+
+    ivec2 imageSize = imageSize(inputImage);
+    if (coord.x >= imageSize.x || coord.y >= imageSize.y) {
+        return;
+    }
+
+    uint value = imageLoad(inputImage, coord).x;
+    value = (value + 1u) % 256u;
+    imageStore(outputImage, coord, uvec4(value, 0, 0, 0));
+}
