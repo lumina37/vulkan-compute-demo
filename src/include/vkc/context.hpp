@@ -71,9 +71,14 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
     // Upload to Staging Buffer
     void* mapPtr;
     const auto& uploadMapResult =
-        device.mapMemory(bufferMgr.srcStagingMemory_, 0, src.size(), (vk::MemoryMapFlags)0, &mapPtr);
+        device.mapMemory(bufferMgr.srcImageMgr_.getStagingMemory(), 0, src.size(), (vk::MemoryMapFlags)0, &mapPtr);
+    if constexpr (ENABLE_DEBUG) {
+        if (uploadMapResult != vk::Result::eSuccess) {
+            std::println(std::cerr, "Failed to map src staging memory!");
+        }
+    }
     memcpy(mapPtr, src.data(), src.size());
-    device.unmapMemory(bufferMgr.srcStagingMemory_);
+    device.unmapMemory(bufferMgr.srcImageMgr_.getStagingMemory());
 
     // Begin Command Buffer
     const auto& cmdBuf = commandBufferMgr_.getCommandBuffers()[0];
@@ -107,7 +112,7 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
     copyRegion.setImageSubresource(subresourceLayers);
     copyRegion.setImageExtent({extent_.width, extent_.height, 1});
 
-    cmdBuf.copyBufferToImage(bufferMgr.srcStagingBuffer_, bufferMgr.srcImageMgr_.getImage(),
+    cmdBuf.copyBufferToImage(bufferMgr.srcImageMgr_.getStagingBuffer(), bufferMgr.srcImageMgr_.getImage(),
                              vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 
     // Shader Compatible Image Layout
@@ -135,8 +140,9 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
 
     // Execute Pipeline
     cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, pipelineMgr_.getPipeline());
-    cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayoutMgr_.getPipelineLayout(), 0, 1,
-                              &descSetMgr_.getDescSets()[0], 0, nullptr);
+    const auto& descSet = descSetMgr_.getDescSet();
+    cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayoutMgr_.getPipelineLayout(), 0, 1, &descSet,
+                              0, nullptr);
 
     uint32_t groupSizeX = (extent_.width + 15) / 16;
     uint32_t groupSizeY = (extent_.height + 15) / 16;
@@ -154,13 +160,13 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
     cmdBuf.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
                            (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, 1, &downloadConvBarrier);
 
-    cmdBuf.copyImageToBuffer(dstImage, vk::ImageLayout::eTransferSrcOptimal, bufferMgr.dstStagingBuffer_, 1,
-                             &copyRegion);
+    cmdBuf.copyImageToBuffer(dstImage, vk::ImageLayout::eTransferSrcOptimal, bufferMgr.dstImageMgr_.getStagingBuffer(),
+                             1, &copyRegion);
 
     vk::BufferMemoryBarrier downloadCompleteBarrier;
     downloadCompleteBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     downloadCompleteBarrier.setDstAccessMask(vk::AccessFlagBits::eHostRead);
-    downloadCompleteBarrier.setBuffer(bufferMgr.dstStagingBuffer_);
+    downloadCompleteBarrier.setBuffer(bufferMgr.dstImageMgr_.getStagingBuffer());
     downloadCompleteBarrier.setSize(bufferMgr.size_);
 
     cmdBuf.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost,
@@ -186,9 +192,14 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
 
     // Download from Staging Buffer
     const auto& downloadMapResult =
-        device.mapMemory(bufferMgr.dstStagingMemory_, 0, bufferMgr.size_, (vk::MemoryMapFlags)0, &mapPtr);
+        device.mapMemory(bufferMgr.dstImageMgr_.getStagingMemory(), 0, bufferMgr.size_, (vk::MemoryMapFlags)0, &mapPtr);
+    if constexpr (ENABLE_DEBUG) {
+        if (downloadMapResult != vk::Result::eSuccess) {
+            std::println(std::cerr, "Failed to map dst staging memory!");
+        }
+    }
     memcpy(dst.data(), mapPtr, dst.size());
-    device.unmapMemory(bufferMgr.dstStagingMemory_);
+    device.unmapMemory(bufferMgr.dstImageMgr_.getStagingMemory());
 }
 
 }  // namespace vkc

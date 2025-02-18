@@ -1,17 +1,20 @@
 #pragma once
 
-#include <array>
+#include <span>
 #include <utility>
+#include <vector>
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkc/descriptor/binding.hpp"
 #include "vkc/device/logical.hpp"
 
 namespace vkc {
 
 class DescSetLayoutManager {
 public:
-    inline DescSetLayoutManager(const DeviceManager& deviceMgr);
+    inline DescSetLayoutManager(const DeviceManager& deviceMgr,
+                                const std::span<DescSetLayoutBindingManager> bindingMgrs);
     inline ~DescSetLayoutManager() noexcept;
 
     template <typename Self>
@@ -24,21 +27,14 @@ private:
     vk::DescriptorSetLayout descSetlayout_;
 };
 
-DescSetLayoutManager::DescSetLayoutManager(const DeviceManager& deviceMgr) : deviceMgr_(deviceMgr) {
-    vk::DescriptorSetLayoutBinding srcBinding;
-    srcBinding.setBinding(0);
-    srcBinding.setDescriptorCount(1);
-    srcBinding.setDescriptorType(vk::DescriptorType::eStorageImage);
-    srcBinding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
-
-    vk::DescriptorSetLayoutBinding dstBinding;
-    dstBinding.setBinding(1);
-    dstBinding.setDescriptorCount(1);
-    dstBinding.setDescriptorType(vk::DescriptorType::eStorageImage);
-    dstBinding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
-
+DescSetLayoutManager::DescSetLayoutManager(const DeviceManager& deviceMgr,
+                                           const std::span<DescSetLayoutBindingManager> bindingMgrs)
+    : deviceMgr_(deviceMgr) {
     vk::DescriptorSetLayoutCreateInfo layoutInfo;
-    const std::array bindings{srcBinding, dstBinding};
+    const auto& bindings =
+        bindingMgrs |
+        std::views::transform([](const DescSetLayoutBindingManager& bindingMgr) { return bindingMgr.getBinding(); }) |
+        std::ranges::to<std::vector>();
     layoutInfo.setBindings(bindings);
 
     const auto& device = deviceMgr.getDevice();

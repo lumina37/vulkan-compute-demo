@@ -1,3 +1,4 @@
+#include <array>
 #include <print>
 #include <vector>
 
@@ -19,7 +20,9 @@ int main(int argc, char** argv) {
     vkc::QueueManager queueMgr{deviceMgr, queueFamilyMgr};
     vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/addone.comp.spv"};
     vkc::DescPoolManager descPoolMgr{deviceMgr};
-    vkc::DescSetLayoutManager descSetLayoutMgr{deviceMgr};
+    std::array descSetLayoutBindings{vkc::DescSetLayoutBindingManager{0, vk::DescriptorType::eStorageImage},
+                                     vkc::DescSetLayoutBindingManager{1, vk::DescriptorType::eStorageImage}};
+    vkc::DescSetLayoutManager descSetLayoutMgr{deviceMgr, descSetLayoutBindings};
     vkc::DescSetManager descSetMgr{deviceMgr, descSetLayoutMgr, descPoolMgr};
     vkc::PipelineLayoutManager pipelineLayoutMgr{deviceMgr, descSetLayoutMgr};
     vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, extent, computeShaderMgr};

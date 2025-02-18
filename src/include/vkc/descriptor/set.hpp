@@ -20,8 +20,8 @@ public:
     inline ~DescSetManager() noexcept;
 
     template <typename Self>
-    [[nodiscard]] auto&& getDescSets(this Self& self) noexcept {
-        return std::forward_like<Self>(self).descSets_;
+    [[nodiscard]] auto&& getDescSet(this Self& self) noexcept {
+        return std::forward_like<Self>(self).descSets_[0];
     }
 
     inline void updateDescSets(const ImageManager& srcImageMgr, const ImageManager& dstImageMgr);
@@ -50,32 +50,32 @@ inline DescSetManager::~DescSetManager() noexcept {
 }
 
 void DescSetManager::updateDescSets(const ImageManager& srcImageMgr, const ImageManager& dstImageMgr) {
-    // Image Info
+    // Src
     vk::DescriptorImageInfo srcImageInfo;
     srcImageInfo.setImageView(srcImageMgr.getImageView());
     srcImageInfo.setImageLayout(vk::ImageLayout::eGeneral);
 
-    vk::DescriptorImageInfo dstImageInfo;
-    dstImageInfo.setImageView(dstImageMgr.getImageView());
-    dstImageInfo.setImageLayout(vk::ImageLayout::eGeneral);
-
-    // Write Descriptor
     vk::WriteDescriptorSet srcWriteDescSet;
-    srcWriteDescSet.setDstSet(descSets_[0]);
+    srcWriteDescSet.setDstSet(getDescSet());
     srcWriteDescSet.setDstBinding(0);
     srcWriteDescSet.setDescriptorCount(1);
     srcWriteDescSet.setDescriptorType(vk::DescriptorType::eStorageImage);
     srcWriteDescSet.setImageInfo(srcImageInfo);
 
+    // Dst
+    vk::DescriptorImageInfo dstImageInfo;
+    dstImageInfo.setImageView(dstImageMgr.getImageView());
+    dstImageInfo.setImageLayout(vk::ImageLayout::eGeneral);
+
     vk::WriteDescriptorSet dstWriteDescSet;
-    dstWriteDescSet.setDstSet(descSets_[0]);
+    dstWriteDescSet.setDstSet(getDescSet());
     dstWriteDescSet.setDstBinding(1);
     dstWriteDescSet.setDescriptorCount(1);
     dstWriteDescSet.setDescriptorType(vk::DescriptorType::eStorageImage);
     dstWriteDescSet.setImageInfo(dstImageInfo);
 
-    const std::array writeDescSets = {srcWriteDescSet, dstWriteDescSet};
     const auto& device = deviceMgr_.getDevice();
+    std::array writeDescSets{srcWriteDescSet, dstWriteDescSet};
     device.updateDescriptorSets(writeDescSets, nullptr);
 }
 

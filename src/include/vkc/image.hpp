@@ -23,11 +23,23 @@ public:
         return std::forward_like<Self>(self).imageView_;
     }
 
+    template <typename Self>
+    [[nodiscard]] auto&& getStagingMemory(this Self& self) noexcept {
+        return std::forward_like<Self>(self).stagingMemory_;
+    }
+
+    template <typename Self>
+    [[nodiscard]] auto&& getStagingBuffer(this Self& self) noexcept {
+        return std::forward_like<Self>(self).stagingBuffer_;
+    }
+
 private:
     const DeviceManager& deviceMgr_;  // FIXME: UAF
     vk::Image image_;
     vk::DeviceMemory imageMemory_;
     vk::ImageView imageView_;
+    vk::DeviceMemory stagingMemory_;
+    vk::Buffer stagingBuffer_;
 };
 
 ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
@@ -53,9 +65,9 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceMan
     const vk::MemoryRequirements memRequirements = device.getImageMemoryRequirements(image_);
     vk::MemoryAllocateInfo allocInfo;
     allocInfo.setAllocationSize(memRequirements.size);
-    const auto& phyDevice = phyDeviceMgr.getPhysicalDevice();
+    const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
     const auto memTypeIndex =
-        findMemoryType(phyDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        findMemoryType(physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
     allocInfo.setMemoryTypeIndex(memTypeIndex);
     imageMemory_ = device.allocateMemory(allocInfo);
     device.bindImageMemory(image_, imageMemory_, 0);
@@ -74,6 +86,17 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceMan
     imageViewInfo.setFormat(vk::Format::eR8Uint);
     imageViewInfo.setSubresourceRange(subresourceRange);
     imageView_ = device.createImageView(imageViewInfo);
+
+    // Staging Memory
+    vk::BufferUsageFlags bufferUsage;
+    if (usage & vk::ImageUsageFlagBits::eTransferSrc) {
+        bufferUsage = vk::BufferUsageFlagBits::eTransferDst;
+    } else {
+        bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
+    }
+    createBuffer(physicalDevice, device, extent.width * extent.height, bufferUsage,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer_,
+                 stagingMemory_);
 }
 
 ImageManager::~ImageManager() noexcept {
@@ -81,6 +104,8 @@ ImageManager::~ImageManager() noexcept {
     device.destroyImageView(imageView_);
     device.destroyImage(image_);
     device.freeMemory(imageMemory_);
+    device.destroyBuffer(stagingBuffer_);
+    device.freeMemory(stagingMemory_);
 }
 
 }  // namespace vkc
