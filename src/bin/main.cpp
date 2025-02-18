@@ -1,10 +1,16 @@
-#include <array>
 #include <print>
+#include <vector>
+
+#include <stb_image.h>
+#include <stb_image_write.h>
 
 #include "vkc.hpp"
 
 int main(int argc, char** argv) {
-    vk::Extent2D extent{3, 2};
+    int width, height, channels;
+    unsigned char* srcImage = stbi_load("in.png", &width, &height, &channels, 1);
+
+    vk::Extent2D extent{(uint32_t)width, (uint32_t)height};
 
     vkc::InstanceManager instMgr;
     vkc::PhyDeviceManager phyDeviceMgr{instMgr};
@@ -21,13 +27,13 @@ int main(int argc, char** argv) {
 
     vkc::Context context{deviceMgr, commandPoolMgr, pipelineMgr, pipelineLayoutMgr, descSetMgr, queueMgr, extent};
 
-    std::array<uint8_t, 6> src{1, 2, 3, 4, 5, 6};
-    std::array<uint8_t, 6> dst{};
+    std::span src{srcImage, (size_t)width * height};
+    std::vector<uint8_t> dst(width * height);
     vkc::BufferManager bufferMgr{phyDeviceMgr, deviceMgr, extent};
     descSetMgr.updateDescSets(bufferMgr.srcImageMgr_, bufferMgr.dstImageMgr_);
 
     context.execute(src, dst, bufferMgr);
 
-    std::println("src: {}", src);
-    std::println("dst: {}", dst);
+    stbi_image_free(srcImage);
+    stbi_write_png("out.png", width, height, 1, dst.data(), 0);
 }

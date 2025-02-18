@@ -11,6 +11,14 @@ include(FetchContent)
 
 find_package(Vulkan REQUIRED)
 
+FetchContent_Declare(
+        stb
+        GIT_REPOSITORY https://github.com/nothings/stb.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(stb)
+
+
 # Helper
 function(copy_dlls_if_needed name)
     if (WIN32)
