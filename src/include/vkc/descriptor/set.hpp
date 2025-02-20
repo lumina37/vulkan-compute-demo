@@ -18,12 +18,12 @@ namespace rgs = std::ranges;
 
 class DescSetManager {
 public:
-    inline DescSetManager(const DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
-                          const DescPoolManager& descPoolMgr);
+    inline DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
+                          DescPoolManager& descPoolMgr);
     inline ~DescSetManager() noexcept;
 
     template <typename Self>
-    [[nodiscard]] auto&& getDescSet(this Self& self) noexcept {
+    [[nodiscard]] auto&& getDescSet(this Self&& self) noexcept {
         return std::forward_like<Self>(self).descSet_;
     }
 
@@ -31,13 +31,13 @@ public:
     inline void updateDescSets(const TManager&... mgrs);
 
 private:
-    const DeviceManager& deviceMgr_;      // FIXME: UAF
-    const DescPoolManager& descPoolMgr_;  // FIXME: UAF
+    DeviceManager& deviceMgr_;      // FIXME: UAF
+    DescPoolManager& descPoolMgr_;  // FIXME: UAF
     vk::DescriptorSet descSet_;
 };
 
-DescSetManager::DescSetManager(const DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
-                               const DescPoolManager& descPoolMgr)
+DescSetManager::DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
+                               DescPoolManager& descPoolMgr)
     : deviceMgr_(deviceMgr), descPoolMgr_(descPoolMgr) {
     vk::DescriptorSetAllocateInfo descSetAllocInfo;
     descSetAllocInfo.setDescriptorPool(descPoolMgr.getDescPool());
@@ -45,7 +45,7 @@ DescSetManager::DescSetManager(const DeviceManager& deviceMgr, const DescSetLayo
     const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
     descSetAllocInfo.setSetLayouts(descSetLayout);
 
-    const auto& device = deviceMgr.getDevice();
+    auto& device = deviceMgr.getDevice();
     const auto& descSets = device.allocateDescriptorSets(descSetAllocInfo);
     descSet_ = descSets[0];
 }
@@ -56,7 +56,7 @@ inline DescSetManager::~DescSetManager() noexcept {
 
 template <CSupportDraftWriteDescSet... TManager>
 void DescSetManager::updateDescSets(const TManager&... mgrs) {
-    const auto& device = deviceMgr_.getDevice();
+    auto& device = deviceMgr_.getDevice();
 
     std::array writeDescSets{mgrs.draftWriteDescSet()...};
     for (auto [index, writeDescSet] : rgs::views::enumerate(writeDescSets)) {

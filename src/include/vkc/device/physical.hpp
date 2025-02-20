@@ -15,7 +15,7 @@ public:
     inline PhyDeviceManager(const InstanceManager& instMgr);
 
     template <typename Self>
-    [[nodiscard]] auto&& getPhysicalDevice(this Self& self) noexcept {
+    [[nodiscard]] auto&& getPhysicalDevice(this Self&& self) noexcept {
         return std::forward_like<Self>(self).physicalDevice_;
     }
 

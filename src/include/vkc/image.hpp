@@ -10,28 +10,27 @@ namespace vkc {
 
 class ImageManager {
 public:
-    inline ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
-                        const ExtentManager& extent, const vk::ImageUsageFlags usage,
-                        const vk::DescriptorType descType);
+    inline ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
+                        const vk::ImageUsageFlags usage, const vk::DescriptorType descType);
     inline ~ImageManager() noexcept;
 
     template <typename Self>
-    [[nodiscard]] auto&& getImage(this Self& self) noexcept {
+    [[nodiscard]] auto&& getImage(this Self&& self) noexcept {
         return std::forward_like<Self>(self).image_;
     }
 
     template <typename Self>
-    [[nodiscard]] auto&& getImageView(this Self& self) noexcept {
+    [[nodiscard]] auto&& getImageView(this Self&& self) noexcept {
         return std::forward_like<Self>(self).imageView_;
     }
 
     template <typename Self>
-    [[nodiscard]] auto&& getStagingMemory(this Self& self) noexcept {
+    [[nodiscard]] auto&& getStagingMemory(this Self&& self) noexcept {
         return std::forward_like<Self>(self).stagingMemory_;
     }
 
     template <typename Self>
-    [[nodiscard]] auto&& getStagingBuffer(this Self& self) noexcept {
+    [[nodiscard]] auto&& getStagingBuffer(this Self&& self) noexcept {
         return std::forward_like<Self>(self).stagingBuffer_;
     }
 
@@ -39,7 +38,7 @@ public:
     [[nodiscard]] inline vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
 
 private:
-    const DeviceManager& deviceMgr_;  // FIXME: UAF
+    DeviceManager& deviceMgr_;  // FIXME: UAF
     vk::DescriptorType descType_;
     vk::Image image_;
     vk::DeviceMemory imageMemory_;
@@ -49,11 +48,10 @@ private:
     vk::DescriptorImageInfo imageInfo_;
 };
 
-ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
-                           const ExtentManager& extent, const vk::ImageUsageFlags usage,
-                           const vk::DescriptorType descType)
+ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
+                           const vk::ImageUsageFlags usage, const vk::DescriptorType descType)
     : deviceMgr_(deviceMgr), descType_(descType) {
-    const auto& device = deviceMgr.getDevice();
+    auto& device = deviceMgr.getDevice();
 
     // Image
     vk::ImageCreateInfo imageInfo;
@@ -73,7 +71,7 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceMan
     const vk::MemoryRequirements memRequirements = device.getImageMemoryRequirements(image_);
     vk::MemoryAllocateInfo allocInfo;
     allocInfo.setAllocationSize(memRequirements.size);
-    const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
+    auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
     const auto memTypeIndex =
         findMemoryType(physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
     allocInfo.setMemoryTypeIndex(memTypeIndex);
@@ -112,7 +110,7 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceMan
 }
 
 ImageManager::~ImageManager() noexcept {
-    const auto& device = deviceMgr_.getDevice();
+    auto& device = deviceMgr_.getDevice();
     device.destroyImageView(imageView_);
     device.destroyImage(image_);
     device.freeMemory(imageMemory_);

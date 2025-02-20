@@ -16,7 +16,7 @@ namespace rgs = std::ranges;
 
 class QueueFamilyManager {
 public:
-    inline QueueFamilyManager(const InstanceManager& instMgr, const PhyDeviceManager& phyDeviceMgr);
+    inline QueueFamilyManager(const PhyDeviceManager& phyDeviceMgr);
 
     [[nodiscard]] uint32_t getComputeQFamilyIndex() const noexcept { return computeQFamilyIndex_; }
 
@@ -24,12 +24,11 @@ private:
     uint32_t computeQFamilyIndex_;
 };
 
-QueueFamilyManager::QueueFamilyManager(const InstanceManager& instMgr, const PhyDeviceManager& phyDeviceMgr)
-    : computeQFamilyIndex_(0) {
+QueueFamilyManager::QueueFamilyManager(const PhyDeviceManager& phyDeviceMgr) : computeQFamilyIndex_(0) {
     const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
 
     const auto& queueFamilyProps = physicalDevice.getQueueFamilyProperties();
-    for (const auto& [idx, queueFamilyProp] : rgs::views::enumerate(queueFamilyProps)) {
+    for (const auto [idx, queueFamilyProp] : rgs::views::enumerate(queueFamilyProps)) {
         if (queueFamilyProp.queueFlags & vk::QueueFlagBits::eCompute) {
             computeQFamilyIndex_ = (uint32_t)idx;
             if constexpr (ENABLE_DEBUG) {

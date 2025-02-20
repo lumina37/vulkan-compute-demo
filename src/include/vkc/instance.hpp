@@ -16,7 +16,7 @@ public:
     inline ~InstanceManager() noexcept;
 
     template <typename Self>
-    [[nodiscard]] auto&& getInstance(this Self& self) noexcept {
+    [[nodiscard]] auto&& getInstance(this Self&& self) noexcept {
         return std::forward_like<Self>(self).instance_;
     }
 

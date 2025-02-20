@@ -8,7 +8,7 @@ namespace vkc {
 
 class SamplerManager {
 public:
-    inline SamplerManager(const DeviceManager& deviceMgr);
+    inline SamplerManager(DeviceManager& deviceMgr);
     inline ~SamplerManager() noexcept;
 
     [[nodiscard]] static inline constexpr vk::DescriptorType getDescType() noexcept {
@@ -17,17 +17,17 @@ public:
     [[nodiscard]] inline vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
 
 private:
-    const DeviceManager& deviceMgr_;  // FIXME: UAF
+    DeviceManager& deviceMgr_;  // FIXME: UAF
     vk::Sampler sampler_;
     vk::DescriptorImageInfo samplerInfo_;
 };
 
-SamplerManager::SamplerManager(const DeviceManager& deviceMgr) : deviceMgr_(deviceMgr) {
+SamplerManager::SamplerManager(DeviceManager& deviceMgr) : deviceMgr_(deviceMgr) {
     vk::SamplerCreateInfo samplerInfo;
     samplerInfo.setMagFilter(vk::Filter::eLinear);
     samplerInfo.setMinFilter(vk::Filter::eLinear);
 
-    const auto& device = deviceMgr.getDevice();
+    auto& device = deviceMgr.getDevice();
     sampler_ = device.createSampler(samplerInfo);
 
     // Image Info
@@ -35,7 +35,7 @@ SamplerManager::SamplerManager(const DeviceManager& deviceMgr) : deviceMgr_(devi
 }
 
 inline SamplerManager::~SamplerManager() noexcept {
-    const auto& device = deviceMgr_.getDevice();
+    auto& device = deviceMgr_.getDevice();
     device.destroySampler(sampler_);
 }
 

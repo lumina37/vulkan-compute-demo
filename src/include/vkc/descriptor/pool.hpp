@@ -10,20 +10,20 @@ namespace vkc {
 
 class DescPoolManager {
 public:
-    inline DescPoolManager(const DeviceManager& deviceMgr);
+    inline DescPoolManager(DeviceManager& deviceMgr);
     inline ~DescPoolManager() noexcept;
 
     template <typename Self>
-    [[nodiscard]] auto&& getDescPool(this Self& self) noexcept {
+    [[nodiscard]] auto&& getDescPool(this Self&& self) noexcept {
         return std::forward_like<Self>(self).descPool_;
     }
 
 private:
-    const DeviceManager& deviceMgr_;  // FIXME: UAF
+    DeviceManager& deviceMgr_;  // FIXME: UAF
     vk::DescriptorPool descPool_;
 };
 
-DescPoolManager::DescPoolManager(const DeviceManager& deviceMgr) : deviceMgr_(deviceMgr) {
+DescPoolManager::DescPoolManager(DeviceManager& deviceMgr) : deviceMgr_(deviceMgr) {
     vk::DescriptorPoolSize samplerPoolSize;
     samplerPoolSize.setType(vk::DescriptorType::eSampler);
     samplerPoolSize.setDescriptorCount(4);
@@ -39,12 +39,12 @@ DescPoolManager::DescPoolManager(const DeviceManager& deviceMgr) : deviceMgr_(de
     poolInfo.setMaxSets(1);
     poolInfo.setPoolSizes(poolSizes);
 
-    const auto& device = deviceMgr.getDevice();
+    auto& device = deviceMgr.getDevice();
     descPool_ = device.createDescriptorPool(poolInfo);
 }
 
 DescPoolManager::~DescPoolManager() noexcept {
-    const auto& device = deviceMgr_.getDevice();
+    auto& device = deviceMgr_.getDevice();
     device.destroyDescriptorPool(descPool_);
 }
 

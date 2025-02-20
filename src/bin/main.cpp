@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 
     vkc::InstanceManager instMgr;
     vkc::PhyDeviceManager phyDeviceMgr{instMgr};
-    vkc::QueueFamilyManager queueFamilyMgr{instMgr, phyDeviceMgr};
+    vkc::QueueFamilyManager queueFamilyMgr{phyDeviceMgr};
     vkc::DeviceManager deviceMgr{phyDeviceMgr, queueFamilyMgr};
     vkc::QueueManager queueMgr{deviceMgr, queueFamilyMgr};
     vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/addone.comp.spv"};

@@ -17,21 +17,21 @@ namespace vkc {
 
 class PipelineManager {
 public:
-    inline PipelineManager(const DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
+    inline PipelineManager(DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
                            const ShaderManager& computeShaderMgr);
     inline ~PipelineManager() noexcept;
 
     template <typename Self>
-    [[nodiscard]] auto&& getPipeline(this Self& self) noexcept {
+    [[nodiscard]] auto&& getPipeline(this Self&& self) noexcept {
         return std::forward_like<Self>(self).pipeline_;
     }
 
 private:
-    const DeviceManager& deviceMgr_;  // FIXME: UAF
+    DeviceManager& deviceMgr_;  // FIXME: UAF
     vk::Pipeline pipeline_;
 };
 
-PipelineManager::PipelineManager(const DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
+PipelineManager::PipelineManager(DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
                                  const ShaderManager& computeShaderMgr)
     : deviceMgr_(deviceMgr) {
     vk::ComputePipelineCreateInfo pipelineInfo;
@@ -63,7 +63,7 @@ PipelineManager::PipelineManager(const DeviceManager& deviceMgr, const PipelineL
     pipelineInfo.setLayout(pipelineLayout);
 
     // Create Pipeline
-    const auto& device = deviceMgr.getDevice();
+    auto& device = deviceMgr.getDevice();
     auto pipelineResult = device.createComputePipeline(nullptr, pipelineInfo);
     if constexpr (ENABLE_DEBUG) {
         if (pipelineResult.result != vk::Result::eSuccess) {
@@ -74,7 +74,7 @@ PipelineManager::PipelineManager(const DeviceManager& deviceMgr, const PipelineL
 }
 
 PipelineManager::~PipelineManager() noexcept {
-    const auto& device = deviceMgr_.getDevice();
+    auto& device = deviceMgr_.getDevice();
     device.destroyPipeline(pipeline_);
 }
 

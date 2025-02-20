@@ -11,24 +11,24 @@ namespace vkc {
 
 class CommandBufferManager {
 public:
-    inline CommandBufferManager(const DeviceManager& deviceMgr, const CommandPoolManager& commandPoolMgr);
+    inline CommandBufferManager(DeviceManager& deviceMgr, CommandPoolManager& commandPoolMgr);
     inline ~CommandBufferManager() noexcept;
 
     template <typename Self>
-    [[nodiscard]] auto&& getCommandBuffers(this Self& self) noexcept {
+    [[nodiscard]] auto&& getCommandBuffers(this Self&& self) noexcept {
         return std::forward_like<Self>(self).commandBuffers_;
     }
 
 private:
-    const DeviceManager& deviceMgr_;            // FIXME: UAF
-    const CommandPoolManager& commandPoolMgr_;  // FIXME: UAF
+    DeviceManager& deviceMgr_;            // FIXME: UAF
+    CommandPoolManager& commandPoolMgr_;  // FIXME: UAF
     std::vector<vk::CommandBuffer> commandBuffers_;
 };
 
-CommandBufferManager::CommandBufferManager(const DeviceManager& deviceMgr, const CommandPoolManager& commandPoolMgr)
+CommandBufferManager::CommandBufferManager(DeviceManager& deviceMgr, CommandPoolManager& commandPoolMgr)
     : deviceMgr_(deviceMgr), commandPoolMgr_(commandPoolMgr) {
-    const auto& device = deviceMgr.getDevice();
-    const auto& commandPool = commandPoolMgr.getCommandPool();
+    auto& device = deviceMgr.getDevice();
+    auto& commandPool = commandPoolMgr.getCommandPool();
 
     vk::CommandBufferAllocateInfo allocInfo;
     allocInfo.setCommandPool(commandPool);
@@ -39,8 +39,8 @@ CommandBufferManager::CommandBufferManager(const DeviceManager& deviceMgr, const
 }
 
 CommandBufferManager::~CommandBufferManager() noexcept {
-    const auto& device = deviceMgr_.getDevice();
-    const auto& commandPool = commandPoolMgr_.getCommandPool();
+    auto& device = deviceMgr_.getDevice();
+    auto& commandPool = commandPoolMgr_.getCommandPool();
     device.freeCommandBuffers(commandPool, commandBuffers_);
 }
 

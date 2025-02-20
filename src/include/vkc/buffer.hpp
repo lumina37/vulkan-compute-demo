@@ -10,16 +10,15 @@ namespace vkc {
 
 class BufferManager {
 public:
-    inline BufferManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
-                         const ExtentManager& extent);
+    inline BufferManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent);
 
     template <typename Self>
-    [[nodiscard]] auto&& getSrcImageMgr(this Self& self) noexcept {
+    [[nodiscard]] auto&& getSrcImageMgr(this Self&& self) noexcept {
         return std::forward_like<Self>(self).srcImageMgr_;
     }
 
     template <typename Self>
-    [[nodiscard]] auto&& getDstImageMgr(this Self& self) noexcept {
+    [[nodiscard]] auto&& getDstImageMgr(this Self&& self) noexcept {
         return std::forward_like<Self>(self).dstImageMgr_;
     }
 
@@ -28,7 +27,7 @@ private:
     ImageManager dstImageMgr_;
 };
 
-inline BufferManager::BufferManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
+inline BufferManager::BufferManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
                                     const ExtentManager& extent)
     : srcImageMgr_(phyDeviceMgr, deviceMgr, extent,
                    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,

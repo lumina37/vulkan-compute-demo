@@ -22,20 +22,20 @@ namespace vkc {
 
 class Context {
 public:
-    inline Context(const DeviceManager& deviceMgr, const CommandPoolManager& commandPoolMgr,
-                   const PipelineManager& pipelineMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                   const DescSetManager& descSetMgr, const QueueManager& queueMgr, const ExtentManager& extent);
+    inline Context(DeviceManager& deviceMgr, CommandPoolManager& commandPoolMgr, const PipelineManager& pipelineMgr,
+                   const PipelineLayoutManager& pipelineLayoutMgr, DescSetManager& descSetMgr, QueueManager& queueMgr,
+                   const ExtentManager& extent);
     inline ~Context() noexcept;
 
     inline void execute(const std::span<uint8_t> src, std::span<uint8_t> dst, BufferManager& bufferMgr);
 
 private:
     // FIXME: lots of UAF
-    const DeviceManager& deviceMgr_;
-    const CommandPoolManager& commandPoolMgr_;
+    DeviceManager& deviceMgr_;
+    CommandPoolManager& commandPoolMgr_;
     const PipelineManager& pipelineMgr_;
     const PipelineLayoutManager& pipelineLayoutMgr_;
-    const DescSetManager& descSetMgr_;
+    DescSetManager& descSetMgr_;
     ExtentManager extent_;
 
     const QueueManager& queueMgr_;
@@ -43,9 +43,9 @@ private:
     vk::Fence commandCompleteFence_;
 };
 
-Context::Context(const DeviceManager& deviceMgr, const CommandPoolManager& commandPoolMgr,
-                 const PipelineManager& pipelineMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                 const DescSetManager& descSetMgr, const QueueManager& queueMgr, const ExtentManager& extent)
+Context::Context(DeviceManager& deviceMgr, CommandPoolManager& commandPoolMgr, const PipelineManager& pipelineMgr,
+                 const PipelineLayoutManager& pipelineLayoutMgr, DescSetManager& descSetMgr, QueueManager& queueMgr,
+                 const ExtentManager& extent)
     : deviceMgr_(deviceMgr),
       commandPoolMgr_(commandPoolMgr),
       pipelineMgr_(pipelineMgr),
@@ -55,25 +55,25 @@ Context::Context(const DeviceManager& deviceMgr, const CommandPoolManager& comma
       queueMgr_(queueMgr),
       commandBufferMgr_(deviceMgr, commandPoolMgr) {
     vk::FenceCreateInfo fenceInfo;
-    const auto& device = deviceMgr.getDevice();
+    auto& device = deviceMgr.getDevice();
     commandCompleteFence_ = device.createFence(fenceInfo);
 }
 
 inline Context::~Context() noexcept {
-    const auto& device = deviceMgr_.getDevice();
+    auto& device = deviceMgr_.getDevice();
     device.destroyFence(commandCompleteFence_);
 }
 
 void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, BufferManager& bufferMgr) {
-    const auto& device = deviceMgr_.getDevice();
-    const auto& srcImageMgr = bufferMgr.getSrcImageMgr();
-    const auto& dstImageMgr = bufferMgr.getDstImageMgr();
-    const auto& srcImage = srcImageMgr.getImage();
-    const auto& dstImage = dstImageMgr.getImage();
+    auto& device = deviceMgr_.getDevice();
+    auto& srcImageMgr = bufferMgr.getSrcImageMgr();
+    auto& dstImageMgr = bufferMgr.getDstImageMgr();
+    auto& srcImage = srcImageMgr.getImage();
+    auto& dstImage = dstImageMgr.getImage();
 
     // Upload to Staging Buffer
     void* mapPtr;
-    const auto& uploadMapResult =
+    auto uploadMapResult =
         device.mapMemory(srcImageMgr.getStagingMemory(), 0, src.size(), (vk::MemoryMapFlags)0, &mapPtr);
     if constexpr (ENABLE_DEBUG) {
         if (uploadMapResult != vk::Result::eSuccess) {
@@ -84,7 +84,7 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
     device.unmapMemory(srcImageMgr.getStagingMemory());
 
     // Begin Command Buffer
-    const auto& cmdBuf = commandBufferMgr_.getCommandBuffers()[0];
+    auto cmdBuf = commandBufferMgr_.getCommandBuffers()[0];
     cmdBuf.reset();
 
     vk::CommandBufferBeginInfo cmdBufBeginInfo;
@@ -143,7 +143,7 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
 
     // Binding
     cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, pipelineMgr_.getPipeline());
-    const auto& descSet = descSetMgr_.getDescSet();
+    auto& descSet = descSetMgr_.getDescSet();
     cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayoutMgr_.getPipelineLayout(), 0, 1, &descSet,
                               0, nullptr);
 
@@ -182,11 +182,10 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
     vk::SubmitInfo submitInfo;
     submitInfo.setCommandBuffers(cmdBuf);
 
-    const auto& computeQueue = queueMgr_.getComputeQueue();
+    auto& computeQueue = queueMgr_.getComputeQueue();
     computeQueue.submit(submitInfo, commandCompleteFence_);
 
-    const auto& waitFenceResult =
-        device.waitForFences(commandCompleteFence_, true, std::numeric_limits<uint64_t>::max());
+    auto waitFenceResult = device.waitForFences(commandCompleteFence_, true, std::numeric_limits<uint64_t>::max());
     if constexpr (ENABLE_DEBUG) {
         if (waitFenceResult != vk::Result::eSuccess) {
             std::println(std::cerr, "Command fence timeout!");
@@ -195,7 +194,7 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
     device.resetFences(commandCompleteFence_);
 
     // Download from Staging Buffer
-    const auto& downloadMapResult =
+    auto downloadMapResult =
         device.mapMemory(dstImageMgr.getStagingMemory(), 0, extent_.size(), (vk::MemoryMapFlags)0, &mapPtr);
     if constexpr (ENABLE_DEBUG) {
         if (downloadMapResult != vk::Result::eSuccess) {
