@@ -11,6 +11,7 @@
 #include "vkc/command/pool.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device.hpp"
+#include "vkc/extent.hpp"
 #include "vkc/helper/defines.hpp"
 #include "vkc/image.hpp"
 #include "vkc/pipeline.hpp"
@@ -23,7 +24,7 @@ class Context {
 public:
     inline Context(const DeviceManager& deviceMgr, const CommandPoolManager& commandPoolMgr,
                    const PipelineManager& pipelineMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                   const DescSetManager& descSetMgr, const QueueManager& queueMgr, const vk::Extent2D& extent);
+                   const DescSetManager& descSetMgr, const QueueManager& queueMgr, const ExtentManager& extent);
     inline ~Context() noexcept;
 
     inline void execute(const std::span<uint8_t> src, std::span<uint8_t> dst, BufferManager& bufferMgr);
@@ -35,7 +36,7 @@ private:
     const PipelineManager& pipelineMgr_;
     const PipelineLayoutManager& pipelineLayoutMgr_;
     const DescSetManager& descSetMgr_;
-    vk::Extent2D extent_;
+    ExtentManager extent_;
 
     const QueueManager& queueMgr_;
     CommandBufferManager commandBufferMgr_;
@@ -44,7 +45,7 @@ private:
 
 Context::Context(const DeviceManager& deviceMgr, const CommandPoolManager& commandPoolMgr,
                  const PipelineManager& pipelineMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                 const DescSetManager& descSetMgr, const QueueManager& queueMgr, const vk::Extent2D& extent)
+                 const DescSetManager& descSetMgr, const QueueManager& queueMgr, const ExtentManager& extent)
     : deviceMgr_(deviceMgr),
       commandPoolMgr_(commandPoolMgr),
       pipelineMgr_(pipelineMgr),
@@ -110,7 +111,7 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
     copyRegion.setImageSubresource(subresourceLayers);
-    copyRegion.setImageExtent({extent_.width, extent_.height, 1});
+    copyRegion.setImageExtent(extent_.extent3D());
 
     cmdBuf.copyBufferToImage(bufferMgr.srcImageMgr_.getStagingBuffer(), bufferMgr.srcImageMgr_.getImage(),
                              vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
@@ -144,8 +145,8 @@ void Context::execute(const std::span<uint8_t> src, std::span<uint8_t> dst, Buff
     cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayoutMgr_.getPipelineLayout(), 0, 1, &descSet,
                               0, nullptr);
 
-    uint32_t groupSizeX = (extent_.width + 15) / 16;
-    uint32_t groupSizeY = (extent_.height + 15) / 16;
+    uint32_t groupSizeX = (extent_.width() + 15) / 16;
+    uint32_t groupSizeY = (extent_.height() + 15) / 16;
     cmdBuf.dispatch(groupSizeX, groupSizeY, 1);
 
     // Download to Staging Buffer

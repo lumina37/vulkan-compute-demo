@@ -1,5 +1,4 @@
 #include <array>
-#include <print>
 #include <vector>
 
 #include <stb_image.h>
@@ -8,11 +7,11 @@
 #include "vkc.hpp"
 
 int main(int argc, char** argv) {
-    int width, height, channels;
-    constexpr int comps = 1;
-    unsigned char* srcImage = stbi_load("in.png", &width, &height, &channels, comps);
+    int width, height, oriComps;
+    constexpr int comps = 4;
+    unsigned char* srcImage = stbi_load("in.png", &width, &height, &oriComps, comps);
 
-    vk::Extent2D extent{(uint32_t)width, (uint32_t)height};
+    vkc::ExtentManager extent{width, height, 4};
 
     vkc::InstanceManager instMgr;
     vkc::PhyDeviceManager phyDeviceMgr{instMgr};
@@ -30,13 +29,13 @@ int main(int argc, char** argv) {
     vkc::DescSetManager descSetMgr{deviceMgr, descSetLayoutMgr, descPoolMgr};
     vkc::PipelineLayoutManager pipelineLayoutMgr{deviceMgr, descSetLayoutMgr};
 
-    vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, extent, computeShaderMgr};
+    vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, computeShaderMgr};
     vkc::CommandPoolManager commandPoolMgr{deviceMgr, queueFamilyMgr};
 
     vkc::Context context{deviceMgr, commandPoolMgr, pipelineMgr, pipelineLayoutMgr, descSetMgr, queueMgr, extent};
 
-    std::span src{srcImage, (size_t)width * height};
-    std::vector<uint8_t> dst(width * height);
+    std::span src{srcImage, extent.size()};
+    std::vector<uint8_t> dst(extent.size());
 
     descSetMgr.updateDescSets(samplerMgr, bufferMgr.srcImageMgr_, bufferMgr.dstImageMgr_);
 

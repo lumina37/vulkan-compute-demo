@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
+#include "vkc/extent.hpp"
 #include "vkc/helper/defines.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/shader.hpp"
@@ -15,7 +16,7 @@ namespace vkc {
 class PipelineManager {
 public:
     inline PipelineManager(const DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                           const vk::Extent2D& extent, const ShaderManager& computeShaderMgr);
+                           const ShaderManager& computeShaderMgr);
     inline ~PipelineManager() noexcept;
 
     template <typename Self>
@@ -29,7 +30,7 @@ private:
 };
 
 PipelineManager::PipelineManager(const DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                                 const vk::Extent2D& extent, const ShaderManager& computeShaderMgr)
+                                 const ShaderManager& computeShaderMgr)
     : deviceMgr_(deviceMgr) {
     vk::ComputePipelineCreateInfo pipelineInfo;
 

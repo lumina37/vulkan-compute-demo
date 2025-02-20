@@ -5,6 +5,7 @@
 #include "vkc/context.hpp"
 #include "vkc/descriptor.hpp"
 #include "vkc/device.hpp"
+#include "vkc/extent.hpp"
 #include "vkc/image.hpp"
 #include "vkc/instance.hpp"
 #include "vkc/pipeline.hpp"

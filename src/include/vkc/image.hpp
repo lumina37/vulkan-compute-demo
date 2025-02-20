@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device.hpp"
+#include "vkc/extent.hpp"
 #include "vkc/helper/memory.hpp"
 
 namespace vkc {
@@ -10,7 +11,8 @@ namespace vkc {
 class ImageManager {
 public:
     inline ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
-                        const vk::Extent2D& extent, const vk::ImageUsageFlags usage, const vk::DescriptorType descType);
+                        const ExtentManager& extent, const vk::ImageUsageFlags usage,
+                        const vk::DescriptorType descType);
     inline ~ImageManager() noexcept;
 
     template <typename Self>
@@ -48,7 +50,7 @@ private:
 };
 
 ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
-                           const vk::Extent2D& extent, const vk::ImageUsageFlags usage,
+                           const ExtentManager& extent, const vk::ImageUsageFlags usage,
                            const vk::DescriptorType descType)
     : deviceMgr_(deviceMgr), descType_(descType) {
     const auto& device = deviceMgr.getDevice();
@@ -56,8 +58,8 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceMan
     // Image
     vk::ImageCreateInfo imageInfo;
     imageInfo.setImageType(vk::ImageType::e2D);
-    imageInfo.setFormat(vk::Format::eR8Unorm);
-    imageInfo.setExtent({extent.width, extent.height, 1});
+    imageInfo.setFormat(extent.formatUnorm());
+    imageInfo.setExtent(extent.extent3D());
     imageInfo.setMipLevels(1);
     imageInfo.setArrayLayers(1);
     imageInfo.setSamples(vk::SampleCountFlagBits::e1);
@@ -89,7 +91,7 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceMan
     vk::ImageViewCreateInfo imageViewInfo;
     imageViewInfo.setImage(image_);
     imageViewInfo.setViewType(vk::ImageViewType::e2D);
-    imageViewInfo.setFormat(vk::Format::eR8Unorm);
+    imageViewInfo.setFormat(extent.formatUnorm());
     imageViewInfo.setSubresourceRange(subresourceRange);
     imageView_ = device.createImageView(imageViewInfo);
 
@@ -100,7 +102,7 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceMan
     } else {
         bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
     }
-    createBuffer(physicalDevice, device, extent.width * extent.height, bufferUsage,
+    createBuffer(physicalDevice, device, extent.size(), bufferUsage,
                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer_,
                  stagingMemory_);
 
