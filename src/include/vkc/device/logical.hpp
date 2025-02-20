@@ -1,7 +1,6 @@
 #pragma once
 
 #include <utility>
-#include <vector>
 
 #include <vulkan/vulkan.hpp>
 
@@ -25,19 +24,16 @@ private:
 };
 
 DeviceManager::DeviceManager(const PhyDeviceManager& phyDeviceMgr, const QueueFamilyManager& queueFamilyMgr) {
-    const auto& phyDevice = phyDeviceMgr.getPhysicalDevice();
-
     constexpr float priority = 1.0f;
-    std::vector<vk::DeviceQueueCreateInfo> deviceQueueInfos;
-    vk::DeviceQueueCreateInfo graphicsQueueInfo;
-    graphicsQueueInfo.setQueuePriorities(priority);
-    graphicsQueueInfo.setQueueFamilyIndex(queueFamilyMgr.getComputeQFamilyIndex());
-    graphicsQueueInfo.setQueueCount(1);
-    deviceQueueInfos.push_back(graphicsQueueInfo);
+    vk::DeviceQueueCreateInfo computeQueueInfo;
+    computeQueueInfo.setQueuePriorities(priority);
+    computeQueueInfo.setQueueFamilyIndex(queueFamilyMgr.getComputeQFamilyIndex());
+    computeQueueInfo.setQueueCount(1);
 
     vk::DeviceCreateInfo deviceInfo;
-    deviceInfo.setQueueCreateInfos(deviceQueueInfos);
+    deviceInfo.setQueueCreateInfos(computeQueueInfo);
 
+    const auto& phyDevice = phyDeviceMgr.getPhysicalDevice();
     device_ = phyDevice.createDevice(deviceInfo);
 }
 

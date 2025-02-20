@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
 #include <iostream>
 #include <print>
 
@@ -39,6 +41,21 @@ PipelineManager::PipelineManager(const DeviceManager& deviceMgr, const PipelineL
     computeShaderStageInfo.setStage(vk::ShaderStageFlagBits::eCompute);
     computeShaderStageInfo.setModule(computeShaderMgr.getShaderModule());
     computeShaderStageInfo.setPName("main");
+
+    // Group Size
+    constexpr std::array specializationEntries{
+        vk::SpecializationMapEntry{0, 0 * sizeof(uint32_t), sizeof(uint32_t)},
+        vk::SpecializationMapEntry{1, 1 * sizeof(uint32_t), sizeof(uint32_t)},
+        vk::SpecializationMapEntry{2, 2 * sizeof(uint32_t), sizeof(uint32_t)},
+    };
+    constexpr std::array<uint32_t, 3> specializationData{16, 16, 1};
+
+    vk::SpecializationInfo specializationInfo;
+    specializationInfo.setMapEntries(specializationEntries);
+    specializationInfo.setDataSize(specializationData.size() * sizeof(uint32_t));
+    specializationInfo.setPData(specializationData.data());
+    computeShaderStageInfo.setPSpecializationInfo(&specializationInfo);
+
     pipelineInfo.setStage(computeShaderStageInfo);
 
     // Pipeline Layout

@@ -13,15 +13,24 @@ public:
     inline BufferManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
                          const ExtentManager& extent);
 
-    vk::DeviceSize size_;
+    template <typename Self>
+    [[nodiscard]] auto&& getSrcImageMgr(this Self& self) noexcept {
+        return std::forward_like<Self>(self).srcImageMgr_;
+    }
+
+    template <typename Self>
+    [[nodiscard]] auto&& getDstImageMgr(this Self& self) noexcept {
+        return std::forward_like<Self>(self).dstImageMgr_;
+    }
+
+private:
     ImageManager srcImageMgr_;
     ImageManager dstImageMgr_;
 };
 
 inline BufferManager::BufferManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
                                     const ExtentManager& extent)
-    : size_(extent.size()),
-      srcImageMgr_(phyDeviceMgr, deviceMgr, extent,
+    : srcImageMgr_(phyDeviceMgr, deviceMgr, extent,
                    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
                    vk::DescriptorType::eSampledImage),
       dstImageMgr_(phyDeviceMgr, deviceMgr, extent,

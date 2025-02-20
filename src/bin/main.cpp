@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     vkc::SamplerManager samplerMgr{deviceMgr};
     vkc::BufferManager bufferMgr{phyDeviceMgr, deviceMgr, extent};
     std::array descSetLayoutBindings =
-        genDescSetLayoutBindings(samplerMgr, bufferMgr.srcImageMgr_, bufferMgr.dstImageMgr_);
+        genDescSetLayoutBindings(samplerMgr, bufferMgr.getSrcImageMgr(), bufferMgr.getDstImageMgr());
     vkc::DescPoolManager descPoolMgr{deviceMgr};
     vkc::DescSetLayoutManager descSetLayoutMgr{deviceMgr, descSetLayoutBindings};
     vkc::DescSetManager descSetMgr{deviceMgr, descSetLayoutMgr, descPoolMgr};
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     std::span src{srcImage, extent.size()};
     std::vector<uint8_t> dst(extent.size());
 
-    descSetMgr.updateDescSets(samplerMgr, bufferMgr.srcImageMgr_, bufferMgr.dstImageMgr_);
+    descSetMgr.updateDescSets(samplerMgr, bufferMgr.getSrcImageMgr(), bufferMgr.getDstImageMgr());
 
     context.execute(src, dst, bufferMgr);
 
