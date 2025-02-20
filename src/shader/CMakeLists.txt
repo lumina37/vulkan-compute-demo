@@ -9,7 +9,9 @@ function(vkc_add_shader src)
     )
 endfunction()
 
-set(_VKC_SHADERS addone.comp)
+set(_VKC_SHADERS
+        addone.comp
+)
 foreach (_VKC_SHADER ${_VKC_SHADERS})
     vkc_add_shader(${_VKC_SHADER})
 endforeach ()

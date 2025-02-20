@@ -10,7 +10,7 @@ namespace vkc {
 class ImageManager {
 public:
     inline ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
-                        const vk::Extent2D& extent, const vk::ImageUsageFlags usage);
+                        const vk::Extent2D& extent, const vk::ImageUsageFlags usage, const vk::DescriptorType descType);
     inline ~ImageManager() noexcept;
 
     template <typename Self>
@@ -33,10 +33,12 @@ public:
         return std::forward_like<Self>(self).stagingBuffer_;
     }
 
-    [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
+    [[nodiscard]] inline vk::DescriptorType getDescType() const noexcept { return descType_; }
+    [[nodiscard]] inline vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
 
 private:
     const DeviceManager& deviceMgr_;  // FIXME: UAF
+    vk::DescriptorType descType_;
     vk::Image image_;
     vk::DeviceMemory imageMemory_;
     vk::ImageView imageView_;
@@ -46,14 +48,15 @@ private:
 };
 
 ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
-                           const vk::Extent2D& extent, const vk::ImageUsageFlags usage)
-    : deviceMgr_(deviceMgr) {
+                           const vk::Extent2D& extent, const vk::ImageUsageFlags usage,
+                           const vk::DescriptorType descType)
+    : deviceMgr_(deviceMgr), descType_(descType) {
     const auto& device = deviceMgr.getDevice();
 
     // Image
     vk::ImageCreateInfo imageInfo;
     imageInfo.setImageType(vk::ImageType::e2D);
-    imageInfo.setFormat(vk::Format::eR8Uint);
+    imageInfo.setFormat(vk::Format::eR8Unorm);
     imageInfo.setExtent({extent.width, extent.height, 1});
     imageInfo.setMipLevels(1);
     imageInfo.setArrayLayers(1);
@@ -86,7 +89,7 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceMan
     vk::ImageViewCreateInfo imageViewInfo;
     imageViewInfo.setImage(image_);
     imageViewInfo.setViewType(vk::ImageViewType::e2D);
-    imageViewInfo.setFormat(vk::Format::eR8Uint);
+    imageViewInfo.setFormat(vk::Format::eR8Unorm);
     imageViewInfo.setSubresourceRange(subresourceRange);
     imageView_ = device.createImageView(imageViewInfo);
 
@@ -115,10 +118,10 @@ ImageManager::~ImageManager() noexcept {
     device.freeMemory(stagingMemory_);
 }
 
-inline vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {
+vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
-    writeDescSet.setDescriptorType(vk::DescriptorType::eStorageImage);
+    writeDescSet.setDescriptorType(descType_);
     writeDescSet.setImageInfo(imageInfo_);
     return writeDescSet;
 }

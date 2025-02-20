@@ -5,8 +5,15 @@
 #include <vulkan/vulkan.hpp>
 
 template <typename Self>
-concept CSupDraftWriteDescSet = requires {
+concept CSupportDraftWriteDescSet = requires {
     requires requires(const Self& self) {
-        { self.draftWriteDescSet() } -> std::same_as<vk::WriteDescriptorSet>;
+        { self.draftWriteDescSet() } noexcept -> std::same_as<vk::WriteDescriptorSet>;
+    };
+};
+
+template <typename Self>
+concept CSupportGetDescType = requires {
+    requires requires(const Self& self) {
+        { self.getDescType() } noexcept -> std::same_as<vk::DescriptorType>;
     };
 };

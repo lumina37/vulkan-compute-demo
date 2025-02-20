@@ -27,8 +27,8 @@ public:
         return std::forward_like<Self>(self).descSet_;
     }
 
-    template <CSupDraftWriteDescSet... TSupDraftWriteDescSet>
-    inline void updateDescSets(const TSupDraftWriteDescSet&... mgrs);
+    template <CSupportDraftWriteDescSet... TManager>
+    inline void updateDescSets(const TManager&... mgrs);
 
 private:
     const DeviceManager& deviceMgr_;      // FIXME: UAF
@@ -46,14 +46,15 @@ DescSetManager::DescSetManager(const DeviceManager& deviceMgr, const DescSetLayo
     descSetAllocInfo.setSetLayouts(descSetLayout);
 
     const auto& device = deviceMgr.getDevice();
-    descSet_ = device.allocateDescriptorSets(descSetAllocInfo)[0];
+    const auto& descSets = device.allocateDescriptorSets(descSetAllocInfo);
+    descSet_ = descSets[0];
 }
 
 inline DescSetManager::~DescSetManager() noexcept {
     // TODO: maybe free sth. here
 }
 
-template <CSupDraftWriteDescSet... TManager>
+template <CSupportDraftWriteDescSet... TManager>
 void DescSetManager::updateDescSets(const TManager&... mgrs) {
     const auto& device = deviceMgr_.getDevice();
 

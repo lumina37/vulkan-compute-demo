@@ -1,29 +1,28 @@
 #pragma once
 
-#include <utility>
+#include <ranges>
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkc/descriptor/concepts.hpp"
+
 namespace vkc {
 
-class DescSetLayoutBindingManager {
-public:
-    inline DescSetLayoutBindingManager(const int index, const vk::DescriptorType type) noexcept;
+template <CSupportGetDescType... TManager>
+[[nodiscard]] static inline auto genDescSetLayoutBindings(const TManager&... mgrs) {
+    std::array descSetLayoutBindings{[](const auto& mgr) {
+        vk::DescriptorSetLayoutBinding binding;
+        binding.setDescriptorCount(1);
+        binding.setDescriptorType(mgr.getDescType());
+        binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
+        return binding;
+    }(mgrs)...};
 
-    template <typename Self>
-    [[nodiscard]] auto&& getBinding(this Self& self) noexcept {
-        return std::forward_like<Self>(self).binding_;
+    for (auto [index, binding] : rgs::views::enumerate(descSetLayoutBindings)) {
+        binding.setBinding(index);
     }
 
-private:
-    vk::DescriptorSetLayoutBinding binding_;
-};
-
-DescSetLayoutBindingManager::DescSetLayoutBindingManager(const int index, const vk::DescriptorType type) noexcept {
-    binding_.setBinding(index);
-    binding_.setDescriptorCount(1);
-    binding_.setDescriptorType(type);
-    binding_.setStageFlags(vk::ShaderStageFlagBits::eCompute);
+    return descSetLayoutBindings;
 }
 
 }  // namespace vkc

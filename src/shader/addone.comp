@@ -2,18 +2,19 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(binding = 0, r8ui) uniform readonly uimage2D inputImage;
-layout(binding = 1, r8ui) uniform writeonly uimage2D outputImage;
+layout(binding = 0) uniform sampler samp;
+layout(binding = 1) uniform texture2D tex;
+layout(binding = 2, r8) uniform writeonly image2D outputImage;
 
 void main() {
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
 
-    ivec2 imageSize = imageSize(inputImage);
+    ivec2 imageSize = imageSize(outputImage);
     if (coord.x >= imageSize.x || coord.y >= imageSize.y) {
         return;
     }
 
-    uint value = imageLoad(inputImage, coord).x;
-    value = (value + 128u) % 256u;
-    imageStore(outputImage, coord, uvec4(value, 0, 0, 0));
+    vec2 sampleCoord = vec2((float(coord.x) + 0.5f) / imageSize.x, (float(coord.y) + 0.5f) / imageSize.y);
+    vec4 pixel = texture(sampler2D(tex, samp), sampleCoord);
+    imageStore(outputImage, coord, pixel);
 }

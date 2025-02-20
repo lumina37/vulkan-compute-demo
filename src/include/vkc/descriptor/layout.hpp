@@ -1,9 +1,7 @@
 #pragma once
 
-#include <ranges>
 #include <span>
 #include <utility>
-#include <vector>
 
 #include <vulkan/vulkan.hpp>
 
@@ -12,12 +10,10 @@
 
 namespace vkc {
 
-namespace rgs = std::ranges;
-
 class DescSetLayoutManager {
 public:
     inline DescSetLayoutManager(const DeviceManager& deviceMgr,
-                                const std::span<DescSetLayoutBindingManager> bindingMgrs);
+                                const std::span<vk::DescriptorSetLayoutBinding> bindings);
     inline ~DescSetLayoutManager() noexcept;
 
     template <typename Self>
@@ -31,13 +27,9 @@ private:
 };
 
 DescSetLayoutManager::DescSetLayoutManager(const DeviceManager& deviceMgr,
-                                           const std::span<DescSetLayoutBindingManager> bindingMgrs)
+                                           const std::span<vk::DescriptorSetLayoutBinding> bindings)
     : deviceMgr_(deviceMgr) {
     vk::DescriptorSetLayoutCreateInfo layoutInfo;
-    const auto& bindings =
-        bindingMgrs |
-        rgs::views::transform([](const DescSetLayoutBindingManager& bindingMgr) { return bindingMgr.getBinding(); }) |
-        rgs::to<std::vector>();
     layoutInfo.setBindings(bindings);
 
     const auto& device = deviceMgr.getDevice();

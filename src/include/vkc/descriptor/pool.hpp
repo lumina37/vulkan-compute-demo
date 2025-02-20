@@ -24,13 +24,20 @@ private:
 };
 
 DescPoolManager::DescPoolManager(const DeviceManager& deviceMgr) : deviceMgr_(deviceMgr) {
-    vk::DescriptorPoolSize poolSize;
-    poolSize.setType(vk::DescriptorType::eStorageImage);
-    poolSize.setDescriptorCount(2);
+    vk::DescriptorPoolSize samplerPoolSize;
+    samplerPoolSize.setType(vk::DescriptorType::eSampler);
+    samplerPoolSize.setDescriptorCount(4);
+    vk::DescriptorPoolSize imagePoolSize;
+    imagePoolSize.setType(vk::DescriptorType::eStorageImage);
+    imagePoolSize.setDescriptorCount(4);
+    vk::DescriptorPoolSize texturePoolSize;
+    texturePoolSize.setType(vk::DescriptorType::eSampledImage);
+    texturePoolSize.setDescriptorCount(4);
+    const std::array poolSizes{samplerPoolSize, imagePoolSize, texturePoolSize};
 
     vk::DescriptorPoolCreateInfo poolInfo;
     poolInfo.setMaxSets(1);
-    poolInfo.setPoolSizes(poolSize);
+    poolInfo.setPoolSizes(poolSizes);
 
     const auto& device = deviceMgr.getDevice();
     descPool_ = device.createDescriptorPool(poolInfo);
