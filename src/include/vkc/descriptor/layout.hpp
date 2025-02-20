@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ranges>
 #include <span>
 #include <utility>
 #include <vector>
@@ -10,6 +11,8 @@
 #include "vkc/device/logical.hpp"
 
 namespace vkc {
+
+namespace rgs = std::ranges;
 
 class DescSetLayoutManager {
 public:
@@ -33,8 +36,8 @@ DescSetLayoutManager::DescSetLayoutManager(const DeviceManager& deviceMgr,
     vk::DescriptorSetLayoutCreateInfo layoutInfo;
     const auto& bindings =
         bindingMgrs |
-        std::views::transform([](const DescSetLayoutBindingManager& bindingMgr) { return bindingMgr.getBinding(); }) |
-        std::ranges::to<std::vector>();
+        rgs::views::transform([](const DescSetLayoutBindingManager& bindingMgr) { return bindingMgr.getBinding(); }) |
+        rgs::to<std::vector>();
     layoutInfo.setBindings(bindings);
 
     const auto& device = deviceMgr.getDevice();

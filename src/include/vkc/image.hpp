@@ -33,6 +33,8 @@ public:
         return std::forward_like<Self>(self).stagingBuffer_;
     }
 
+    [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
+
 private:
     const DeviceManager& deviceMgr_;  // FIXME: UAF
     vk::Image image_;
@@ -40,6 +42,7 @@ private:
     vk::ImageView imageView_;
     vk::DeviceMemory stagingMemory_;
     vk::Buffer stagingBuffer_;
+    vk::DescriptorImageInfo imageInfo_;
 };
 
 ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceManager& deviceMgr,
@@ -97,6 +100,10 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, const DeviceMan
     createBuffer(physicalDevice, device, extent.width * extent.height, bufferUsage,
                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer_,
                  stagingMemory_);
+
+    // Image Info
+    imageInfo_.setImageView(imageView_);
+    imageInfo_.setImageLayout(vk::ImageLayout::eGeneral);
 }
 
 ImageManager::~ImageManager() noexcept {
@@ -106,6 +113,14 @@ ImageManager::~ImageManager() noexcept {
     device.freeMemory(imageMemory_);
     device.destroyBuffer(stagingBuffer_);
     device.freeMemory(stagingMemory_);
+}
+
+inline vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {
+    vk::WriteDescriptorSet writeDescSet;
+    writeDescSet.setDescriptorCount(1);
+    writeDescSet.setDescriptorType(vk::DescriptorType::eStorageImage);
+    writeDescSet.setImageInfo(imageInfo_);
+    return writeDescSet;
 }
 
 }  // namespace vkc

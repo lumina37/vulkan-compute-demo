@@ -1,17 +1,20 @@
 #pragma once
 
 #include <array>
+#include <ranges>
 #include <utility>
-#include <vector>
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkc/descriptor/concepts.hpp"
 #include "vkc/descriptor/layout.hpp"
 #include "vkc/descriptor/pool.hpp"
 #include "vkc/device/logical.hpp"
 #include "vkc/image.hpp"
 
 namespace vkc {
+
+namespace rgs = std::ranges;
 
 class DescSetManager {
 public:
@@ -21,15 +24,16 @@ public:
 
     template <typename Self>
     [[nodiscard]] auto&& getDescSet(this Self& self) noexcept {
-        return std::forward_like<Self>(self).descSets_[0];
+        return std::forward_like<Self>(self).descSet_;
     }
 
-    inline void updateDescSets(const ImageManager& srcImageMgr, const ImageManager& dstImageMgr);
+    template <CSupDraftWriteDescSet... TSupDraftWriteDescSet>
+    inline void updateDescSets(const TSupDraftWriteDescSet&... mgrs);
 
 private:
     const DeviceManager& deviceMgr_;      // FIXME: UAF
     const DescPoolManager& descPoolMgr_;  // FIXME: UAF
-    std::vector<vk::DescriptorSet> descSets_;
+    vk::DescriptorSet descSet_;
 };
 
 DescSetManager::DescSetManager(const DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
@@ -42,40 +46,23 @@ DescSetManager::DescSetManager(const DeviceManager& deviceMgr, const DescSetLayo
     descSetAllocInfo.setSetLayouts(descSetLayout);
 
     const auto& device = deviceMgr.getDevice();
-    descSets_ = device.allocateDescriptorSets(descSetAllocInfo);
+    descSet_ = device.allocateDescriptorSets(descSetAllocInfo)[0];
 }
 
 inline DescSetManager::~DescSetManager() noexcept {
     // TODO: maybe free sth. here
 }
 
-void DescSetManager::updateDescSets(const ImageManager& srcImageMgr, const ImageManager& dstImageMgr) {
-    // Src
-    vk::DescriptorImageInfo srcImageInfo;
-    srcImageInfo.setImageView(srcImageMgr.getImageView());
-    srcImageInfo.setImageLayout(vk::ImageLayout::eGeneral);
-
-    vk::WriteDescriptorSet srcWriteDescSet;
-    srcWriteDescSet.setDstSet(getDescSet());
-    srcWriteDescSet.setDstBinding(0);
-    srcWriteDescSet.setDescriptorCount(1);
-    srcWriteDescSet.setDescriptorType(vk::DescriptorType::eStorageImage);
-    srcWriteDescSet.setImageInfo(srcImageInfo);
-
-    // Dst
-    vk::DescriptorImageInfo dstImageInfo;
-    dstImageInfo.setImageView(dstImageMgr.getImageView());
-    dstImageInfo.setImageLayout(vk::ImageLayout::eGeneral);
-
-    vk::WriteDescriptorSet dstWriteDescSet;
-    dstWriteDescSet.setDstSet(getDescSet());
-    dstWriteDescSet.setDstBinding(1);
-    dstWriteDescSet.setDescriptorCount(1);
-    dstWriteDescSet.setDescriptorType(vk::DescriptorType::eStorageImage);
-    dstWriteDescSet.setImageInfo(dstImageInfo);
-
+template <CSupDraftWriteDescSet... TManager>
+void DescSetManager::updateDescSets(const TManager&... mgrs) {
     const auto& device = deviceMgr_.getDevice();
-    std::array writeDescSets{srcWriteDescSet, dstWriteDescSet};
+
+    std::array writeDescSets{mgrs.draftWriteDescSet()...};
+    for (auto [index, writeDescSet] : rgs::views::enumerate(writeDescSets)) {
+        writeDescSet.setDstSet(getDescSet());
+        writeDescSet.setDstBinding(index);
+    }
+
     device.updateDescriptorSets(writeDescSets, nullptr);
 }
 
