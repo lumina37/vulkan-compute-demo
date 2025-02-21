@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstring>
 #include <span>
 #include <utility>
 
@@ -148,7 +149,7 @@ inline vk::Result ImageManager::uploadFrom(const std::span<std::byte> data) {
     if (uploadMapResult != vk::Result::eSuccess) {
         return uploadMapResult;
     }
-    memcpy(mapPtr, data.data(), data.size());
+    std::memcpy(mapPtr, data.data(), data.size());
     device.unmapMemory(stagingMemory_);
 
     return vk::Result::eSuccess;
@@ -163,7 +164,7 @@ inline vk::Result ImageManager::downloadTo(std::span<std::byte> data) {
     if (downloadMapResult != vk::Result::eSuccess) {
         return downloadMapResult;
     }
-    memcpy(data.data(), mapPtr, data.size());
+    std::memcpy(data.data(), mapPtr, data.size());
     device.unmapMemory(stagingMemory_);
 
     return vk::Result::eSuccess;
