@@ -56,14 +56,20 @@ inline DescSetManager::~DescSetManager() noexcept {
 
 template <CSupportDraftWriteDescSet... TManager>
 void DescSetManager::updateDescSets(const TManager&... mgrs) {
-    auto& device = deviceMgr_.getDevice();
-
-    std::array writeDescSets{mgrs.draftWriteDescSet()...};
-    for (auto [index, writeDescSet] : rgs::views::enumerate(writeDescSets)) {
+    const auto genWriteDescSet = [this](const auto& mgr, size_t index) {
+        vk::WriteDescriptorSet writeDescSet = mgr.draftWriteDescSet();
         writeDescSet.setDstSet(getDescSet());
         writeDescSet.setDstBinding(index);
-    }
+        return writeDescSet;
+    };
 
+    const auto genWriteDescSetHelper = [&]<size_t... Is>(std::index_sequence<Is...>) {
+        return std::array{genWriteDescSet(mgrs, Is)...};
+    };
+
+    const std::array writeDescSets{genWriteDescSetHelper(std::index_sequence_for<TManager...>{})};
+
+    auto& device = deviceMgr_.getDevice();
     device.updateDescriptorSets(writeDescSets, nullptr);
 }
 

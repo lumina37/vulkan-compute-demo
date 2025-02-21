@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ranges>
+#include <cstddef>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
@@ -10,19 +11,20 @@ namespace vkc {
 
 template <CSupportGetDescType... TManager>
 [[nodiscard]] static constexpr inline auto genDescSetLayoutBindings(const TManager&... mgrs) {
-    std::array descSetLayoutBindings{[](const auto& mgr) {
+    const auto genDescSetLayoutBinding = [](const auto& mgr, size_t index) {
         vk::DescriptorSetLayoutBinding binding;
+        binding.setBinding(index);
         binding.setDescriptorCount(1);
         binding.setDescriptorType(mgr.getDescType());
         binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
         return binding;
-    }(mgrs)...};
+    };
 
-    for (auto [index, binding] : rgs::views::enumerate(descSetLayoutBindings)) {
-        binding.setBinding(index);
-    }
+    const auto genDescSetLayoutBindingHelper = [&]<size_t... Is>(std::index_sequence<Is...>) {
+        return std::array{genDescSetLayoutBinding(mgrs, Is)...};
+    };
 
-    return descSetLayoutBindings;
+    return genDescSetLayoutBindingHelper(std::index_sequence_for<TManager...>{});
 }
 
 }  // namespace vkc

@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     descSetMgr.updateDescSets(samplerMgr, bufferMgr.getSrcImageMgr(), bufferMgr.getDstImageMgr());
 
     // Pipeline
-    vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/addone.comp.spv"};
+    vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/boxFilter.comp.spv"};
     vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, computeShaderMgr};
 
     // Command Buffer
