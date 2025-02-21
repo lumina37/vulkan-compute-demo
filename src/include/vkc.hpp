@@ -2,7 +2,6 @@
 
 #include "vkc/buffer.hpp"
 #include "vkc/command.hpp"
-#include "vkc/context.hpp"
 #include "vkc/descriptor.hpp"
 #include "vkc/device.hpp"
 #include "vkc/extent.hpp"

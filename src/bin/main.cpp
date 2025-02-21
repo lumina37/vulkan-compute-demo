@@ -1,4 +1,5 @@
 #include <array>
+#include <cstddef>
 #include <vector>
 
 #include <stb_image.h>
@@ -9,38 +10,58 @@
 int main(int argc, char** argv) {
     int width, height, oriComps;
     constexpr int comps = 4;
-    unsigned char* srcImage = stbi_load("in.png", &width, &height, &oriComps, comps);
+    auto* srcImage = (std::byte*)stbi_load("in.png", &width, &height, &oriComps, comps);
 
     vkc::ExtentManager extent{width, height, 4};
 
+    // Device
     vkc::InstanceManager instMgr;
     vkc::PhyDeviceManager phyDeviceMgr{instMgr};
     vkc::QueueFamilyManager queueFamilyMgr{phyDeviceMgr};
     vkc::DeviceManager deviceMgr{phyDeviceMgr, queueFamilyMgr};
-    vkc::QueueManager queueMgr{deviceMgr, queueFamilyMgr};
-    vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/addone.comp.spv"};
 
+    // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{deviceMgr};
     vkc::BufferManager bufferMgr{phyDeviceMgr, deviceMgr, extent};
     std::array descSetLayoutBindings =
         genDescSetLayoutBindings(samplerMgr, bufferMgr.getSrcImageMgr(), bufferMgr.getDstImageMgr());
     vkc::DescPoolManager descPoolMgr{deviceMgr};
     vkc::DescSetLayoutManager descSetLayoutMgr{deviceMgr, descSetLayoutBindings};
-    vkc::DescSetManager descSetMgr{deviceMgr, descSetLayoutMgr, descPoolMgr};
     vkc::PipelineLayoutManager pipelineLayoutMgr{deviceMgr, descSetLayoutMgr};
 
-    vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, computeShaderMgr};
-    vkc::CommandPoolManager commandPoolMgr{deviceMgr, queueFamilyMgr};
-
-    vkc::Context context{deviceMgr, commandPoolMgr, pipelineMgr, pipelineLayoutMgr, descSetMgr, queueMgr, extent};
-
-    std::span src{srcImage, extent.size()};
-    std::vector<uint8_t> dst(extent.size());
-
+    vkc::DescSetManager descSetMgr{deviceMgr, descSetLayoutMgr, descPoolMgr};
     descSetMgr.updateDescSets(samplerMgr, bufferMgr.getSrcImageMgr(), bufferMgr.getDstImageMgr());
 
-    context.execute(src, dst, bufferMgr);
+    // Pipeline
+    vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/addone.comp.spv"};
+    vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, computeShaderMgr};
 
-    stbi_image_free(srcImage);
+    // Command Buffer
+    vkc::QueueManager queueMgr{deviceMgr, queueFamilyMgr};
+    vkc::CommandPoolManager commandPoolMgr{deviceMgr, queueFamilyMgr};
+    vkc::CommandBufferManager commandBufferMgr{deviceMgr, commandPoolMgr};
+
+    commandBufferMgr.begin();
+    commandBufferMgr.bindPipeline(pipelineMgr);
+    commandBufferMgr.bindDescSet(descSetMgr, pipelineLayoutMgr);
+    commandBufferMgr.recordUpload(bufferMgr.getSrcImageMgr());
+    commandBufferMgr.recordDstLayoutTrans(bufferMgr.getDstImageMgr());
+    commandBufferMgr.recordDispatch(extent);
+    commandBufferMgr.recordDownload(bufferMgr.getDstImageMgr());
+    commandBufferMgr.end();
+
+    // Upload Data
+    std::span src{srcImage, extent.size()};
+    bufferMgr.getSrcImageMgr().uploadFrom(src);
+
+    // Actual Execution
+    commandBufferMgr.submitTo(queueMgr);
+    commandBufferMgr.waitFence();
+
+    // Download Data
+    std::vector<std::byte> dst(extent.size());
+    bufferMgr.getDstImageMgr().downloadTo(dst);
+
     stbi_write_png("out.png", width, height, comps, dst.data(), 0);
+    stbi_image_free(srcImage);
 }

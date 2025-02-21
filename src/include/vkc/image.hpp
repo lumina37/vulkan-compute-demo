@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstddef>
+#include <span>
+#include <utility>
+
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device.hpp"
@@ -13,6 +17,11 @@ public:
     inline ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
                         const vk::ImageUsageFlags usage, const vk::DescriptorType descType);
     inline ~ImageManager() noexcept;
+
+    template <typename Self>
+    [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {
+        return std::forward_like<Self>(self).extent_;
+    }
 
     template <typename Self>
     [[nodiscard]] auto&& getImage(this Self&& self) noexcept {
@@ -37,8 +46,12 @@ public:
     [[nodiscard]] inline vk::DescriptorType getDescType() const noexcept { return descType_; }
     [[nodiscard]] inline vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
 
+    inline vk::Result uploadFrom(const std::span<std::byte> data);
+    inline vk::Result downloadTo(std::span<std::byte> data);
+
 private:
     DeviceManager& deviceMgr_;  // FIXME: UAF
+    ExtentManager extent_;
     vk::DescriptorType descType_;
     vk::Image image_;
     vk::DeviceMemory imageMemory_;
@@ -50,7 +63,7 @@ private:
 
 ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
                            const vk::ImageUsageFlags usage, const vk::DescriptorType descType)
-    : deviceMgr_(deviceMgr), descType_(descType) {
+    : deviceMgr_(deviceMgr), extent_(extent), descType_(descType) {
     auto& device = deviceMgr.getDevice();
 
     // Image
@@ -124,6 +137,36 @@ vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {
     writeDescSet.setDescriptorType(descType_);
     writeDescSet.setImageInfo(imageInfo_);
     return writeDescSet;
+}
+
+inline vk::Result ImageManager::uploadFrom(const std::span<std::byte> data) {
+    auto& device = deviceMgr_.getDevice();
+
+    // Upload to Staging Buffer
+    void* mapPtr;
+    auto uploadMapResult = device.mapMemory(stagingMemory_, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
+    if (uploadMapResult != vk::Result::eSuccess) {
+        return uploadMapResult;
+    }
+    memcpy(mapPtr, data.data(), data.size());
+    device.unmapMemory(stagingMemory_);
+
+    return vk::Result::eSuccess;
+}
+
+inline vk::Result ImageManager::downloadTo(std::span<std::byte> data) {
+    auto& device = deviceMgr_.getDevice();
+
+    // Download from Staging Buffer
+    void* mapPtr;
+    auto downloadMapResult = device.mapMemory(stagingMemory_, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
+    if (downloadMapResult != vk::Result::eSuccess) {
+        return downloadMapResult;
+    }
+    memcpy(data.data(), mapPtr, data.size());
+    device.unmapMemory(stagingMemory_);
+
+    return vk::Result::eSuccess;
 }
 
 }  // namespace vkc
