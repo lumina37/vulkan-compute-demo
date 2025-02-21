@@ -9,7 +9,7 @@
 namespace vkc {
 
 template <CSupportGetDescType... TManager>
-[[nodiscard]] static inline auto genDescSetLayoutBindings(const TManager&... mgrs) {
+[[nodiscard]] static constexpr inline auto genDescSetLayoutBindings(const TManager&... mgrs) {
     std::array descSetLayoutBindings{[](const auto& mgr) {
         vk::DescriptorSetLayoutBinding binding;
         binding.setDescriptorCount(1);

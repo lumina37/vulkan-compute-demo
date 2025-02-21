@@ -10,6 +10,8 @@ namespace vkc {
 class PipelineLayoutManager {
 public:
     inline PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr);
+    inline PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
+                                 const vk::PushConstantRange& pushConstantRange);
     inline ~PipelineLayoutManager() noexcept;
 
     template <typename Self>
@@ -22,11 +24,24 @@ private:
     vk::PipelineLayout pipelineLayout_;
 };
 
-PipelineLayoutManager::PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr)
+inline PipelineLayoutManager::PipelineLayoutManager(DeviceManager& deviceMgr,
+                                                    const DescSetLayoutManager& descSetLayoutMgr)
     : deviceMgr_(deviceMgr) {
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
     const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
     pipelineLayoutInfo.setSetLayouts(descSetLayout);
+
+    auto& device = deviceMgr.getDevice();
+    pipelineLayout_ = device.createPipelineLayout(pipelineLayoutInfo);
+}
+
+PipelineLayoutManager::PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
+                                             const vk::PushConstantRange& pushConstantRange)
+    : deviceMgr_(deviceMgr) {
+    vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
+    const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
+    pipelineLayoutInfo.setSetLayouts(descSetLayout);
+    pipelineLayoutInfo.setPushConstantRanges(pushConstantRange);
 
     auto& device = deviceMgr.getDevice();
     pipelineLayout_ = device.createPipelineLayout(pipelineLayoutInfo);

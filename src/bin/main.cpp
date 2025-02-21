@@ -22,13 +22,13 @@ int main(int argc, char** argv) {
 
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{deviceMgr};
+    vkc::PushConstantManager pushConstantMgr{23};
     vkc::BufferManager bufferMgr{phyDeviceMgr, deviceMgr, extent};
     std::array descSetLayoutBindings =
         genDescSetLayoutBindings(samplerMgr, bufferMgr.getSrcImageMgr(), bufferMgr.getDstImageMgr());
     vkc::DescPoolManager descPoolMgr{deviceMgr};
     vkc::DescSetLayoutManager descSetLayoutMgr{deviceMgr, descSetLayoutBindings};
-    vkc::PipelineLayoutManager pipelineLayoutMgr{deviceMgr, descSetLayoutMgr};
-
+    vkc::PipelineLayoutManager pipelineLayoutMgr{deviceMgr, descSetLayoutMgr, pushConstantMgr.getPushConstantRange()};
     vkc::DescSetManager descSetMgr{deviceMgr, descSetLayoutMgr, descPoolMgr};
     descSetMgr.updateDescSets(samplerMgr, bufferMgr.getSrcImageMgr(), bufferMgr.getDstImageMgr());
 
@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
     commandBufferMgr.begin();
     commandBufferMgr.bindPipeline(pipelineMgr);
     commandBufferMgr.bindDescSet(descSetMgr, pipelineLayoutMgr);
+    commandBufferMgr.pushConstant(pushConstantMgr, pipelineLayoutMgr);
     commandBufferMgr.recordUpload(bufferMgr.getSrcImageMgr());
     commandBufferMgr.recordDstLayoutTrans(bufferMgr.getDstImageMgr());
     commandBufferMgr.recordDispatch(extent);

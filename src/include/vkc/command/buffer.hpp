@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/command/pool.hpp"
+#include "vkc/descriptor/push_constant.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device/logical.hpp"
 #include "vkc/extent.hpp"
@@ -34,6 +35,11 @@ public:
     inline void begin();
     inline void bindPipeline(PipelineManager& pipelineMgr);
     inline void bindDescSet(DescSetManager& descSetMgr, const PipelineLayoutManager& pipelineLayoutMgr);
+
+    template <typename TPc>
+    inline void pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
+                             const PipelineLayoutManager& pipelineLayoutMgr);
+
     inline void recordUpload(ImageManager& srcImageMgr);
     inline void recordDstLayoutTrans(ImageManager& dstImageMgr);
     inline void recordDispatch(const ExtentManager extent);
@@ -48,6 +54,14 @@ private:
     vk::CommandBuffer commandBuffer_;
     vk::Fence completeFence_;
 };
+
+template <typename TPc>
+void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
+                                        const PipelineLayoutManager& pipelineLayoutMgr) {
+    const auto& piplelineLayout = pipelineLayoutMgr.getPipelineLayout();
+    commandBuffer_.pushConstants(piplelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(TPc),
+                                 pushConstantMgr.getPPushConstant());
+}
 
 CommandBufferManager::CommandBufferManager(DeviceManager& deviceMgr, CommandPoolManager& commandPoolMgr)
     : deviceMgr_(deviceMgr), commandPoolMgr_(commandPoolMgr) {

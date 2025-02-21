@@ -6,6 +6,10 @@ layout (binding = 0) uniform sampler samp;
 layout (binding = 1) uniform texture2D tex;
 layout (binding = 2, rgba8) uniform writeonly image2D outputImage;
 
+layout (push_constant, std430) uniform PushConstants {
+    int kernelSize;
+} pushConstants;
+
 void main() {
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -15,15 +19,18 @@ void main() {
     }
 
     vec4 sum = vec4(0.0);
+    int kernelSize = pushConstants.kernelSize;
+    int halfKernel = kernelSize / 2;
 
-    for (int offsetY = -3; offsetY <= 3; offsetY++) {
-        for (int offsetX = -3; offsetX <= 3; offsetX++) {
+    for (int offsetY = -halfKernel; offsetY <= halfKernel; offsetY++) {
+        for (int offsetX = -halfKernel; offsetX <= halfKernel; offsetX++) {
             ivec2 sampleCoord = coord + ivec2(offsetX, offsetY);
             sum += textureLod(sampler2D(tex, samp), (vec2(sampleCoord) + 0.5) / vec2(imageSize), 0.0);
         }
     }
 
-    vec4 average = sum / 49.0;
+    float kernelArea = kernelSize * kernelSize;
+    vec4 average = sum / kernelArea;
 
     imageStore(outputImage, coord, average);
 }
