@@ -23,14 +23,18 @@ int main(int argc, char** argv) {
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{deviceMgr};
     vkc::PushConstantManager pushConstantMgr{23};
-    vkc::BufferManager bufferMgr{phyDeviceMgr, deviceMgr, extent};
-    std::array descSetLayoutBindings =
-        genDescSetLayoutBindings(samplerMgr, bufferMgr.getSrcImageMgr(), bufferMgr.getDstImageMgr());
+    vkc::ImageManager srcImageMgr{phyDeviceMgr, deviceMgr, extent,
+                                  vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+                                  vk::DescriptorType::eSampledImage};
+    vkc::ImageManager dstImageMgr{phyDeviceMgr, deviceMgr, extent,
+                                  vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
+                                  vk::DescriptorType::eStorageImage};
+    std::array descSetLayoutBindings = genDescSetLayoutBindings(samplerMgr, srcImageMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr{deviceMgr};
     vkc::DescSetLayoutManager descSetLayoutMgr{deviceMgr, descSetLayoutBindings};
     vkc::PipelineLayoutManager pipelineLayoutMgr{deviceMgr, descSetLayoutMgr, pushConstantMgr.getPushConstantRange()};
     vkc::DescSetManager descSetMgr{deviceMgr, descSetLayoutMgr, descPoolMgr};
-    descSetMgr.updateDescSets(samplerMgr, bufferMgr.getSrcImageMgr(), bufferMgr.getDstImageMgr());
+    descSetMgr.updateDescSets(samplerMgr, srcImageMgr, dstImageMgr);
 
     // Pipeline
     vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/boxFilter.comp.spv"};
@@ -45,15 +49,15 @@ int main(int argc, char** argv) {
     commandBufferMgr.bindPipeline(pipelineMgr);
     commandBufferMgr.bindDescSet(descSetMgr, pipelineLayoutMgr);
     commandBufferMgr.pushConstant(pushConstantMgr, pipelineLayoutMgr);
-    commandBufferMgr.recordUpload(bufferMgr.getSrcImageMgr());
-    commandBufferMgr.recordDstLayoutTrans(bufferMgr.getDstImageMgr());
+    commandBufferMgr.recordUpload(srcImageMgr);
+    commandBufferMgr.recordDstLayoutTrans(dstImageMgr);
     commandBufferMgr.recordDispatch(extent);
-    commandBufferMgr.recordDownload(bufferMgr.getDstImageMgr());
+    commandBufferMgr.recordDownload(dstImageMgr);
     commandBufferMgr.end();
 
     // Upload Data
     std::span src{srcImage, extent.size()};
-    bufferMgr.getSrcImageMgr().uploadFrom(src);
+    srcImageMgr.uploadFrom(src);
 
     // Actual Execution
     commandBufferMgr.submitTo(queueMgr);
@@ -61,7 +65,7 @@ int main(int argc, char** argv) {
 
     // Download Data
     std::vector<std::byte> dst(extent.size());
-    bufferMgr.getDstImageMgr().downloadTo(dst);
+    dstImageMgr.downloadTo(dst);
 
     stbi_write_png("out.png", width, height, comps, dst.data(), 0);
     stbi_image_free(srcImage);

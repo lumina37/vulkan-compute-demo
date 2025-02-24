@@ -114,9 +114,16 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
     } else {
         bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
     }
-    createBuffer(physicalDevice, device, extent.size(), bufferUsage,
-                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer_,
-                 stagingMemory_);
+
+    vk::BufferCreateInfo bufferInfo;
+    bufferInfo.setSize(extent.size());
+    bufferInfo.setUsage(bufferUsage);
+    bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
+    stagingBuffer_ = device.createBuffer(bufferInfo);
+
+    allocMemoryForBuffer(physicalDevice, device,
+                         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                         stagingBuffer_, stagingMemory_);
 
     // Image Info
     imageInfo_.setImageView(imageView_);

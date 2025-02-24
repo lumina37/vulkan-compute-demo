@@ -22,16 +22,9 @@ static inline uint32_t findMemoryType(const vk::PhysicalDevice& physicalDevice, 
     return 0;
 }
 
-static inline void createBuffer(const vk::PhysicalDevice& physicalDevice, const vk::Device& device,
-                                const vk::DeviceSize size, const vk::BufferUsageFlags usage,
-                                const vk::MemoryPropertyFlags memProps, vk::Buffer& buffer,
-                                vk::DeviceMemory& bufferMemory) {
-    vk::BufferCreateInfo bufferInfo;
-    bufferInfo.setSize(size);
-    bufferInfo.setUsage(usage);
-    bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
-    buffer = device.createBuffer(bufferInfo);
-
+static inline void allocMemoryForBuffer(const vk::PhysicalDevice& physicalDevice, const vk::Device& device,
+                                        const vk::MemoryPropertyFlags memProps, vk::Buffer& buffer,
+                                        vk::DeviceMemory& bufferMemory) {
     vk::MemoryAllocateInfo allocInfo;
     const vk::MemoryRequirements memRequirements = device.getBufferMemoryRequirements(buffer);
     allocInfo.setAllocationSize(memRequirements.size);
