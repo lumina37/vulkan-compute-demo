@@ -6,14 +6,14 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/command/pool.hpp"
-#include "vkc/descriptor/push_constant.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device/logical.hpp"
 #include "vkc/extent.hpp"
-#include "vkc/image.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/queue.hpp"
+#include "vkc/resource/image.hpp"
+#include "vkc/resource/push_constant.hpp"
 
 namespace vkc {
 

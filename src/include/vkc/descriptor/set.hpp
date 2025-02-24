@@ -10,7 +10,7 @@
 #include "vkc/descriptor/layout.hpp"
 #include "vkc/descriptor/pool.hpp"
 #include "vkc/device/logical.hpp"
-#include "vkc/image.hpp"
+#include "vkc/resource/image.hpp"
 
 namespace vkc {
 
