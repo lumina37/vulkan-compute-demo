@@ -6,8 +6,7 @@ namespace vkc {
 
 class UboManager {
 public:
-    inline UboManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size,
-                      const vk::BufferUsageFlags usage, const vk::DescriptorType descType);
+    inline UboManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size);
     inline ~UboManager() noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
@@ -22,7 +21,9 @@ public:
         return std::forward_like<Self>(self).buffer_;
     }
 
-    [[nodiscard]] inline vk::DescriptorType getDescType() const noexcept { return descType_; }
+    [[nodiscard]] constexpr inline vk::DescriptorType getDescType() const noexcept {
+        return vk::DescriptorType::eUniformBuffer;
+    }
     [[nodiscard]] inline vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
 
     inline vk::Result uploadFrom(const std::span<std::byte> data);
@@ -31,22 +32,20 @@ public:
 private:
     DeviceManager& deviceMgr_;  // FIXME: UAF
     vk::DeviceSize size_;
-    vk::DescriptorType descType_;
     vk::DeviceMemory memory_;
     vk::Buffer buffer_;
     vk::DescriptorBufferInfo bufferInfo_;
 };
 
-UboManager::UboManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size,
-                       const vk::BufferUsageFlags usage, const vk::DescriptorType descType)
-    : deviceMgr_(deviceMgr), size_(size), descType_(descType) {
+UboManager::UboManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size)
+    : deviceMgr_(deviceMgr), size_(size) {
     auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
     auto& device = deviceMgr.getDevice();
 
     // Buffer
     vk::BufferCreateInfo bufferInfo;
     bufferInfo.setSize(size);
-    bufferInfo.setUsage(usage);
+    bufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
     buffer_ = device.createBuffer(bufferInfo);
 
@@ -68,7 +67,7 @@ UboManager::~UboManager() noexcept {
 vk::WriteDescriptorSet UboManager::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
-    writeDescSet.setDescriptorType(vk::DescriptorType::eUniformBuffer);
+    writeDescSet.setDescriptorType(getDescType());
     writeDescSet.setBufferInfo(bufferInfo_);
     return writeDescSet;
 }

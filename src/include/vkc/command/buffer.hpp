@@ -152,7 +152,7 @@ void CommandBufferManager::recordDstLayoutTrans(ImageManager& dstImageMgr) {
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, 1, &dstShaderCompatibleBarrier);
 }
 
-inline void CommandBufferManager::recordDispatch(const ExtentManager extent) {
+void CommandBufferManager::recordDispatch(const ExtentManager extent) {
     uint32_t groupSizeX = (extent.width() + 15) / 16;
     uint32_t groupSizeY = (extent.height() + 15) / 16;
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);

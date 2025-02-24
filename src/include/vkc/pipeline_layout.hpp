@@ -24,7 +24,7 @@ private:
     vk::PipelineLayout pipelineLayout_;
 };
 
-inline PipelineLayoutManager::PipelineLayoutManager(DeviceManager& deviceMgr,
+PipelineLayoutManager::PipelineLayoutManager(DeviceManager& deviceMgr,
                                                     const DescSetLayoutManager& descSetLayoutMgr)
     : deviceMgr_(deviceMgr) {
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;

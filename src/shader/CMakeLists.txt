@@ -4,15 +4,16 @@ function(vkc_add_shader src)
     add_custom_command(
             OUTPUT ${src}
             COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${__VKC_IN_PATH} -o ${__VKC_OUT_PATH}
-            DEPENDS ${__VKC_IN_PATH}
+            MAIN_DEPENDENCY ${__VKC_IN_PATH}
             COMMENT "Compile shader - ${__VKC_IN_PATH}"
     )
 endfunction()
 
 set(_VKC_SHADERS
-        boxFilter.comp
+        gaussianBlur.comp
 )
 foreach (_VKC_SHADER ${_VKC_SHADERS})
     vkc_add_shader(${_VKC_SHADER})
 endforeach ()
-add_custom_target(vkc-shader DEPENDS ${_VKC_SHADERS})
+
+add_custom_target(vkc-shader-gaussianBlur DEPENDS gaussianBlur.comp)

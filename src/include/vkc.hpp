@@ -12,3 +12,4 @@
 #include "vkc/resource.hpp"
 #include "vkc/sampler.hpp"
 #include "vkc/shader.hpp"
+#include "vkc/stb_image.hpp"

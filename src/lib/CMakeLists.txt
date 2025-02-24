@@ -12,5 +12,3 @@ target_include_directories(vkc-lib INTERFACE
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
         $<INSTALL_INTERFACE:include>
 )
-
-add_dependencies(vkc-lib vkc-shader)

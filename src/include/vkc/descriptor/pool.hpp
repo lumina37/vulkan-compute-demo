@@ -1,16 +1,52 @@
 #pragma once
 
+#include <map>
+#include <ranges>
+#include <span>
 #include <utility>
+#include <vector>
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkc/descriptor/concepts.hpp"
 #include "vkc/device/logical.hpp"
 
 namespace vkc {
 
+namespace rgs = std::ranges;
+
+template <CSupportGetDescType... TManager>
+[[nodiscard]] static inline auto genPoolSizes(const TManager&... mgrs) {
+    std::map<vk::DescriptorType, int> poolSizeMap;
+
+    const auto appendPoolSize = [&](const auto& mgr) {
+        auto descType = mgr.getDescType();
+        if (!poolSizeMap.contains(descType)) {
+            poolSizeMap[descType] = 1;
+            return;
+        }
+        poolSizeMap[descType]++;
+    };
+
+    (appendPoolSize(mgrs), ...);
+
+    const auto transKV2PoolSize = [](const auto& pair) {
+        auto [descType, count] = pair;
+        vk::DescriptorPoolSize poolSize;
+        poolSize.setType(descType);
+        poolSize.setDescriptorCount(count);
+        return poolSize;
+    };
+
+    std::vector<vk::DescriptorPoolSize> poolSizes =
+        poolSizeMap | rgs::views::transform(transKV2PoolSize) | rgs::to<std::vector>();
+
+    return poolSizes;
+}
+
 class DescPoolManager {
 public:
-    inline DescPoolManager(DeviceManager& deviceMgr);
+    inline DescPoolManager(DeviceManager& deviceMgr, const std::span<vk::DescriptorPoolSize> poolSizes);
     inline ~DescPoolManager() noexcept;
 
     template <typename Self>
@@ -23,20 +59,10 @@ private:
     vk::DescriptorPool descPool_;
 };
 
-DescPoolManager::DescPoolManager(DeviceManager& deviceMgr) : deviceMgr_(deviceMgr) {
-    vk::DescriptorPoolSize samplerPoolSize;
-    samplerPoolSize.setType(vk::DescriptorType::eSampler);
-    samplerPoolSize.setDescriptorCount(4);
-    vk::DescriptorPoolSize imagePoolSize;
-    imagePoolSize.setType(vk::DescriptorType::eStorageImage);
-    imagePoolSize.setDescriptorCount(4);
-    vk::DescriptorPoolSize texturePoolSize;
-    texturePoolSize.setType(vk::DescriptorType::eSampledImage);
-    texturePoolSize.setDescriptorCount(4);
-    const std::array poolSizes{samplerPoolSize, imagePoolSize, texturePoolSize};
-
+DescPoolManager::DescPoolManager(DeviceManager& deviceMgr, const std::span<vk::DescriptorPoolSize> poolSizes)
+    : deviceMgr_(deviceMgr) {
     vk::DescriptorPoolCreateInfo poolInfo;
-    poolInfo.setMaxSets(1);
+    poolInfo.setMaxSets(poolSizes.size());
     poolInfo.setPoolSizes(poolSizes);
 
     auto& device = deviceMgr.getDevice();

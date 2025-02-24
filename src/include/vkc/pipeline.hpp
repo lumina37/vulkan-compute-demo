@@ -15,10 +15,15 @@
 
 namespace vkc {
 
+struct BlockSize {
+    using Tv = uint32_t;
+    Tv x, y, z;
+};
+
 class PipelineManager {
 public:
     inline PipelineManager(DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                           const ShaderManager& computeShaderMgr);
+                           const ShaderManager& computeShaderMgr, const BlockSize blockSize);
     inline ~PipelineManager() noexcept;
 
     template <typename Self>
@@ -32,7 +37,7 @@ private:
 };
 
 PipelineManager::PipelineManager(DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                                 const ShaderManager& computeShaderMgr)
+                                 const ShaderManager& computeShaderMgr, const BlockSize blockSize)
     : deviceMgr_(deviceMgr) {
     vk::ComputePipelineCreateInfo pipelineInfo;
 
@@ -48,12 +53,12 @@ PipelineManager::PipelineManager(DeviceManager& deviceMgr, const PipelineLayoutM
         vk::SpecializationMapEntry{1, 1 * sizeof(uint32_t), sizeof(uint32_t)},
         vk::SpecializationMapEntry{2, 2 * sizeof(uint32_t), sizeof(uint32_t)},
     };
-    constexpr std::array<uint32_t, 3> specializationData{16, 16, 1};
+    static_assert(sizeof(blockSize) / sizeof(typename BlockSize::Tv) == specializationEntries.size());
 
     vk::SpecializationInfo specializationInfo;
     specializationInfo.setMapEntries(specializationEntries);
-    specializationInfo.setDataSize(specializationData.size() * sizeof(uint32_t));
-    specializationInfo.setPData(specializationData.data());
+    specializationInfo.setDataSize(sizeof(blockSize));
+    specializationInfo.setPData(&blockSize);
     computeShaderStageInfo.setPSpecializationInfo(&specializationInfo);
 
     pipelineInfo.setStage(computeShaderStageInfo);

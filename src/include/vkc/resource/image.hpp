@@ -147,7 +147,7 @@ vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {
     return writeDescSet;
 }
 
-inline vk::Result ImageManager::uploadFrom(const std::span<std::byte> data) {
+vk::Result ImageManager::uploadFrom(const std::span<std::byte> data) {
     auto& device = deviceMgr_.getDevice();
 
     // Upload to Staging Buffer
@@ -162,7 +162,7 @@ inline vk::Result ImageManager::uploadFrom(const std::span<std::byte> data) {
     return vk::Result::eSuccess;
 }
 
-inline vk::Result ImageManager::downloadTo(std::span<std::byte> data) {
+vk::Result ImageManager::downloadTo(std::span<std::byte> data) {
     auto& device = deviceMgr_.getDevice();
 
     // Download from Staging Buffer

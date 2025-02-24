@@ -50,7 +50,7 @@ DescSetManager::DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutMana
     descSet_ = descSets[0];
 }
 
-inline DescSetManager::~DescSetManager() noexcept {
+DescSetManager::~DescSetManager() noexcept {
     // TODO: maybe free sth. here
 }
 
