@@ -31,14 +31,16 @@ void main() {
         for (int x = -halfKSize; x <= halfKSize; x++) {
             ivec2 inCoord = outCoord + ivec2(x, y);
             vec4 srcVal = texture(sampler2D(inTex, inSampler), (vec2(inCoord) + 0.5) / vec2(outSize));
-            int weightY = abs(x) / 4;
-            int weightX = abs(x) % 4;
+            int absX = abs(x);
+            int weightY = absX >> 2;
+            int weightX = absX & (4 - 1);
             float weight = ubo.weights[weightY][weightX];
             rowAcc += srcVal * weight;
         }
 
-        int weightY = abs(y) / 4;
-        int weightX = abs(y) % 4;
+        int absY = abs(y);
+        int weightY = absY >> 2;
+        int weightX = absY & (4 - 1);
         float weight = ubo.weights[weightY][weightX];
         acc += rowAcc * weight;
     }

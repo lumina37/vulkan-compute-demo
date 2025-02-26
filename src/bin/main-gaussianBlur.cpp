@@ -13,7 +13,7 @@ static inline void genGaussKernel(std::span<float> dst, const int kernelSize, co
     dst[0] = 1.;
     float sum = dst[0];
     for (int i = 1; i <= halfKSize; i++) {
-        const float elem = std::expf(-i * i / doubleSigma2);
+        const float elem = std::expf((float)(-i * i) / doubleSigma2);
         dst[i] = elem;
         sum += 2 * elem;  // double for both side
     }
@@ -35,12 +35,13 @@ int main(int argc, char** argv) {
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{deviceMgr};
 
-    constexpr int maxKernelSize = 33;
+    constexpr int uboLen = 16;
+    constexpr int maxKernelSize = uboLen * 2 + 1;
     constexpr int kernelSize = 11;
     static_assert(kernelSize <= maxKernelSize);
     vkc::PushConstantManager pushConstantMgr{kernelSize};
 
-    std::array<float, maxKernelSize / 2> weights;
+    std::array<float, uboLen> weights;
     genGaussKernel(weights, kernelSize, 1.5);
     vkc::UboManager uboManager{phyDeviceMgr, deviceMgr, sizeof(weights)};
 

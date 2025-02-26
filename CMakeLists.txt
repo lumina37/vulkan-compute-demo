@@ -18,7 +18,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
-
 # Helper
 function(copy_dlls_if_needed name)
     if (WIN32)
