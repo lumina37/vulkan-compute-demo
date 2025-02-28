@@ -4,6 +4,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+namespace vkc {
+
 template <typename Self>
 concept CSupportDraftWriteDescSet = requires {
     requires requires(const Self& self) {
@@ -17,3 +19,5 @@ concept CSupportGetDescType = requires {
         { self.getDescType() } noexcept -> std::same_as<vk::DescriptorType>;
     };
 };
+
+}  // namespace vkc

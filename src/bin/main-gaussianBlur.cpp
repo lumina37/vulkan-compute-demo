@@ -1,6 +1,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <print>
 #include <span>
 #include <vector>
 
@@ -69,6 +70,7 @@ int main(int argc, char** argv) {
     vkc::QueueManager queueMgr{deviceMgr, queueFamilyMgr};
     vkc::CommandPoolManager commandPoolMgr{deviceMgr, queueFamilyMgr};
     vkc::CommandBufferManager commandBufferMgr{deviceMgr, commandPoolMgr};
+    vkc::TimestampQueryPoolManager queryPoolMgr{deviceMgr, 2, phyDeviceMgr.getTimestampPeriod()};
 
     commandBufferMgr.begin();
     commandBufferMgr.bindPipeline(pipelineMgr);
@@ -76,7 +78,10 @@ int main(int argc, char** argv) {
     commandBufferMgr.pushConstant(pushConstantMgr, pipelineLayoutMgr);
     commandBufferMgr.recordUpload(srcImageMgr);
     commandBufferMgr.recordDstLayoutTrans(dstImageMgr);
+    commandBufferMgr.recordResetQueryPool(queryPoolMgr);
+    commandBufferMgr.recordTimestampStart(queryPoolMgr);
     commandBufferMgr.recordDispatch(srcImage.getExtent());
+    commandBufferMgr.recordTimestampEnd(queryPoolMgr);
     commandBufferMgr.recordDownload(dstImageMgr);
     commandBufferMgr.end();
 
@@ -91,4 +96,7 @@ int main(int argc, char** argv) {
     // Download Data
     dstImageMgr.downloadTo(dstImage.getImageSpan());
     dstImage.saveTo("out.png");
+
+    const auto& elapsedTimes = queryPoolMgr.getElaspedTimes();
+    std::println("Submit timecost: {} ms", elapsedTimes[0]);
 }

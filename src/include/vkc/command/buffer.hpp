@@ -11,6 +11,7 @@
 #include "vkc/extent.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
+#include "vkc/query_pool.hpp"
 #include "vkc/queue.hpp"
 #include "vkc/resource/image.hpp"
 #include "vkc/resource/push_constant.hpp"
@@ -44,6 +45,13 @@ public:
     inline void recordDstLayoutTrans(ImageManager& dstImageMgr);
     inline void recordDispatch(const ExtentManager extent);
     inline void recordDownload(ImageManager& dstImageMgr);
+
+    template <typename TQueryPoolManager>
+        requires CQueryPoolManager<TQueryPoolManager>
+    inline void recordResetQueryPool(TQueryPoolManager& queryPoolMgr);
+
+    inline void recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr);
+    inline void recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr);
     inline void end();
     inline void submitTo(QueueManager& queueMgr);
     inline vk::Result waitFence();
@@ -54,14 +62,6 @@ private:
     vk::CommandBuffer commandBuffer_;
     vk::Fence completeFence_;
 };
-
-template <typename TPc>
-void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
-                                        const PipelineLayoutManager& pipelineLayoutMgr) {
-    const auto& piplelineLayout = pipelineLayoutMgr.getPipelineLayout();
-    commandBuffer_.pushConstants(piplelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(TPc),
-                                 pushConstantMgr.getPPushConstant());
-}
 
 CommandBufferManager::CommandBufferManager(DeviceManager& deviceMgr, CommandPoolManager& commandPoolMgr)
     : deviceMgr_(deviceMgr), commandPoolMgr_(commandPoolMgr) {
@@ -82,6 +82,24 @@ CommandBufferManager::~CommandBufferManager() noexcept {
     auto& commandPool = commandPoolMgr_.getCommandPool();
     device.freeCommandBuffers(commandPool, commandBuffer_);
     device.destroyFence(completeFence_);
+}
+
+void CommandBufferManager::bindPipeline(PipelineManager& pipelineMgr) {
+    commandBuffer_.bindPipeline(vk::PipelineBindPoint::eCompute, pipelineMgr.getPipeline());
+}
+
+void CommandBufferManager::bindDescSet(DescSetManager& descSetMgr, const PipelineLayoutManager& pipelineLayoutMgr) {
+    auto& descSet = descSetMgr.getDescSet();
+    commandBuffer_.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayoutMgr.getPipelineLayout(), 0, 1,
+                                      &descSet, 0, nullptr);
+}
+
+template <typename TPc>
+void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
+                                        const PipelineLayoutManager& pipelineLayoutMgr) {
+    const auto& piplelineLayout = pipelineLayoutMgr.getPipelineLayout();
+    commandBuffer_.pushConstants(piplelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(TPc),
+                                 pushConstantMgr.getPPushConstant());
 }
 
 void CommandBufferManager::begin() {
@@ -196,14 +214,25 @@ void CommandBufferManager::recordDownload(ImageManager& dstImageMgr) {
                                    (vk::DependencyFlags)0, 0, nullptr, 1, &downloadCompleteBarrier, 0, nullptr);
 }
 
-void CommandBufferManager::bindPipeline(PipelineManager& pipelineMgr) {
-    commandBuffer_.bindPipeline(vk::PipelineBindPoint::eCompute, pipelineMgr.getPipeline());
+template <typename TQueryPoolManager>
+    requires CQueryPoolManager<TQueryPoolManager>
+void CommandBufferManager::recordResetQueryPool(TQueryPoolManager& queryPoolMgr) {
+    auto& queryPool = queryPoolMgr.getQueryPool();
+    commandBuffer_.resetQueryPool(queryPool, 0, queryPoolMgr.getQueryCount());
 }
 
-void CommandBufferManager::bindDescSet(DescSetManager& descSetMgr, const PipelineLayoutManager& pipelineLayoutMgr) {
-    auto& descSet = descSetMgr.getDescSet();
-    commandBuffer_.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayoutMgr.getPipelineLayout(), 0, 1,
-                                      &descSet, 0, nullptr);
+void CommandBufferManager::recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr) {
+    auto& queryPool = queryPoolMgr.getQueryPool();
+    const int queryIndex = queryPoolMgr.getQueryIndex();
+    queryPoolMgr.addQueryIndex();
+    commandBuffer_.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, queryPool, queryIndex);
+}
+
+void CommandBufferManager::recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr) {
+    auto& queryPool = queryPoolMgr.getQueryPool();
+    const int queryIndex = queryPoolMgr.getQueryIndex();
+    queryPoolMgr.addQueryIndex();
+    commandBuffer_.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, queryPool, queryIndex);
 }
 
 void CommandBufferManager::end() { commandBuffer_.end(); }

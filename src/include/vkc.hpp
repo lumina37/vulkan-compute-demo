@@ -7,6 +7,7 @@
 #include "vkc/instance.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
+#include "vkc/query_pool.hpp"
 #include "vkc/queue.hpp"
 #include "vkc/queue_family.hpp"
 #include "vkc/resource.hpp"
