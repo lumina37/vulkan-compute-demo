@@ -6,18 +6,18 @@ layout (push_constant) uniform PushConstant {
     int kernelSize;
 } pc;
 
-layout (binding = 0) uniform sampler inSampler;
-layout (binding = 1) uniform texture2D inTex;
-layout (binding = 2, rgba8) uniform writeonly image2D outputImage;
+layout (binding = 0) uniform sampler srcSampler;
+layout (binding = 1) uniform texture2D srcTex;
+layout (binding = 2, rgba8) uniform writeonly image2D dstImage;
 layout (binding = 3) uniform UBO {
     vec4[16 / 4] weights;  // WARNING: forced 4bytes padding for each element in array
 } ubo;
 
 void main() {
-    ivec2 outCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 dstIdx = ivec2(gl_GlobalInvocationID.xy);
 
-    ivec2 outSize = imageSize(outputImage);
-    if (outCoord.x >= outSize.x || outCoord.y >= outSize.y) {
+    ivec2 dstSize = imageSize(dstImage);
+    if (dstIdx.x >= dstSize.x || dstIdx.y >= dstSize.y) {
         return;
     }
 
@@ -29,8 +29,8 @@ void main() {
         vec4 rowAcc = vec4(0.0);
 
         for (int x = -halfKSize; x <= halfKSize; x++) {
-            ivec2 inCoord = outCoord + ivec2(x, y);
-            vec4 srcVal = texture(sampler2D(inTex, inSampler), (vec2(inCoord) + 0.5) / vec2(outSize));
+            ivec2 inCoord = dstIdx + ivec2(x, y);
+            vec4 srcVal = texture(sampler2D(srcTex, srcSampler), (vec2(inCoord) + 0.5) / vec2(dstSize));
             int absX = abs(x);
             int weightY = absX >> 2;
             int weightX = absX & (4 - 1);
@@ -45,5 +45,5 @@ void main() {
         acc += rowAcc * weight;
     }
 
-    imageStore(outputImage, outCoord, vec4(acc.rgb, 1.0));
+    imageStore(dstImage, dstIdx, vec4(acc.rgb, 1.0));
 }

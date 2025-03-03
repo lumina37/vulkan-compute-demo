@@ -3,7 +3,7 @@ function(vkc_add_shader src)
     set(__VKC_OUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/${src}.spv)
     add_custom_command(
             OUTPUT ${src}
-            COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${__VKC_IN_PATH} -o ${__VKC_OUT_PATH} -O
+            COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} -V ${__VKC_IN_PATH} -o ${__VKC_OUT_PATH}
             MAIN_DEPENDENCY ${__VKC_IN_PATH}
             COMMENT "Compile shader - ${__VKC_IN_PATH}"
     )
