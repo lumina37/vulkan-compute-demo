@@ -126,8 +126,14 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
                          stagingBuffer_, stagingMemory_);
 
     // Image Info
+    vk::ImageLayout imageLayout;
+    if (usage & vk::ImageUsageFlagBits::eTransferSrc) {
+        imageLayout = vk::ImageLayout::eGeneral;
+    } else {
+        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    }
     imageInfo_.setImageView(imageView_);
-    imageInfo_.setImageLayout(vk::ImageLayout::eGeneral);
+    imageInfo_.setImageLayout(imageLayout);
 }
 
 ImageManager::~ImageManager() noexcept {

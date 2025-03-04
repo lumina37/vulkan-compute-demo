@@ -143,7 +143,7 @@ void CommandBufferManager::recordUpload(ImageManager& srcImageMgr) {
     srcShaderCompatibleBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     srcShaderCompatibleBarrier.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
     srcShaderCompatibleBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
-    srcShaderCompatibleBarrier.setNewLayout(vk::ImageLayout::eGeneral);
+    srcShaderCompatibleBarrier.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
     srcShaderCompatibleBarrier.setImage(srcImageMgr.getImage());
     srcShaderCompatibleBarrier.setSubresourceRange(subresourceRange);
 
@@ -225,14 +225,14 @@ void CommandBufferManager::recordTimestampStart(TimestampQueryPoolManager& query
     auto& queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
     queryPoolMgr.addQueryIndex();
-    commandBuffer_.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, queryPool, queryIndex);
+    commandBuffer_.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, queryPool, queryIndex);
 }
 
 void CommandBufferManager::recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr) {
     auto& queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
     queryPoolMgr.addQueryIndex();
-    commandBuffer_.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, queryPool, queryIndex);
+    commandBuffer_.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, queryPool, queryIndex);
 }
 
 void CommandBufferManager::end() { commandBuffer_.end(); }

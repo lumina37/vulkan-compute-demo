@@ -6,10 +6,10 @@
 
 namespace vkc {
 
-class UBOManager {
+class SSBOManager {
 public:
-    inline UBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size);
-    inline ~UBOManager() noexcept;
+    inline SSBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size);
+    inline ~SSBOManager() noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
 
@@ -24,7 +24,7 @@ public:
     }
 
     [[nodiscard]] constexpr inline vk::DescriptorType getDescType() const noexcept {
-        return vk::DescriptorType::eUniformBuffer;
+        return vk::DescriptorType::eStorageBuffer;
     }
     [[nodiscard]] inline vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
 
@@ -39,7 +39,7 @@ private:
     vk::DescriptorBufferInfo bufferInfo_;
 };
 
-UBOManager::UBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size)
+SSBOManager::SSBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size)
     : deviceMgr_(deviceMgr), size_(size) {
     auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
     auto& device = deviceMgr.getDevice();
@@ -47,7 +47,7 @@ UBOManager::UBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& devi
     // Buffer
     vk::BufferCreateInfo bufferInfo;
     bufferInfo.setSize(size);
-    bufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
+    bufferInfo.setUsage(vk::BufferUsageFlagBits::eStorageBuffer);
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
     buffer_ = device.createBuffer(bufferInfo);
 
@@ -58,13 +58,13 @@ UBOManager::UBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& devi
     bufferInfo_.setRange(size);
 }
 
-UBOManager::~UBOManager() noexcept {
+SSBOManager::~SSBOManager() noexcept {
     auto& device = deviceMgr_.getDevice();
     device.destroyBuffer(buffer_);
     device.freeMemory(memory_);
 }
 
-vk::WriteDescriptorSet UBOManager::draftWriteDescSet() const noexcept {
+vk::WriteDescriptorSet SSBOManager::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
     writeDescSet.setDescriptorType(getDescType());
@@ -72,7 +72,7 @@ vk::WriteDescriptorSet UBOManager::draftWriteDescSet() const noexcept {
     return writeDescSet;
 }
 
-inline vk::Result UBOManager::uploadFrom(const std::span<std::byte> data) {
+inline vk::Result SSBOManager::uploadFrom(const std::span<std::byte> data) {
     auto& device = deviceMgr_.getDevice();
 
     // Upload to Buffer
@@ -87,7 +87,7 @@ inline vk::Result UBOManager::uploadFrom(const std::span<std::byte> data) {
     return vk::Result::eSuccess;
 }
 
-inline vk::Result UBOManager::downloadTo(std::span<std::byte> data) {
+inline vk::Result SSBOManager::downloadTo(std::span<std::byte> data) {
     auto& device = deviceMgr_.getDevice();
 
     // Download from Buffer

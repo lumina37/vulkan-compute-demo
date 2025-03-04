@@ -43,8 +43,10 @@ int main(int argc, char** argv) {
     vkc::PushConstantManager pushConstantMgr{kernelSize};
 
     std::array<float, uboLen> weights;
+    std::array<float, uboLen> writeBackWeights;
     genGaussKernel(weights, kernelSize, 1.5);
-    vkc::UboManager uboManager{phyDeviceMgr, deviceMgr, sizeof(weights)};
+    vkc::UBOManager uboManager{phyDeviceMgr, deviceMgr, sizeof(weights)};
+    vkc::SSBOManager ssboManager{phyDeviceMgr, deviceMgr, sizeof(writeBackWeights)};
 
     vkc::ImageManager srcImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(),
                                   vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
@@ -54,13 +56,14 @@ int main(int argc, char** argv) {
                                   vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
                                   vk::DescriptorType::eStorageImage};
 
-    std::vector descPoolSizes = genPoolSizes(samplerMgr, srcImageMgr, dstImageMgr, uboManager);
+    std::vector descPoolSizes = genPoolSizes(samplerMgr, srcImageMgr, dstImageMgr, uboManager, ssboManager);
     vkc::DescPoolManager descPoolMgr{deviceMgr, descPoolSizes};
-    std::array descSetLayoutBindings = genDescSetLayoutBindings(samplerMgr, srcImageMgr, dstImageMgr, uboManager);
+    std::array descSetLayoutBindings =
+        genDescSetLayoutBindings(samplerMgr, srcImageMgr, dstImageMgr, uboManager, ssboManager);
     vkc::DescSetLayoutManager descSetLayoutMgr{deviceMgr, descSetLayoutBindings};
     vkc::PipelineLayoutManager pipelineLayoutMgr{deviceMgr, descSetLayoutMgr, pushConstantMgr.getPushConstantRange()};
     vkc::DescSetManager descSetMgr{deviceMgr, descSetLayoutMgr, descPoolMgr};
-    descSetMgr.updateDescSets(samplerMgr, srcImageMgr, dstImageMgr, uboManager);
+    descSetMgr.updateDescSets(samplerMgr, srcImageMgr, dstImageMgr, uboManager, ssboManager);
 
     // Pipeline
     vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/gaussianBlur.comp.spv"};
@@ -94,9 +97,15 @@ int main(int argc, char** argv) {
     commandBufferMgr.waitFence();
 
     // Download Data
+    ssboManager.downloadTo({(std::byte*)writeBackWeights.data(), sizeof(writeBackWeights)});
     dstImageMgr.downloadTo(dstImage.getImageSpan());
     dstImage.saveTo("out.png");
 
     const auto& elapsedTimes = queryPoolMgr.getElaspedTimes();
-    std::println("Submit timecost: {} ms", elapsedTimes[0]);
+    std::println("Compute shader timecost: {} ms", elapsedTimes[0]);
+
+    // Crosscheck SSBO
+    for (int i = 0; i <= kernelSize / 2; i++) {
+        assert(std::abs(writeBackWeights[i] - weights[i]) < 1e-10);
+    }
 }
