@@ -47,7 +47,13 @@ PhyDeviceManager::PhyDeviceManager(const InstanceManager& instMgr) {
             physicalDevice_ = physicalDevice;
             limits_ = limits;
             if constexpr (ENABLE_DEBUG) {
-                std::println("Init physical device: {}", phyDeviceProp.deviceName.data());
+                std::println("Selected physical device: {}", phyDeviceProp.deviceName.data());
+                std::println("Vulkan API version: {}.{}.{}", VK_API_VERSION_MAJOR(phyDeviceProp.apiVersion),
+                             VK_API_VERSION_MINOR(phyDeviceProp.apiVersion),
+                             VK_API_VERSION_PATCH(phyDeviceProp.apiVersion));
+                std::println("Driver version: {}.{}.{}", VK_API_VERSION_MAJOR(phyDeviceProp.driverVersion),
+                             VK_API_VERSION_MINOR(phyDeviceProp.driverVersion),
+                             VK_API_VERSION_PATCH(phyDeviceProp.driverVersion));
             }
             break;
         }
