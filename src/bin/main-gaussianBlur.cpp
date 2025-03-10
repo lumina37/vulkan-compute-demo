@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
     descSetMgr.updateDescSets(samplerMgr, srcImageMgr, dstImageMgr, uboManager, ssboManager);
 
     // Pipeline
-    vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/gaussianBlur.comp.spv"};
+    vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/gaussianBlur.hlsl.spv"};
     vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, computeShaderMgr, {16, 16, 1}};
 
     // Command Buffer

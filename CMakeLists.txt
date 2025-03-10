@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.25)
 
 project(VulkanComputeDemo
         VERSION 0.0.1
@@ -9,7 +9,7 @@ project(VulkanComputeDemo
 # Dependencies
 include(FetchContent)
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan REQUIRED COMPONENTS dxc)
 
 FetchContent_Declare(
         stb

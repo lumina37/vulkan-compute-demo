@@ -51,9 +51,6 @@ PhyDeviceManager::PhyDeviceManager(const InstanceManager& instMgr) {
                 std::println("Vulkan API version: {}.{}.{}", VK_API_VERSION_MAJOR(phyDeviceProp.apiVersion),
                              VK_API_VERSION_MINOR(phyDeviceProp.apiVersion),
                              VK_API_VERSION_PATCH(phyDeviceProp.apiVersion));
-                std::println("Driver version: {}.{}.{}", VK_API_VERSION_MAJOR(phyDeviceProp.driverVersion),
-                             VK_API_VERSION_MINOR(phyDeviceProp.driverVersion),
-                             VK_API_VERSION_PATCH(phyDeviceProp.driverVersion));
             }
             break;
         }
