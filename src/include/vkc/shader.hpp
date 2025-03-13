@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
@@ -16,6 +18,7 @@ namespace fs = std::filesystem;
 class ShaderManager {
 public:
     inline ShaderManager(DeviceManager& deviceMgr, const fs::path& path);
+    inline ShaderManager(DeviceManager& deviceMgr, const std::span<std::byte> code);
     inline ~ShaderManager() noexcept;
 
     template <typename Self>
@@ -31,6 +34,15 @@ private:
 ShaderManager::ShaderManager(DeviceManager& deviceMgr, const fs::path& path) : deviceMgr_(deviceMgr) {
     const auto& code = readFile(path);
 
+    vk::ShaderModuleCreateInfo shaderInfo;
+    shaderInfo.setPCode((uint32_t*)code.data());
+    shaderInfo.setCodeSize(code.size());
+
+    auto& device = deviceMgr.getDevice();
+    shader_ = device.createShaderModule(shaderInfo);
+}
+
+ShaderManager::ShaderManager(DeviceManager& deviceMgr, const std::span<std::byte> code) : deviceMgr_(deviceMgr) {
     vk::ShaderModuleCreateInfo shaderInfo;
     shaderInfo.setPCode((uint32_t*)code.data());
     shaderInfo.setCodeSize(code.size());

@@ -15,7 +15,7 @@ struct UBO {
 [[vk::binding(4)]] RWStructuredBuffer<float> writeBackWeights;
 
 
-float4 gaussianBlur(Texture2D tex, int2 idx)
+float4 blurAtIdx(Texture2D tex, int2 idx)
 {
     int kSize = pc.kernelSize;
     int halfKSize = kSize / 2;
@@ -71,7 +71,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
         return;
     }
 
-    float4 color = gaussianBlur(srcTex, dstIdx);
+    float4 color = blurAtIdx(srcTex, dstIdx);
 
     dstImage[dstIdx] = float4(color.rgb, 1.0);
 }

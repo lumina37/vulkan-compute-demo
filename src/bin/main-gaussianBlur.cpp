@@ -66,8 +66,9 @@ int main(int argc, char** argv) {
     descSetMgr.updateDescSets(samplerMgr, srcImageMgr, dstImageMgr, uboManager, ssboManager);
 
     // Pipeline
-    vkc::ShaderManager computeShaderMgr{deviceMgr, "../shader/gaussianBlur.hlsl.spv"};
-    vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, computeShaderMgr, {16, 16, 1}};
+    vkc::ShaderManager computeShaderMgr{deviceMgr, vkc::gaussianBlurSpirvCode};
+    const vkc::BlockSize blockSize{16, 16, 1};
+    vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, computeShaderMgr, blockSize};
 
     // Command Buffer
     vkc::QueueManager queueMgr{deviceMgr, queueFamilyMgr};
@@ -83,7 +84,7 @@ int main(int argc, char** argv) {
     commandBufferMgr.recordDstLayoutTrans(dstImageMgr);
     commandBufferMgr.recordResetQueryPool(queryPoolMgr);
     commandBufferMgr.recordTimestampStart(queryPoolMgr);
-    commandBufferMgr.recordDispatch(srcImage.getExtent());
+    commandBufferMgr.recordDispatch(srcImage.getExtent(), blockSize);
     commandBufferMgr.recordTimestampEnd(queryPoolMgr);
     commandBufferMgr.recordDownload(dstImageMgr);
     commandBufferMgr.end();

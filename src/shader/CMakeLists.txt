@@ -1,9 +1,10 @@
 function(vkc_add_shader src)
+    set(__VKC_SPIRV_HEADER_DIR ${PROJECT_SOURCE_DIR}/src/include/vkc/_spirv)
     set(__VKC_IN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${src})
-    set(__VKC_OUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/${src}.spv)
+    set(__VKC_OUT_PATH ${__VKC_SPIRV_HEADER_DIR}/${src}.h)
     add_custom_command(
             OUTPUT ${src}
-            COMMAND ${Vulkan_dxc_EXECUTABLE} -T cs_6_0 -spirv -Fo ${__VKC_OUT_PATH} ${__VKC_IN_PATH}
+            COMMAND ${Vulkan_dxc_EXECUTABLE} -T cs_6_0 -spirv -Fh ${__VKC_OUT_PATH} ${__VKC_IN_PATH}
             MAIN_DEPENDENCY ${__VKC_IN_PATH}
             COMMENT "Compile shader - ${__VKC_IN_PATH}"
     )

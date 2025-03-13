@@ -43,7 +43,7 @@ public:
 
     inline void recordUpload(ImageManager& srcImageMgr);
     inline void recordDstLayoutTrans(ImageManager& dstImageMgr);
-    inline void recordDispatch(const ExtentManager extent);
+    inline void recordDispatch(const ExtentManager extent, const BlockSize blockSize);
     inline void recordDownload(ImageManager& dstImageMgr);
 
     template <typename TQueryPoolManager>
@@ -170,9 +170,9 @@ void CommandBufferManager::recordDstLayoutTrans(ImageManager& dstImageMgr) {
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, 1, &dstShaderCompatibleBarrier);
 }
 
-void CommandBufferManager::recordDispatch(const ExtentManager extent) {
-    uint32_t groupSizeX = (extent.width() + 15) / 16;
-    uint32_t groupSizeY = (extent.height() + 15) / 16;
+void CommandBufferManager::recordDispatch(const ExtentManager extent, const BlockSize blockSize) {
+    uint32_t groupSizeX = (extent.width() + (blockSize.x - 1)) / blockSize.x;
+    uint32_t groupSizeY = (extent.height() + (blockSize.y - 1)) / blockSize.y;
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);
 }
 
