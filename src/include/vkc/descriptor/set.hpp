@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <ranges>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
@@ -10,17 +9,14 @@
 #include "vkc/descriptor/layout.hpp"
 #include "vkc/descriptor/pool.hpp"
 #include "vkc/device/logical.hpp"
-#include "vkc/resource/image.hpp"
 
 namespace vkc {
 
-namespace rgs = std::ranges;
-
 class DescSetManager {
 public:
-    inline DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
-                          DescPoolManager& descPoolMgr);
-    inline ~DescSetManager() noexcept;
+    DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
+                   DescPoolManager& descPoolMgr);
+    ~DescSetManager() noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getDescSet(this Self&& self) noexcept {
@@ -28,31 +24,13 @@ public:
     }
 
     template <CSupportDraftWriteDescSet... TManager>
-    inline void updateDescSets(const TManager&... mgrs);
+    void updateDescSets(const TManager&... mgrs);
 
 private:
     DeviceManager& deviceMgr_;      // FIXME: UAF
     DescPoolManager& descPoolMgr_;  // FIXME: UAF
     vk::DescriptorSet descSet_;
 };
-
-DescSetManager::DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
-                               DescPoolManager& descPoolMgr)
-    : deviceMgr_(deviceMgr), descPoolMgr_(descPoolMgr) {
-    vk::DescriptorSetAllocateInfo descSetAllocInfo;
-    descSetAllocInfo.setDescriptorPool(descPoolMgr.getDescPool());
-    descSetAllocInfo.setDescriptorSetCount(1);
-    const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
-    descSetAllocInfo.setSetLayouts(descSetLayout);
-
-    auto& device = deviceMgr.getDevice();
-    const auto& descSets = device.allocateDescriptorSets(descSetAllocInfo);
-    descSet_ = descSets[0];
-}
-
-DescSetManager::~DescSetManager() noexcept {
-    // TODO: maybe free sth. here
-}
 
 template <CSupportDraftWriteDescSet... TManager>
 void DescSetManager::updateDescSets(const TManager&... mgrs) {
@@ -74,3 +52,7 @@ void DescSetManager::updateDescSets(const TManager&... mgrs) {
 }
 
 }  // namespace vkc
+
+#ifdef _VKC_LIB_HEADER_ONLY
+#    include "vkc/descriptor/set.cpp"
+#endif

@@ -5,7 +5,7 @@ struct PushConstants {
 
 [[vk::binding(0)]] SamplerState srcSampler;
 [[vk::binding(1)]] Texture2D<float4> srcTex;
-[[vk::binding(2)]] RWTexture2D<float4> dstImage;
+[[vk::binding(2)]] [[vk::image_format("rgba8")]] RWTexture2D<float4> dstImage;
 
 struct UBO {
     float4 weights[4];

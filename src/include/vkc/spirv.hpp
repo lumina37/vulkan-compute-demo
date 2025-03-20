@@ -1,14 +1,14 @@
 #pragma once
 
+#include <cstddef>
+#include <span>
+
 namespace vkc {
 
-namespace _spirv::gaussianBlur {
-
-#include "vkc/_spirv/gaussianBlur.hlsl.h"
-
-}
-
-const std::span<std::byte> gaussianBlurSpirvCode{(std::byte*)_spirv::gaussianBlur::g_main,
-                                                 sizeof(_spirv::gaussianBlur::g_main)};
+extern const std::span<std::byte> gaussianBlurSpirvCode;
 
 }  // namespace vkc
+
+#ifdef _VKC_LIB_HEADER_ONLY
+#    include "vkc/spriv.cpp"
+#endif

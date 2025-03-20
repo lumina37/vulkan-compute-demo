@@ -46,8 +46,8 @@ template <CSupportGetDescType... TManager>
 
 class DescPoolManager {
 public:
-    inline DescPoolManager(DeviceManager& deviceMgr, const std::span<vk::DescriptorPoolSize> poolSizes);
-    inline ~DescPoolManager() noexcept;
+    DescPoolManager(DeviceManager& deviceMgr, std::span<vk::DescriptorPoolSize> poolSizes);
+    ~DescPoolManager() noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getDescPool(this Self&& self) noexcept {
@@ -59,19 +59,8 @@ private:
     vk::DescriptorPool descPool_;
 };
 
-DescPoolManager::DescPoolManager(DeviceManager& deviceMgr, const std::span<vk::DescriptorPoolSize> poolSizes)
-    : deviceMgr_(deviceMgr) {
-    vk::DescriptorPoolCreateInfo poolInfo;
-    poolInfo.setMaxSets(poolSizes.size());
-    poolInfo.setPoolSizes(poolSizes);
-
-    auto& device = deviceMgr.getDevice();
-    descPool_ = device.createDescriptorPool(poolInfo);
-}
-
-DescPoolManager::~DescPoolManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
-    device.destroyDescriptorPool(descPool_);
-}
-
 }  // namespace vkc
+
+#ifdef _VKC_LIB_HEADER_ONLY
+#    include "vkc/descriptor/pool.cpp"
+#endif

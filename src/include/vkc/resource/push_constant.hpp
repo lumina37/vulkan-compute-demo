@@ -1,8 +1,6 @@
 #pragma once
 
-#include <concepts>
-#include <cstddef>
-#include <span>
+#include <type_traits>
 
 #include <vulkan/vulkan.hpp>
 
@@ -14,7 +12,7 @@ class PushConstantManager {
 public:
     using TPc = TPc_;
 
-    constexpr inline PushConstantManager(const TPc pushConstant);
+    constexpr PushConstantManager(TPc pushConstant);
 
     template <typename Self>
     [[nodiscard]] constexpr auto&& getPushConstantRange(this Self&& self) noexcept {

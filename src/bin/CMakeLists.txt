@@ -1,8 +1,6 @@
 function(vkc_add_executable name src)
     add_executable(${name} ${src})
 
-    target_include_directories(${name} PRIVATE ${stb_SOURCE_DIR})
-
     target_link_libraries(${name} PRIVATE vkc-lib)
 
     target_compile_definitions(${name} PRIVATE

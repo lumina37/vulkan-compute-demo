@@ -7,7 +7,7 @@
 
 #include "vkc.hpp"
 
-static inline void genGaussKernel(std::span<float> dst, const int kernelSize, const float sigma) {
+void genGaussKernel(std::span<float> dst, const int kernelSize, const float sigma) {
     const int halfKSize = kernelSize / 2;
     const float doubleSigma2 = 2 * sigma * sigma;
 
@@ -67,8 +67,8 @@ int main(int argc, char** argv) {
 
     // Pipeline
     vkc::ShaderManager computeShaderMgr{deviceMgr, vkc::gaussianBlurSpirvCode};
-    const vkc::BlockSize blockSize{16, 16, 1};
-    vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, computeShaderMgr, blockSize};
+    constexpr vkc::BlockSize blockSize{16, 16, 1};
+    vkc::PipelineManager pipelineMgr{deviceMgr, pipelineLayoutMgr, computeShaderMgr};
 
     // Command Buffer
     vkc::QueueManager queueMgr{deviceMgr, queueFamilyMgr};
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
     commandBufferMgr.bindDescSet(descSetMgr, pipelineLayoutMgr);
     commandBufferMgr.pushConstant(pushConstantMgr, pipelineLayoutMgr);
     commandBufferMgr.recordUpload(srcImageMgr);
-    commandBufferMgr.recordDstLayoutTrans(dstImageMgr);
+    commandBufferMgr.recordLayoutTransUndefToDst(dstImageMgr);
     commandBufferMgr.recordResetQueryPool(queryPoolMgr);
     commandBufferMgr.recordTimestampStart(queryPoolMgr);
     commandBufferMgr.recordDispatch(srcImage.getExtent(), blockSize);

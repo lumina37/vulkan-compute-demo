@@ -1,6 +1,8 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <utility>
+
+#include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/queue_family.hpp"
@@ -9,7 +11,7 @@ namespace vkc {
 
 class QueueManager {
 public:
-    inline QueueManager(DeviceManager& deviceMgr, const QueueFamilyManager& queueFamilyMgr);
+    QueueManager(DeviceManager& deviceMgr, const QueueFamilyManager& queueFamilyMgr);
 
     template <typename Self>
     [[nodiscard]] auto&& getComputeQueue(this Self&& self) noexcept {
@@ -20,9 +22,8 @@ private:
     vk::Queue computeQueue_;
 };
 
-QueueManager::QueueManager(DeviceManager& deviceMgr, const QueueFamilyManager& queueFamilyMgr) {
-    auto& device = deviceMgr.getDevice();
-    computeQueue_ = device.getQueue(queueFamilyMgr.getComputeQFamilyIndex(), 0);
-}
-
 }  // namespace vkc
+
+#ifdef _VKC_LIB_HEADER_ONLY
+#    include "vkc/queue.cpp"
+#endif

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/descriptor/layout.hpp"
@@ -9,10 +11,10 @@ namespace vkc {
 
 class PipelineLayoutManager {
 public:
-    inline PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr);
-    inline PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
-                                 const vk::PushConstantRange& pushConstantRange);
-    inline ~PipelineLayoutManager() noexcept;
+    PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr);
+    PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
+                          const vk::PushConstantRange& pushConstantRange);
+    ~PipelineLayoutManager() noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getPipelineLayout(this Self&& self) noexcept {
@@ -24,32 +26,8 @@ private:
     vk::PipelineLayout pipelineLayout_;
 };
 
-PipelineLayoutManager::PipelineLayoutManager(DeviceManager& deviceMgr,
-                                                    const DescSetLayoutManager& descSetLayoutMgr)
-    : deviceMgr_(deviceMgr) {
-    vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-    const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
-    pipelineLayoutInfo.setSetLayouts(descSetLayout);
-
-    auto& device = deviceMgr.getDevice();
-    pipelineLayout_ = device.createPipelineLayout(pipelineLayoutInfo);
-}
-
-PipelineLayoutManager::PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
-                                             const vk::PushConstantRange& pushConstantRange)
-    : deviceMgr_(deviceMgr) {
-    vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-    const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
-    pipelineLayoutInfo.setSetLayouts(descSetLayout);
-    pipelineLayoutInfo.setPushConstantRanges(pushConstantRange);
-
-    auto& device = deviceMgr.getDevice();
-    pipelineLayout_ = device.createPipelineLayout(pipelineLayoutInfo);
-}
-
-PipelineLayoutManager::~PipelineLayoutManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
-    device.destroyPipelineLayout(pipelineLayout_);
-}
-
 }  // namespace vkc
+
+#ifdef _VKC_LIB_HEADER_ONLY
+#    include "vkc/pipeline_layout.cpp"
+#endif
