@@ -15,17 +15,17 @@ struct UBO {
 [[vk::binding(4)]] RWStructuredBuffer<float> writeBackWeights;
 
 
-float4 blurAtIdx(Texture2D tex, int2 idx)
+float3 blurAtIdx(Texture2D tex, int2 idx)
 {
     int kSize = pc.kernelSize;
     int halfKSize = kSize / 2;
     int2 srcSize;
     tex.GetDimensions(srcSize.x, srcSize.y);
 
-    float4 color = float4(0.0, 0.0, 0.0, 0.0);
+    float3 color = float3(0.0, 0.0, 0.0);
     for (int y = -halfKSize; y <= halfKSize; y++)
     {
-        float4 rowAcc = float4(0.0, 0.0, 0.0, 0.0);
+        float3 rowAcc = float3(0.0, 0.0, 0.0);
 
         for (int x = -halfKSize; x <= halfKSize; x++)
         {
@@ -37,7 +37,7 @@ float4 blurAtIdx(Texture2D tex, int2 idx)
             int weightY = absX >> 2;
             int weightX = absX & (4 - 1);
             float weight = ubo.weights[weightY][weightX];
-            rowAcc += srcVal * weight;
+            rowAcc += srcVal.rgb * weight;
         }
 
         int absY = abs(y);
@@ -71,7 +71,6 @@ void main(uint3 dtid : SV_DispatchThreadID)
         return;
     }
 
-    float4 color = blurAtIdx(srcTex, dstIdx);
-
-    dstImage[dstIdx] = float4(color.rgb, 1.0);
+    float3 color = blurAtIdx(srcTex, dstIdx);
+    dstImage[dstIdx] = float4(color, 1.0);
 }

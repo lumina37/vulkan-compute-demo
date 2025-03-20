@@ -57,7 +57,7 @@ private:
     vk::ImageView imageView_;
     vk::DeviceMemory stagingMemory_;
     vk::Buffer stagingBuffer_;
-    vk::DescriptorImageInfo imageInfo_;
+    vk::DescriptorImageInfo descImageInfo_;
 };
 
 }  // namespace vkc

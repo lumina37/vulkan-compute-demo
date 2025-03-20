@@ -37,7 +37,7 @@ private:
     vk::DeviceSize size_;
     vk::DeviceMemory memory_;
     vk::Buffer buffer_;
-    vk::DescriptorBufferInfo bufferInfo_;
+    vk::DescriptorBufferInfo descBufferInfo_;
 };
 
 }  // namespace vkc

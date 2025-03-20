@@ -77,15 +77,15 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
                          vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                          stagingBuffer_, stagingMemory_);
 
-    // Image Info
+    // Descriptor Image Info
     vk::ImageLayout imageLayout;
     if (usage & vk::ImageUsageFlagBits::eTransferSrc) {
         imageLayout = vk::ImageLayout::eGeneral;
     } else {
         imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
     }
-    imageInfo_.setImageView(imageView_);
-    imageInfo_.setImageLayout(imageLayout);
+    descImageInfo_.setImageView(imageView_);
+    descImageInfo_.setImageLayout(imageLayout);
 }
 
 ImageManager::~ImageManager() noexcept {
@@ -101,7 +101,7 @@ vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
     writeDescSet.setDescriptorType(descType_);
-    writeDescSet.setImageInfo(imageInfo_);
+    writeDescSet.setImageInfo(descImageInfo_);
     return writeDescSet;
 }
 

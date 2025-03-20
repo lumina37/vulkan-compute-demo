@@ -27,9 +27,9 @@ UBOManager::UBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& devi
 
     allocMemoryForBuffer(physicalDevice, device, vk::MemoryPropertyFlagBits::eHostVisible, buffer_, memory_);
 
-    // Buffer Info
-    bufferInfo_.setBuffer(buffer_);
-    bufferInfo_.setRange(size);
+    // Descriptor Buffer Info
+    descBufferInfo_.setBuffer(buffer_);
+    descBufferInfo_.setRange(size);
 }
 
 UBOManager::~UBOManager() noexcept {
@@ -42,7 +42,7 @@ vk::WriteDescriptorSet UBOManager::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
     writeDescSet.setDescriptorType(getDescType());
-    writeDescSet.setBufferInfo(bufferInfo_);
+    writeDescSet.setBufferInfo(descBufferInfo_);
     return writeDescSet;
 }
 
