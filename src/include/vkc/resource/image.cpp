@@ -7,7 +7,7 @@
 
 #include "vkc/device.hpp"
 #include "vkc/extent.hpp"
-#include "vkc/helper/memory.hpp"
+#include "vkc/resource/memory.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/resource/image.hpp"
@@ -61,14 +61,7 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
     image_ = device.createImage(imageInfo);
 
     // Device Memory
-    const vk::MemoryRequirements memRequirements = device.getImageMemoryRequirements(image_);
-    vk::MemoryAllocateInfo allocInfo;
-    allocInfo.setAllocationSize(memRequirements.size);
-    auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
-    const auto memTypeIndex =
-        findMemoryTypeIdx(physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    allocInfo.setMemoryTypeIndex(memTypeIndex);
-    imageMemory_ = device.allocateMemory(allocInfo);
+    _hp::allocImageMemory(phyDeviceMgr, deviceMgr, image_, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory_);
     device.bindImageMemory(image_, imageMemory_, 0);
 
     // Image View
@@ -93,9 +86,10 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
     stagingBuffer_ = device.createBuffer(bufferInfo);
 
-    allocMemoryForBuffer(physicalDevice, device,
-                         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                         stagingBuffer_, stagingMemory_);
+    _hp::allocBufferMemory(phyDeviceMgr, deviceMgr, stagingBuffer_,
+                           vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                           stagingMemory_);
+    device.bindBufferMemory(stagingBuffer_, stagingMemory_, 0);
 
     // Descriptor Image Info
     descImageInfo_.setImageView(imageView_);
@@ -104,11 +98,11 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
 
 ImageManager::~ImageManager() noexcept {
     auto& device = deviceMgr_.getDevice();
+    device.destroyBuffer(stagingBuffer_);
+    device.freeMemory(stagingMemory_);
     device.destroyImageView(imageView_);
     device.destroyImage(image_);
     device.freeMemory(imageMemory_);
-    device.destroyBuffer(stagingBuffer_);
-    device.freeMemory(stagingMemory_);
 }
 
 vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {
@@ -128,33 +122,11 @@ vk::DescriptorSetLayoutBinding ImageManager::draftDescSetLayoutBinding() const n
 }
 
 vk::Result ImageManager::uploadFrom(const std::span<std::byte> data) {
-    auto& device = deviceMgr_.getDevice();
-
-    // Upload to Staging Buffer
-    void* mapPtr;
-    auto uploadMapResult = device.mapMemory(stagingMemory_, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
-    if (uploadMapResult != vk::Result::eSuccess) {
-        return uploadMapResult;
-    }
-    std::memcpy(mapPtr, data.data(), data.size());
-    device.unmapMemory(stagingMemory_);
-
-    return vk::Result::eSuccess;
+    return _hp::uploadFrom(deviceMgr_, stagingMemory_, data);
 }
 
 vk::Result ImageManager::downloadTo(std::span<std::byte> data) {
-    auto& device = deviceMgr_.getDevice();
-
-    // Download from Staging Buffer
-    void* mapPtr;
-    auto downloadMapResult = device.mapMemory(stagingMemory_, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
-    if (downloadMapResult != vk::Result::eSuccess) {
-        return downloadMapResult;
-    }
-    std::memcpy(data.data(), mapPtr, data.size());
-    device.unmapMemory(stagingMemory_);
-
-    return vk::Result::eSuccess;
+    return _hp::downloadTo(deviceMgr_, stagingMemory_, data);
 }
 
 }  // namespace vkc

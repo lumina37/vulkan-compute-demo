@@ -39,11 +39,6 @@ public:
     }
 
     template <typename Self>
-    [[nodiscard]] auto&& getStagingMemory(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).stagingMemory_;
-    }
-
-    template <typename Self>
     [[nodiscard]] auto&& getStagingBuffer(this Self&& self) noexcept {
         return std::forward_like<Self>(self).stagingBuffer_;
     }
@@ -58,14 +53,18 @@ public:
 
 private:
     DeviceManager& deviceMgr_;  // FIXME: UAF
+
     ExtentManager extent_;
     ImageType imageType_;
     vk::DescriptorType descType_;
+
     vk::Image image_;
-    vk::DeviceMemory imageMemory_;
     vk::ImageView imageView_;
-    vk::DeviceMemory stagingMemory_;
+    vk::DeviceMemory imageMemory_;
+
     vk::Buffer stagingBuffer_;
+    vk::DeviceMemory stagingMemory_;
+
     vk::DescriptorImageInfo descImageInfo_;
 };
 
