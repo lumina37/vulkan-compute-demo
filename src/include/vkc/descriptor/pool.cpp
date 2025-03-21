@@ -10,7 +10,7 @@
 
 namespace vkc {
 
-DescPoolManager::DescPoolManager(DeviceManager& deviceMgr, const std::span<vk::DescriptorPoolSize> poolSizes)
+DescPoolManager::DescPoolManager(DeviceManager& deviceMgr, const std::span<const vk::DescriptorPoolSize> poolSizes)
     : deviceMgr_(deviceMgr) {
     vk::DescriptorPoolCreateInfo poolInfo;
     poolInfo.setMaxSets(poolSizes.size());

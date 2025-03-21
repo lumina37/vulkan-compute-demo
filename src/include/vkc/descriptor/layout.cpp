@@ -12,7 +12,7 @@
 namespace vkc {
 
 DescSetLayoutManager::DescSetLayoutManager(DeviceManager& deviceMgr,
-                                           const std::span<vk::DescriptorSetLayoutBinding> bindings)
+                                           const std::span<const vk::DescriptorSetLayoutBinding> bindings)
     : deviceMgr_(deviceMgr) {
     vk::DescriptorSetLayoutCreateInfo layoutInfo;
     layoutInfo.setBindings(bindings);

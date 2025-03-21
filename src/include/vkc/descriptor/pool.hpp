@@ -46,7 +46,7 @@ template <CSupportGetDescType... TManager>
 
 class DescPoolManager {
 public:
-    DescPoolManager(DeviceManager& deviceMgr, std::span<vk::DescriptorPoolSize> poolSizes);
+    DescPoolManager(DeviceManager& deviceMgr, std::span<const vk::DescriptorPoolSize> poolSizes);
     ~DescPoolManager() noexcept;
 
     template <typename Self>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <type_traits>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
@@ -44,10 +46,23 @@ public:
     template <typename TPc>
     void pushConstant(const PushConstantManager<TPc>& pushConstantMgr, const PipelineLayoutManager& pipelineLayoutMgr);
 
-    void recordUpload(ImageManager& srcImageMgr);
-    void recordLayoutTransUndefToDst(ImageManager& dstImageMgr);
+    template <typename... TMgr>
+        requires(std::is_same_v<TMgr, ImageManager> && ...)
+    void recordUpload(TMgr&... srcImageMgrs);
+
+    template <typename... TMgr>
+        requires(std::is_same_v<TMgr, ImageManager> && ...)
+    void recordSrcImageLayoutTrans(TMgr&... srcImageMgrs);
+
+    template <typename... TMgr>
+        requires(std::is_same_v<TMgr, ImageManager> && ...)
+    void recordDstImageLayoutTrans(TMgr&... dstImageMgrs);
+
     void recordDispatch(ExtentManager extent, BlockSize blockSize);
-    void recordDownload(ImageManager& dstImageMgr);
+
+    template <typename... TMgr>
+        requires(std::is_same_v<TMgr, ImageManager> && ...)
+    void recordDownload(TMgr&... dstImageMgrs);
 
     template <typename TQueryPoolManager>
         requires CQueryPoolManager<TQueryPoolManager>
@@ -64,6 +79,8 @@ private:
     CommandPoolManager& commandPoolMgr_;  // FIXME: UAF
     vk::CommandBuffer commandBuffer_;
     vk::Fence completeFence_;
+
+    static constexpr vk::ImageSubresourceRange SUBRESOURCE_RANGE{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1};
 };
 
 template <typename TPc>
@@ -72,6 +89,145 @@ void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushCons
     const auto& piplelineLayout = pipelineLayoutMgr.getPipelineLayout();
     commandBuffer_.pushConstants(piplelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(TPc),
                                  pushConstantMgr.getPPushConstant());
+}
+
+template <typename... TMgr>
+    requires(std::is_same_v<TMgr, ImageManager> && ...)
+void CommandBufferManager::recordUpload(TMgr&... srcImageMgrs) {
+    // Image Layout Prepare for Upload
+    vk::ImageMemoryBarrier uploadConvBarrierTemplate;
+    uploadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
+    uploadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
+    uploadConvBarrierTemplate.setOldLayout(vk::ImageLayout::eUndefined);
+    uploadConvBarrierTemplate.setNewLayout(vk::ImageLayout::eTransferDstOptimal);
+    uploadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+
+    const auto genUploadConvBarrier = [uploadConvBarrierTemplate](auto& mgr) {
+        vk::ImageMemoryBarrier uploadConvBarrier = uploadConvBarrierTemplate;
+        uploadConvBarrier.setImage(mgr.getImage());
+        return uploadConvBarrier;
+    };
+    std::array uploadConvBarriers{genUploadConvBarrier(srcImageMgrs)...};
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, uploadConvBarriers.size(),
+                                   uploadConvBarriers.data());
+
+    // Copy Staging Buffer to Image
+    vk::ImageSubresourceLayers subresourceLayers;
+    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceLayers.setLayerCount(1);
+    vk::BufferImageCopy copyRegionTemplate;
+    copyRegionTemplate.setImageSubresource(subresourceLayers);
+
+    const auto copyBufferToImage = [&](auto& mgr) {
+        vk::BufferImageCopy copyRegion = copyRegionTemplate;
+        copyRegion.setImageExtent(mgr.getExtent().extent3D());
+        commandBuffer_.copyBufferToImage(mgr.getStagingBuffer(), mgr.getImage(), vk::ImageLayout::eTransferDstOptimal,
+                                         1, &copyRegion);
+    };
+    (copyBufferToImage(srcImageMgrs), ...);
+}
+
+template <typename... TMgr>
+    requires(std::is_same_v<TMgr, ImageManager> && ...)
+void CommandBufferManager::recordSrcImageLayoutTrans(TMgr&... srcImageMgrs) {
+    vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
+    shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
+    shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
+    shaderCompatibleBarrierTemplate.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
+    shaderCompatibleBarrierTemplate.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    shaderCompatibleBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+
+    const auto genShaderCompatibleBarrier = [shaderCompatibleBarrierTemplate](auto& mgr) {
+        vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
+        shaderCompatibleBarrier.setImage(mgr.getImage());
+        return shaderCompatibleBarrier;
+    };
+    std::array shaderCompatibleBarriers{genShaderCompatibleBarrier(srcImageMgrs)...};
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, shaderCompatibleBarriers.size(),
+                                   shaderCompatibleBarriers.data());
+}
+
+template <typename... TMgr>
+    requires(std::is_same_v<TMgr, ImageManager> && ...)
+void CommandBufferManager::recordDstImageLayoutTrans(TMgr&... dstImageMgrs) {
+    vk::ImageSubresourceRange subresourceRange;
+    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceRange.setLevelCount(1);
+    subresourceRange.setLayerCount(1);
+
+    // Shader Compatible Image Layout
+    vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
+    shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
+    shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderWrite);
+    shaderCompatibleBarrierTemplate.setOldLayout(vk::ImageLayout::eUndefined);
+    shaderCompatibleBarrierTemplate.setNewLayout(vk::ImageLayout::eGeneral);
+    shaderCompatibleBarrierTemplate.setSubresourceRange(subresourceRange);
+
+    const auto genShaderCompatibleBarrier = [shaderCompatibleBarrierTemplate](auto& mgr) {
+        vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
+        shaderCompatibleBarrier.setImage(mgr.getImage());
+        return shaderCompatibleBarrier;
+    };
+    std::array shaderCompatibleBarriers{genShaderCompatibleBarrier(dstImageMgrs)...};
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eComputeShader,
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, shaderCompatibleBarriers.size(),
+                                   shaderCompatibleBarriers.data());
+}
+
+template <typename... TMgr>
+    requires(std::is_same_v<TMgr, ImageManager> && ...)
+void CommandBufferManager::recordDownload(TMgr&... dstImageMgrs) {
+    // Download to Staging Buffer
+    vk::ImageMemoryBarrier downloadConvBarrierTemplate;
+    downloadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite);
+    downloadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
+    downloadConvBarrierTemplate.setOldLayout(vk::ImageLayout::eGeneral);
+    downloadConvBarrierTemplate.setNewLayout(vk::ImageLayout::eTransferSrcOptimal);
+    downloadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+
+    const auto genDownloadConvBarrier = [downloadConvBarrierTemplate](auto& mgr) {
+        vk::ImageMemoryBarrier downloadConvBarrier = downloadConvBarrierTemplate;
+        downloadConvBarrier.setImage(mgr.getImage());
+        return downloadConvBarrier;
+    };
+    std::array downloadConvBarriers{genDownloadConvBarrier(dstImageMgrs)...};
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, downloadConvBarriers.size(),
+                                   downloadConvBarriers.data());
+
+    vk::ImageSubresourceLayers subresourceLayers;
+    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceLayers.setLayerCount(1);
+    vk::BufferImageCopy copyRegionTemplate;
+    copyRegionTemplate.setImageSubresource(subresourceLayers);
+
+    const auto copyImageToBuffer = [&](auto& mgr) {
+        vk::BufferImageCopy copyRegion = copyRegionTemplate;
+        copyRegion.setImageExtent(mgr.getExtent().extent3D());
+        commandBuffer_.copyImageToBuffer(mgr.getImage(), vk::ImageLayout::eTransferSrcOptimal, mgr.getStagingBuffer(),
+                                         1, &copyRegion);
+    };
+    (copyImageToBuffer(dstImageMgrs), ...);
+
+    const auto genDownloadCompleteBarrier = [](auto& mgr) {
+        vk::BufferMemoryBarrier downloadCompleteBarrier;
+        downloadCompleteBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
+        downloadCompleteBarrier.setDstAccessMask(vk::AccessFlagBits::eHostRead);
+        downloadCompleteBarrier.setBuffer(mgr.getStagingBuffer());
+        downloadCompleteBarrier.setSize(mgr.getExtent().size());
+        return downloadCompleteBarrier;
+    };
+    std::array downloadCompleteBarriers{genDownloadCompleteBarrier(dstImageMgrs)...};
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost,
+                                   (vk::DependencyFlags)0, 0, nullptr, downloadCompleteBarriers.size(),
+                                   downloadCompleteBarriers.data(), 0, nullptr);
 }
 
 template <typename TQueryPoolManager>

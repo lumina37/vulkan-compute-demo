@@ -1,4 +1,4 @@
-#include <utility>
+#include <limits>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
@@ -59,120 +59,10 @@ void CommandBufferManager::begin() {
     commandBuffer_.begin(cmdBufBeginInfo);
 }
 
-void CommandBufferManager::recordUpload(ImageManager& srcImageMgr) {
-    vk::ImageLayout imageLayoutForTransfer = vk::ImageLayout::eGeneral;
-    vk::ImageLayout imageLayoutForShader = vk::ImageLayout::eGeneral;
-    if (srcImageMgr.getImageType() == ImageType::ReadOnly) {
-        imageLayoutForTransfer = vk::ImageLayout::eTransferDstOptimal;
-        imageLayoutForShader = vk::ImageLayout::eShaderReadOnlyOptimal;
-    }
-
-    // Copy Staging Buffer to Image
-    vk::ImageSubresourceRange subresourceRange;
-    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceRange.setLevelCount(1);
-    subresourceRange.setLayerCount(1);
-
-    vk::ImageMemoryBarrier uploadConvBarrier;
-    uploadConvBarrier.setSrcAccessMask(vk::AccessFlagBits::eNone);
-    uploadConvBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
-    uploadConvBarrier.setOldLayout(vk::ImageLayout::eUndefined);
-    uploadConvBarrier.setNewLayout(imageLayoutForTransfer);
-    uploadConvBarrier.setImage(srcImageMgr.getImage());
-    uploadConvBarrier.setSubresourceRange(subresourceRange);
-
-    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, 1, &uploadConvBarrier);
-
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
-    vk::BufferImageCopy copyRegion;
-    copyRegion.setImageSubresource(subresourceLayers);
-    copyRegion.setImageExtent(srcImageMgr.getExtent().extent3D());
-
-    commandBuffer_.copyBufferToImage(srcImageMgr.getStagingBuffer(), srcImageMgr.getImage(), imageLayoutForTransfer, 1,
-                                     &copyRegion);
-
-    // Shader Compatible Image Layout
-    vk::ImageMemoryBarrier srcShaderCompatibleBarrier;
-    srcShaderCompatibleBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
-    srcShaderCompatibleBarrier.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
-    srcShaderCompatibleBarrier.setOldLayout(imageLayoutForTransfer);
-    srcShaderCompatibleBarrier.setNewLayout(imageLayoutForShader);
-    srcShaderCompatibleBarrier.setImage(srcImageMgr.getImage());
-    srcShaderCompatibleBarrier.setSubresourceRange(subresourceRange);
-
-    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, 1, &srcShaderCompatibleBarrier);
-}
-
-void CommandBufferManager::recordLayoutTransUndefToDst(ImageManager& dstImageMgr) {
-    vk::ImageSubresourceRange subresourceRange;
-    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceRange.setLevelCount(1);
-    subresourceRange.setLayerCount(1);
-
-    // Shader Compatible Image Layout
-    vk::ImageMemoryBarrier dstShaderCompatibleBarrier;
-    dstShaderCompatibleBarrier.setSrcAccessMask(vk::AccessFlagBits::eNone);
-    dstShaderCompatibleBarrier.setDstAccessMask(vk::AccessFlagBits::eShaderWrite);
-    dstShaderCompatibleBarrier.setOldLayout(vk::ImageLayout::eUndefined);
-    dstShaderCompatibleBarrier.setNewLayout(vk::ImageLayout::eGeneral);
-    dstShaderCompatibleBarrier.setImage(dstImageMgr.getImage());
-    dstShaderCompatibleBarrier.setSubresourceRange(subresourceRange);
-
-    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eComputeShader,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, 1, &dstShaderCompatibleBarrier);
-}
-
 void CommandBufferManager::recordDispatch(const ExtentManager extent, const BlockSize blockSize) {
     uint32_t groupSizeX = (extent.width() + (blockSize.x - 1)) / blockSize.x;
     uint32_t groupSizeY = (extent.height() + (blockSize.y - 1)) / blockSize.y;
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);
-}
-
-void CommandBufferManager::recordDownload(ImageManager& dstImageMgr) {
-    vk::ImageLayout imageLayoutForTransfer = vk::ImageLayout::eGeneral;
-    if (dstImageMgr.getImageType() == ImageType::WriteOnly) {
-        imageLayoutForTransfer = vk::ImageLayout::eTransferSrcOptimal;
-    }
-
-    vk::ImageSubresourceRange subresourceRange;
-    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceRange.setLevelCount(1);
-    subresourceRange.setLayerCount(1);
-
-    // Download to Staging Buffer
-    vk::ImageMemoryBarrier downloadConvBarrier;
-    downloadConvBarrier.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite);
-    downloadConvBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
-    downloadConvBarrier.setOldLayout(vk::ImageLayout::eGeneral);
-    downloadConvBarrier.setNewLayout(imageLayoutForTransfer);
-    downloadConvBarrier.setImage(dstImageMgr.getImage());
-    downloadConvBarrier.setSubresourceRange(subresourceRange);
-
-    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, 1, &downloadConvBarrier);
-
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
-    vk::BufferImageCopy copyRegion;
-    copyRegion.setImageSubresource(subresourceLayers);
-    copyRegion.setImageExtent(dstImageMgr.getExtent().extent3D());
-
-    commandBuffer_.copyImageToBuffer(dstImageMgr.getImage(), imageLayoutForTransfer, dstImageMgr.getStagingBuffer(), 1,
-                                     &copyRegion);
-
-    vk::BufferMemoryBarrier downloadCompleteBarrier;
-    downloadCompleteBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
-    downloadCompleteBarrier.setDstAccessMask(vk::AccessFlagBits::eHostRead);
-    downloadCompleteBarrier.setBuffer(dstImageMgr.getStagingBuffer());
-    downloadCompleteBarrier.setSize(dstImageMgr.getExtent().size());
-
-    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost,
-                                   (vk::DependencyFlags)0, 0, nullptr, 1, &downloadCompleteBarrier, 0, nullptr);
 }
 
 void CommandBufferManager::recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr,

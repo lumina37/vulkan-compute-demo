@@ -75,12 +75,13 @@ int main(int argc, char** argv) {
     commandBufferMgr.bindPipeline(pipelineMgr);
     commandBufferMgr.bindDescSet(descSetMgr, pipelineLayoutMgr);
     commandBufferMgr.pushConstant(pushConstantMgr, pipelineLayoutMgr);
-    commandBufferMgr.recordUpload(srcImageMgr);
-    commandBufferMgr.recordLayoutTransUndefToDst(dstImageMgr);
     commandBufferMgr.recordResetQueryPool(queryPoolMgr);
-    commandBufferMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTopOfPipe);
+    commandBufferMgr.recordUpload(srcImageMgr);
+    commandBufferMgr.recordSrcImageLayoutTrans(srcImageMgr);
+    commandBufferMgr.recordDstImageLayoutTrans(dstImageMgr);
+    commandBufferMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
     commandBufferMgr.recordDispatch(srcImage.getExtent(), blockSize);
-    commandBufferMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eBottomOfPipe);
+    commandBufferMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
     commandBufferMgr.recordDownload(dstImageMgr);
     commandBufferMgr.end();
 

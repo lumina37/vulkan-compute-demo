@@ -11,7 +11,7 @@ namespace vkc {
 
 class DescSetLayoutManager {
 public:
-    DescSetLayoutManager(DeviceManager& deviceMgr, std::span<vk::DescriptorSetLayoutBinding> bindings);
+    DescSetLayoutManager(DeviceManager& deviceMgr, std::span<const vk::DescriptorSetLayoutBinding> bindings);
     ~DescSetLayoutManager() noexcept;
 
     template <typename Self>
