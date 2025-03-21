@@ -53,8 +53,8 @@ public:
         requires CQueryPoolManager<TQueryPoolManager>
     void recordResetQueryPool(TQueryPoolManager& queryPoolMgr);
 
-    void recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr);
-    void recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr);
+    void recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage);
+    void recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage);
     void end();
     void submitTo(QueueManager& queueMgr);
     vk::Result waitFence();

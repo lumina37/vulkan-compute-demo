@@ -24,10 +24,11 @@ public:
         return std::forward_like<Self>(self).buffer_;
     }
 
-    [[nodiscard]] constexpr vk::DescriptorType getDescType() const noexcept {
+    [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eStorageBuffer;
     }
     [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
+    [[nodiscard]] static constexpr vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() noexcept;
 
     vk::Result uploadFrom(std::span<std::byte> data);
     vk::Result downloadTo(std::span<std::byte> data);
@@ -39,6 +40,14 @@ private:
     vk::Buffer buffer_;
     vk::DescriptorBufferInfo descBufferInfo_;
 };
+
+constexpr vk::DescriptorSetLayoutBinding SSBOManager::draftDescSetLayoutBinding() noexcept {
+    vk::DescriptorSetLayoutBinding binding;
+    binding.setDescriptorCount(1);
+    binding.setDescriptorType(getDescType());
+    binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
+    return binding;
+}
 
 }  // namespace vkc
 

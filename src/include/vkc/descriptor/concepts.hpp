@@ -20,4 +20,11 @@ concept CSupportGetDescType = requires {
     };
 };
 
+template <typename Self>
+concept CSupportDraftDescSetLayoutBinding = requires {
+    requires requires(const Self& self) {
+        { self.draftDescSetLayoutBinding() } noexcept -> std::same_as<vk::DescriptorSetLayoutBinding>;
+    };
+};
+
 }  // namespace vkc

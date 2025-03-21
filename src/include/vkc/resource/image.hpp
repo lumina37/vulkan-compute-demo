@@ -11,10 +11,16 @@
 
 namespace vkc {
 
+enum class ImageType {
+    ReadOnly,
+    WriteOnly,
+    ReadWrite,
+};
+
 class ImageManager {
 public:
     ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
-                 vk::ImageUsageFlags usage, vk::DescriptorType descType);
+                 ImageType imageType);
     ~ImageManager() noexcept;
 
     template <typename Self>
@@ -42,8 +48,10 @@ public:
         return std::forward_like<Self>(self).stagingBuffer_;
     }
 
+    [[nodiscard]] ImageType getImageType() const noexcept { return imageType_; }
     [[nodiscard]] vk::DescriptorType getDescType() const noexcept { return descType_; }
     [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
+    [[nodiscard]] vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() const noexcept;
 
     vk::Result uploadFrom(std::span<std::byte> data);
     vk::Result downloadTo(std::span<std::byte> data);
@@ -51,6 +59,7 @@ public:
 private:
     DeviceManager& deviceMgr_;  // FIXME: UAF
     ExtentManager extent_;
+    ImageType imageType_;
     vk::DescriptorType descType_;
     vk::Image image_;
     vk::DeviceMemory imageMemory_;

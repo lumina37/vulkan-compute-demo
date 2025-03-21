@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstring>
 #include <span>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
@@ -15,9 +16,35 @@
 namespace vkc {
 
 ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
-                           const vk::ImageUsageFlags usage, const vk::DescriptorType descType)
-    : deviceMgr_(deviceMgr), extent_(extent), descType_(descType) {
+                           const ImageType imageType)
+    : deviceMgr_(deviceMgr), extent_(extent), imageType_(imageType) {
     auto& device = deviceMgr.getDevice();
+
+    vk::ImageUsageFlags imageUsage;
+    vk::BufferUsageFlags bufferUsage;
+    vk::ImageLayout imageLayout;
+    switch (imageType) {
+        case ImageType::ReadOnly:
+            descType_ = vk::DescriptorType::eSampledImage;
+            imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
+            bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
+            imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+            break;
+        case ImageType::WriteOnly:
+            descType_ = vk::DescriptorType::eStorageImage;
+            imageUsage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
+            bufferUsage = vk::BufferUsageFlagBits::eTransferDst;
+            imageLayout = vk::ImageLayout::eGeneral;
+            break;
+        case ImageType::ReadWrite:
+            descType_ = vk::DescriptorType::eStorageImage;
+            imageUsage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
+            bufferUsage = vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst;
+            imageLayout = vk::ImageLayout::eGeneral;
+            break;
+        default:
+            std::unreachable();
+    }
 
     // Image
     vk::ImageCreateInfo imageInfo;
@@ -28,7 +55,7 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
     imageInfo.setArrayLayers(1);
     imageInfo.setSamples(vk::SampleCountFlagBits::e1);
     imageInfo.setTiling(vk::ImageTiling::eOptimal);
-    imageInfo.setUsage(usage);
+    imageInfo.setUsage(imageUsage);
     imageInfo.setSharingMode(vk::SharingMode::eExclusive);
     imageInfo.setInitialLayout(vk::ImageLayout::eUndefined);
     image_ = device.createImage(imageInfo);
@@ -60,13 +87,6 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
     imageView_ = device.createImageView(imageViewInfo);
 
     // Staging Memory
-    vk::BufferUsageFlags bufferUsage;
-    if (usage & vk::ImageUsageFlagBits::eTransferSrc) {
-        bufferUsage = vk::BufferUsageFlagBits::eTransferDst;
-    } else {
-        bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
-    }
-
     vk::BufferCreateInfo bufferInfo;
     bufferInfo.setSize(extent.size());
     bufferInfo.setUsage(bufferUsage);
@@ -78,12 +98,6 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
                          stagingBuffer_, stagingMemory_);
 
     // Descriptor Image Info
-    vk::ImageLayout imageLayout;
-    if (usage & vk::ImageUsageFlagBits::eTransferSrc) {
-        imageLayout = vk::ImageLayout::eGeneral;
-    } else {
-        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-    }
     descImageInfo_.setImageView(imageView_);
     descImageInfo_.setImageLayout(imageLayout);
 }
@@ -103,6 +117,14 @@ vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {
     writeDescSet.setDescriptorType(descType_);
     writeDescSet.setImageInfo(descImageInfo_);
     return writeDescSet;
+}
+
+vk::DescriptorSetLayoutBinding ImageManager::draftDescSetLayoutBinding() const noexcept {
+    vk::DescriptorSetLayoutBinding binding;
+    binding.setDescriptorCount(1);
+    binding.setDescriptorType(descType_);
+    binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
+    return binding;
 }
 
 vk::Result ImageManager::uploadFrom(const std::span<std::byte> data) {

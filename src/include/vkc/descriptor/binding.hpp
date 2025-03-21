@@ -9,14 +9,11 @@
 
 namespace vkc {
 
-template <CSupportGetDescType... TManager>
+template <CSupportDraftDescSetLayoutBinding... TManager>
 [[nodiscard]] static constexpr inline auto genDescSetLayoutBindings(const TManager&... mgrs) {
     const auto genDescSetLayoutBinding = [](const auto& mgr, size_t index) {
-        vk::DescriptorSetLayoutBinding binding;
+        vk::DescriptorSetLayoutBinding binding = mgr.draftDescSetLayoutBinding();
         binding.setBinding(index);
-        binding.setDescriptorCount(1);
-        binding.setDescriptorType(mgr.getDescType());
-        binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
         return binding;
     };
 

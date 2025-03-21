@@ -48,13 +48,8 @@ int main(int argc, char** argv) {
     vkc::UBOManager uboManager{phyDeviceMgr, deviceMgr, sizeof(weights)};
     vkc::SSBOManager ssboManager{phyDeviceMgr, deviceMgr, sizeof(writeBackWeights)};
 
-    vkc::ImageManager srcImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(),
-                                  vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
-                                  vk::DescriptorType::eSampledImage};
-
-    vkc::ImageManager dstImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(),
-                                  vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
-                                  vk::DescriptorType::eStorageImage};
+    vkc::ImageManager srcImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::ReadOnly};
+    vkc::ImageManager dstImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::ReadWrite};
 
     std::vector descPoolSizes = genPoolSizes(samplerMgr, srcImageMgr, dstImageMgr, uboManager, ssboManager);
     vkc::DescPoolManager descPoolMgr{deviceMgr, descPoolSizes};
@@ -83,9 +78,9 @@ int main(int argc, char** argv) {
     commandBufferMgr.recordUpload(srcImageMgr);
     commandBufferMgr.recordLayoutTransUndefToDst(dstImageMgr);
     commandBufferMgr.recordResetQueryPool(queryPoolMgr);
-    commandBufferMgr.recordTimestampStart(queryPoolMgr);
+    commandBufferMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTopOfPipe);
     commandBufferMgr.recordDispatch(srcImage.getExtent(), blockSize);
-    commandBufferMgr.recordTimestampEnd(queryPoolMgr);
+    commandBufferMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTopOfPipe);
     commandBufferMgr.recordDownload(dstImageMgr);
     commandBufferMgr.end();
 

@@ -60,6 +60,13 @@ void CommandBufferManager::begin() {
 }
 
 void CommandBufferManager::recordUpload(ImageManager& srcImageMgr) {
+    vk::ImageLayout imageLayoutForTransfer = vk::ImageLayout::eGeneral;
+    vk::ImageLayout imageLayoutForShader = vk::ImageLayout::eGeneral;
+    if (srcImageMgr.getImageType() == ImageType::ReadOnly) {
+        imageLayoutForTransfer = vk::ImageLayout::eTransferDstOptimal;
+        imageLayoutForShader = vk::ImageLayout::eShaderReadOnlyOptimal;
+    }
+
     // Copy Staging Buffer to Image
     vk::ImageSubresourceRange subresourceRange;
     subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
@@ -70,7 +77,7 @@ void CommandBufferManager::recordUpload(ImageManager& srcImageMgr) {
     uploadConvBarrier.setSrcAccessMask(vk::AccessFlagBits::eNone);
     uploadConvBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
     uploadConvBarrier.setOldLayout(vk::ImageLayout::eUndefined);
-    uploadConvBarrier.setNewLayout(vk::ImageLayout::eTransferDstOptimal);
+    uploadConvBarrier.setNewLayout(imageLayoutForTransfer);
     uploadConvBarrier.setImage(srcImageMgr.getImage());
     uploadConvBarrier.setSubresourceRange(subresourceRange);
 
@@ -84,15 +91,15 @@ void CommandBufferManager::recordUpload(ImageManager& srcImageMgr) {
     copyRegion.setImageSubresource(subresourceLayers);
     copyRegion.setImageExtent(srcImageMgr.getExtent().extent3D());
 
-    commandBuffer_.copyBufferToImage(srcImageMgr.getStagingBuffer(), srcImageMgr.getImage(),
-                                     vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
+    commandBuffer_.copyBufferToImage(srcImageMgr.getStagingBuffer(), srcImageMgr.getImage(), imageLayoutForTransfer, 1,
+                                     &copyRegion);
 
     // Shader Compatible Image Layout
     vk::ImageMemoryBarrier srcShaderCompatibleBarrier;
     srcShaderCompatibleBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     srcShaderCompatibleBarrier.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
-    srcShaderCompatibleBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
-    srcShaderCompatibleBarrier.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    srcShaderCompatibleBarrier.setOldLayout(imageLayoutForTransfer);
+    srcShaderCompatibleBarrier.setNewLayout(imageLayoutForShader);
     srcShaderCompatibleBarrier.setImage(srcImageMgr.getImage());
     srcShaderCompatibleBarrier.setSubresourceRange(subresourceRange);
 
@@ -126,6 +133,11 @@ void CommandBufferManager::recordDispatch(const ExtentManager extent, const Bloc
 }
 
 void CommandBufferManager::recordDownload(ImageManager& dstImageMgr) {
+    vk::ImageLayout imageLayoutForTransfer = vk::ImageLayout::eGeneral;
+    if (dstImageMgr.getImageType() == ImageType::WriteOnly) {
+        imageLayoutForTransfer = vk::ImageLayout::eTransferSrcOptimal;
+    }
+
     vk::ImageSubresourceRange subresourceRange;
     subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceRange.setLevelCount(1);
@@ -136,7 +148,7 @@ void CommandBufferManager::recordDownload(ImageManager& dstImageMgr) {
     downloadConvBarrier.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite);
     downloadConvBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
     downloadConvBarrier.setOldLayout(vk::ImageLayout::eGeneral);
-    downloadConvBarrier.setNewLayout(vk::ImageLayout::eTransferSrcOptimal);
+    downloadConvBarrier.setNewLayout(imageLayoutForTransfer);
     downloadConvBarrier.setImage(dstImageMgr.getImage());
     downloadConvBarrier.setSubresourceRange(subresourceRange);
 
@@ -150,8 +162,8 @@ void CommandBufferManager::recordDownload(ImageManager& dstImageMgr) {
     copyRegion.setImageSubresource(subresourceLayers);
     copyRegion.setImageExtent(dstImageMgr.getExtent().extent3D());
 
-    commandBuffer_.copyImageToBuffer(dstImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal,
-                                     dstImageMgr.getStagingBuffer(), 1, &copyRegion);
+    commandBuffer_.copyImageToBuffer(dstImageMgr.getImage(), imageLayoutForTransfer, dstImageMgr.getStagingBuffer(), 1,
+                                     &copyRegion);
 
     vk::BufferMemoryBarrier downloadCompleteBarrier;
     downloadCompleteBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
@@ -163,18 +175,20 @@ void CommandBufferManager::recordDownload(ImageManager& dstImageMgr) {
                                    (vk::DependencyFlags)0, 0, nullptr, 1, &downloadCompleteBarrier, 0, nullptr);
 }
 
-void CommandBufferManager::recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr) {
+void CommandBufferManager::recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr,
+                                                const vk::PipelineStageFlagBits pipelineStage) {
     auto& queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
     queryPoolMgr.addQueryIndex();
-    commandBuffer_.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, queryPool, queryIndex);
+    commandBuffer_.writeTimestamp(pipelineStage, queryPool, queryIndex);
 }
 
-void CommandBufferManager::recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr) {
+void CommandBufferManager::recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr,
+                                              const vk::PipelineStageFlagBits pipelineStage) {
     auto& queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
     queryPoolMgr.addQueryIndex();
-    commandBuffer_.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, queryPool, queryIndex);
+    commandBuffer_.writeTimestamp(pipelineStage, queryPool, queryIndex);
 }
 
 void CommandBufferManager::end() { commandBuffer_.end(); }

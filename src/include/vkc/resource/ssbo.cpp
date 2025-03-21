@@ -1,11 +1,11 @@
 #include <cstddef>
-#include <span>
 #include <cstring>
+#include <span>
 
 #include <vulkan/vulkan.hpp>
 
-#include "vkc/helper/memory.hpp"
 #include "vkc/device.hpp"
+#include "vkc/helper/memory.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/resource/ssbo.hpp"

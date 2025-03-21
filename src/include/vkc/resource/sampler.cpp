@@ -5,7 +5,7 @@
 #include "vkc/device/logical.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/sampler.hpp"
+#    include "vkc/resource/sampler.hpp"
 #endif
 
 namespace vkc {
