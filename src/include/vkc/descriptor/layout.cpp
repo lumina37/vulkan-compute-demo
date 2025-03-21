@@ -1,5 +1,4 @@
 #include <span>
-#include <utility>
 
 #include <vulkan/vulkan.hpp>
 

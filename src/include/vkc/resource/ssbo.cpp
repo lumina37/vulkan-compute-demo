@@ -1,5 +1,4 @@
 #include <cstddef>
-#include <cstring>
 #include <span>
 
 #include <vulkan/vulkan.hpp>

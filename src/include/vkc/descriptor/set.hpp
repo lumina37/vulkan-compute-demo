@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
