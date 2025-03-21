@@ -43,7 +43,7 @@ std::vector<float> TimestampQueryPoolManager::getElaspedTimes() const noexcept {
 
     const float timestampPeriodMs = timestampPeriod_ * 1000000.0f;
     for (const auto [idx, pair] : rgs::views::enumerate(timestamps | rgs::views::chunk(2))) {
-        elapsedTimes[idx] = ((float)pair[1] - (float)pair[0]) / timestampPeriodMs;
+        elapsedTimes[idx] = (float)(pair[1] - pair[0]) / timestampPeriodMs;
     }
 
     return elapsedTimes;
