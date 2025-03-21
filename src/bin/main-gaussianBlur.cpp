@@ -48,8 +48,8 @@ int main(int argc, char** argv) {
     vkc::UBOManager uboManager{phyDeviceMgr, deviceMgr, sizeof(weights)};
     vkc::SSBOManager ssboManager{phyDeviceMgr, deviceMgr, sizeof(writeBackWeights)};
 
-    vkc::ImageManager srcImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::ReadOnly};
-    vkc::ImageManager dstImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::WriteOnly};
+    vkc::ImageManager srcImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::Read};
+    vkc::ImageManager dstImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::Write};
 
     std::vector descPoolSizes = genPoolSizes(samplerMgr, srcImageMgr, dstImageMgr, uboManager, ssboManager);
     vkc::DescPoolManager descPoolMgr{deviceMgr, descPoolSizes};

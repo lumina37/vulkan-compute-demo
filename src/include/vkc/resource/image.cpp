@@ -24,22 +24,16 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
     vk::BufferUsageFlags bufferUsage;
     vk::ImageLayout imageLayout;
     switch (imageType) {
-        case ImageType::ReadOnly:
+        case ImageType::Read:
             descType_ = vk::DescriptorType::eSampledImage;
             imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
             bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
             imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
             break;
-        case ImageType::WriteOnly:
+        case ImageType::Write:
             descType_ = vk::DescriptorType::eStorageImage;
             imageUsage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
             bufferUsage = vk::BufferUsageFlagBits::eTransferDst;
-            imageLayout = vk::ImageLayout::eGeneral;
-            break;
-        case ImageType::ReadWrite:
-            descType_ = vk::DescriptorType::eStorageImage;
-            imageUsage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
-            bufferUsage = vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst;
             imageLayout = vk::ImageLayout::eGeneral;
             break;
         default:
