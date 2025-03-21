@@ -6,7 +6,7 @@
 
 namespace vkc {
 
-uint32_t findMemoryType(const vk::PhysicalDevice& physicalDevice, uint32_t typeFilter,
+uint32_t findMemoryTypeIdx(const vk::PhysicalDevice& physicalDevice, uint32_t supportedMemType,
                         vk::MemoryPropertyFlags memProps);
 
 void allocMemoryForBuffer(const vk::PhysicalDevice& physicalDevice, const vk::Device& device,

@@ -39,7 +39,7 @@ ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& 
     allocInfo.setAllocationSize(memRequirements.size);
     auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
     const auto memTypeIndex =
-        findMemoryType(physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        findMemoryTypeIdx(physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
     allocInfo.setMemoryTypeIndex(memTypeIndex);
     imageMemory_ = device.allocateMemory(allocInfo);
     device.bindImageMemory(image_, imageMemory_, 0);
