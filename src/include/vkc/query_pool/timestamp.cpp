@@ -41,9 +41,9 @@ std::vector<float> TimestampQueryPoolManager::getElaspedTimes() const noexcept {
         device.getQueryPoolResults(queryPool_, 0, queryIndex_, timestamps.size() * valueSize, (void*)timestamps.data(),
                                    valueSize, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
 
-    const float timestampPeriodMs = timestampPeriod_ * 1000000.0f;
     for (const auto [idx, pair] : rgs::views::enumerate(timestamps | rgs::views::chunk(2))) {
-        elapsedTimes[idx] = (float)(pair[1] - pair[0]) / timestampPeriodMs;
+        constexpr float ns2ms = 1e6;
+        elapsedTimes[idx] = (float)(pair[1] - pair[0]) * timestampPeriod_ / ns2ms;
     }
 
     return elapsedTimes;
