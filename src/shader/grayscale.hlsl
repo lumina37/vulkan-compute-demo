@@ -15,6 +15,6 @@ void main(uint3 dtid : SV_DispatchThreadID)
 
     float2 uv = (float2(dstIdx) + 0.5) / float2(dstSize);
     float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
-    float gray = 0.299 * srcVal.r + 0.587 * srcVal.g + 0.114 * srcVal.b;
+    float gray = dot(srcVal.rgb, float3(0.299, 0.587, 0.114));
     dstImage[dstIdx] = float4(gray, gray, gray, 1.0);
 }
