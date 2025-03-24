@@ -14,7 +14,8 @@ DescSetManager::DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutMana
                                DescPoolManager& descPoolMgr)
     : deviceMgr_(deviceMgr), descPoolMgr_(descPoolMgr) {
     vk::DescriptorSetAllocateInfo descSetAllocInfo;
-    descSetAllocInfo.setDescriptorPool(descPoolMgr.getDescPool());
+    auto& descPool = descPoolMgr_.getDescPool();
+    descSetAllocInfo.setDescriptorPool(descPool);
     descSetAllocInfo.setDescriptorSetCount(1);
     const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
     descSetAllocInfo.setSetLayouts(descSetLayout);
@@ -25,7 +26,9 @@ DescSetManager::DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutMana
 }
 
 DescSetManager::~DescSetManager() noexcept {
-    // TODO: maybe free sth. here
+    auto& device = deviceMgr_.getDevice();
+    auto& descPool = descPoolMgr_.getDescPool();
+    device.freeDescriptorSets(descPool, descSet_);
 }
 
 }  // namespace vkc
