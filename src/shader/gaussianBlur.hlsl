@@ -3,17 +3,14 @@ struct PushConstants {
 };
 [[vk::push_constant]] ConstantBuffer<PushConstants> pc;
 
-[[vk::binding(0)]] SamplerState srcSampler;
-[[vk::binding(1)]] Texture2D<float4> srcTex;
+[[vk::binding(0)]] Texture2D<float4> srcTex;
+[[vk::binding(1)]] SamplerState srcSampler;
 [[vk::binding(2)]] [[vk::image_format("rgba8")]] RWTexture2D<float4> dstImage;
 
 struct UBO {
     float4 weights[4];
 };
 [[vk::binding(3)]] ConstantBuffer<UBO> ubo;
-
-[[vk::binding(4)]] RWStructuredBuffer<float> writeBackWeights;
-
 
 float3 blurAtIdx(Texture2D tex, int2 idx)
 {
@@ -54,16 +51,6 @@ float3 blurAtIdx(Texture2D tex, int2 idx)
 void main(uint3 dtid : SV_DispatchThreadID)
 {
     int2 dstIdx = int2(dtid.xy);
-
-    int kSize = pc.kernelSize;
-    int halfKSize = kSize / 2;
-    if (dstIdx.x <= halfKSize)
-    {
-        int weightY = dstIdx.x >> 2;
-        int weightX = dstIdx.x & (4 - 1);
-        writeBackWeights[dstIdx.x] = ubo.weights[weightY][weightX];
-    }
-
     int2 dstSize;
     dstImage.GetDimensions(dstSize.x, dstSize.y);
     if (dstIdx.x >= dstSize.x || dstIdx.y >= dstSize.y)

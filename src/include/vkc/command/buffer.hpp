@@ -48,21 +48,37 @@ public:
 
     template <typename... TMgr>
         requires(std::is_same_v<TMgr, ImageManager> && ...)
-    void recordUpload(TMgr&... srcImageMgrs);
+    void recordSrcPrepareTranfer(TMgr&... srcImageMgrs);
 
     template <typename... TMgr>
         requires(std::is_same_v<TMgr, ImageManager> && ...)
-    void recordSrcImageLayoutTrans(TMgr&... srcImageMgrs);
+    void recordUploadToSrc(TMgr&... srcImageMgrs);
+
+    template <typename... TMgrPair>
+        requires(std::is_same_v<TMgrPair, std::array<std::reference_wrapper<ImageManager>, 2>> && ...)
+    void recordImageCopy(TMgrPair... imageMgrPairs);
 
     template <typename... TMgr>
         requires(std::is_same_v<TMgr, ImageManager> && ...)
-    void recordDstImageLayoutTrans(TMgr&... dstImageMgrs);
+    void recordSrcPrepareShaderRead(TMgr&... srcImageMgrs);
+
+    template <typename... TMgr>
+        requires(std::is_same_v<TMgr, ImageManager> && ...)
+    void recordDstPrepareShaderWrite(TMgr&... dstImageMgrs);
 
     void recordDispatch(ExtentManager extent, BlockSize blockSize);
 
     template <typename... TMgr>
         requires(std::is_same_v<TMgr, ImageManager> && ...)
-    void recordDownload(TMgr&... dstImageMgrs);
+    void recordDstPrepareTransfer(TMgr&... dstImageMgrs);
+
+    template <typename... TMgr>
+        requires(std::is_same_v<TMgr, ImageManager> && ...)
+    void recordDownloadToDst(TMgr&... dstImageMgrs);
+
+    template <typename... TMgr>
+        requires(std::is_same_v<TMgr, ImageManager> && ...)
+    void recordWaitDownloadComplete(TMgr&... dstImageMgrs);
 
     template <typename TQueryPoolManager>
         requires CQueryPoolManager<TQueryPoolManager>
@@ -93,8 +109,7 @@ void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushCons
 
 template <typename... TMgr>
     requires(std::is_same_v<TMgr, ImageManager> && ...)
-void CommandBufferManager::recordUpload(TMgr&... srcImageMgrs) {
-    // Image Layout Prepare for Upload
+void CommandBufferManager::recordSrcPrepareTranfer(TMgr&... srcImageMgrs) {
     vk::ImageMemoryBarrier uploadConvBarrierTemplate;
     uploadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
     uploadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
@@ -112,8 +127,11 @@ void CommandBufferManager::recordUpload(TMgr&... srcImageMgrs) {
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, uploadConvBarriers.size(),
                                    uploadConvBarriers.data());
+}
 
-    // Copy Staging Buffer to Image
+template <typename... TMgr>
+    requires(std::is_same_v<TMgr, ImageManager> && ...)
+void CommandBufferManager::recordUploadToSrc(TMgr&... srcImageMgrs) {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -129,9 +147,28 @@ void CommandBufferManager::recordUpload(TMgr&... srcImageMgrs) {
     (copyBufferToImage(srcImageMgrs), ...);
 }
 
+template <typename... TMgrPair>
+    requires(std::is_same_v<TMgrPair, std::array<std::reference_wrapper<ImageManager>, 2>> && ...)
+void CommandBufferManager::recordImageCopy(TMgrPair... imageMgrPairs) {
+    vk::ImageSubresourceLayers subresourceLayers;
+    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceLayers.setLayerCount(1);
+    vk::ImageCopy copyRegionTemplate;
+    copyRegionTemplate.setSrcSubresource(subresourceLayers);
+    copyRegionTemplate.setDstSubresource(subresourceLayers);
+
+    const auto copyBufferToImage = [&](auto& mgrPair) {
+        vk::ImageCopy copyRegion = copyRegionTemplate;
+        copyRegion.setExtent(mgrPair[0].get().getExtent().extent3D());
+        commandBuffer_.copyImage(mgrPair[0].get().getImage(), vk::ImageLayout::eTransferSrcOptimal,
+                                 mgrPair[1].get().getImage(), vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
+    };
+    (copyBufferToImage(imageMgrPairs), ...);
+}
+
 template <typename... TMgr>
     requires(std::is_same_v<TMgr, ImageManager> && ...)
-void CommandBufferManager::recordSrcImageLayoutTrans(TMgr&... srcImageMgrs) {
+void CommandBufferManager::recordSrcPrepareShaderRead(TMgr&... srcImageMgrs) {
     vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
     shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
@@ -153,7 +190,7 @@ void CommandBufferManager::recordSrcImageLayoutTrans(TMgr&... srcImageMgrs) {
 
 template <typename... TMgr>
     requires(std::is_same_v<TMgr, ImageManager> && ...)
-void CommandBufferManager::recordDstImageLayoutTrans(TMgr&... dstImageMgrs) {
+void CommandBufferManager::recordDstPrepareShaderWrite(TMgr&... dstImageMgrs) {
     vk::ImageSubresourceRange subresourceRange;
     subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceRange.setLevelCount(1);
@@ -181,8 +218,7 @@ void CommandBufferManager::recordDstImageLayoutTrans(TMgr&... dstImageMgrs) {
 
 template <typename... TMgr>
     requires(std::is_same_v<TMgr, ImageManager> && ...)
-void CommandBufferManager::recordDownload(TMgr&... dstImageMgrs) {
-    // Download to Staging Buffer
+void CommandBufferManager::recordDstPrepareTransfer(TMgr&... dstImageMgrs) {
     vk::ImageMemoryBarrier downloadConvBarrierTemplate;
     downloadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite);
     downloadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
@@ -200,7 +236,11 @@ void CommandBufferManager::recordDownload(TMgr&... dstImageMgrs) {
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, downloadConvBarriers.size(),
                                    downloadConvBarriers.data());
+}
 
+template <typename... TMgr>
+    requires(std::is_same_v<TMgr, ImageManager> && ...)
+void CommandBufferManager::recordDownloadToDst(TMgr&... dstImageMgrs) {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -214,7 +254,11 @@ void CommandBufferManager::recordDownload(TMgr&... dstImageMgrs) {
                                          1, &copyRegion);
     };
     (copyImageToBuffer(dstImageMgrs), ...);
+}
 
+template <typename... TMgr>
+    requires(std::is_same_v<TMgr, ImageManager> && ...)
+void CommandBufferManager::recordWaitDownloadComplete(TMgr&... dstImageMgrs) {
     const auto genDownloadCompleteBarrier = [](auto& mgr) {
         vk::BufferMemoryBarrier downloadCompleteBarrier;
         downloadCompleteBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
@@ -234,6 +278,7 @@ template <typename TQueryPoolManager>
     requires CQueryPoolManager<TQueryPoolManager>
 void CommandBufferManager::recordResetQueryPool(TQueryPoolManager& queryPoolMgr) {
     auto& queryPool = queryPoolMgr.getQueryPool();
+    queryPoolMgr.resetQueryIndex();
     commandBuffer_.resetQueryPool(queryPool, 0, queryPoolMgr.getQueryCount());
 }
 

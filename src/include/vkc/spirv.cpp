@@ -13,7 +13,14 @@ namespace _spirv::gaussianBlur {
 
 }
 
+namespace _spirv::grayscale {
+
+#include "vkc/_spirv/grayscale.hlsl.h"
+
+}
+
 const std::span<std::byte> gaussianBlurSpirvCode{(std::byte*)_spirv::gaussianBlur::g_main,
                                                  sizeof(_spirv::gaussianBlur::g_main)};
+const std::span<std::byte> grayscaleSpirvCode{(std::byte*)_spirv::grayscale::g_main, sizeof(_spirv::grayscale::g_main)};
 
 }  // namespace vkc

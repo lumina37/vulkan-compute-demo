@@ -6,6 +6,7 @@
 namespace vkc {
 
 extern const std::span<std::byte> gaussianBlurSpirvCode;
+extern const std::span<std::byte> grayscaleSpirvCode;
 
 }  // namespace vkc
 
