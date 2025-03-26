@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr{deviceMgr, shader::gaussFilterSpirvCode};
+    vkc::ShaderManager gaussShaderMgr{deviceMgr, shader::gaussFilterV1SpirvCode};
     vkc::PipelineManager gaussPipelineMgr{deviceMgr, gaussPLayoutMgr, gaussShaderMgr};
     vkc::ShaderManager grayShaderMgr{deviceMgr, shader::grayscaleSpirvCode};
     vkc::PipelineManager grayPipelineMgr{deviceMgr, grayPLayoutMgr, grayShaderMgr};
