@@ -25,10 +25,4 @@ DescSetManager::DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutMana
     descSet_ = descSets[0];
 }
 
-DescSetManager::~DescSetManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
-    auto& descPool = descPoolMgr_.getDescPool();
-    device.freeDescriptorSets(descPool, descSet_);
-}
-
 }  // namespace vkc

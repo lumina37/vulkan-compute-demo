@@ -52,7 +52,7 @@ void CommandBufferManager::begin() {
     commandBuffer_.reset();
 
     vk::CommandBufferBeginInfo cmdBufBeginInfo;
-    cmdBufBeginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+    cmdBufBeginInfo.setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
     commandBuffer_.begin(cmdBufBeginInfo);
 }
 

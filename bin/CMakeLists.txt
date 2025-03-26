@@ -7,5 +7,6 @@ function(vkc_add_executable name src)
 endfunction()
 
 vkc_add_executable(vkc-bin-gaussFilter-texture main-gaussFilter-texture.cpp)
+vkc_add_executable(vkc-bin-gaussFilter-image main-gaussFilter-image.cpp)
 
 vkc_add_executable(vkc-bin-gaussAndGrayscale main-gaussAndGrayscale.cpp)

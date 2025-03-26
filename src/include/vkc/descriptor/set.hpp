@@ -17,7 +17,6 @@ class DescSetManager {
 public:
     DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
                    DescPoolManager& descPoolMgr);
-    ~DescSetManager() noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getDescSet(this Self&& self) noexcept {
