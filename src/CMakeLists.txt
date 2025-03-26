@@ -1,5 +1,3 @@
-add_subdirectory(shader)
-
 file(GLOB_RECURSE _VKC_SRCS "include/*.cpp")
 add_library(vkc-lib STATIC ${_VKC_SRCS})
 
@@ -15,5 +13,3 @@ target_compile_definitions(vkc-lib PRIVATE
         STB_IMAGE_IMPLEMENTATION
         STB_IMAGE_WRITE_IMPLEMENTATION
 )
-
-add_subdirectory(bin)

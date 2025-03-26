@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 project(VulkanComputeDemo
         VERSION 0.0.1
@@ -28,3 +28,5 @@ endfunction()
 
 # Sources
 add_subdirectory(src)
+add_subdirectory(shader)
+add_subdirectory(bin)

@@ -5,6 +5,8 @@
 #include <span>
 #include <vector>
 
+#include "spirv/gaussFilter.hpp"
+#include "spirv/grayscale.hpp"
 #include "vkc.hpp"
 
 void genGaussKernel(std::span<float> dst, const int kernelSize, const float sigma) {
@@ -68,9 +70,9 @@ int main(int argc, char** argv) {
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr{deviceMgr, vkc::gaussianBlurSpirvCode};
+    vkc::ShaderManager gaussShaderMgr{deviceMgr, shader::gaussFilterSpirvCode};
     vkc::PipelineManager gaussPipelineMgr{deviceMgr, gaussPLayoutMgr, gaussShaderMgr};
-    vkc::ShaderManager grayShaderMgr{deviceMgr, vkc::grayscaleSpirvCode};
+    vkc::ShaderManager grayShaderMgr{deviceMgr, shader::grayscaleSpirvCode};
     vkc::PipelineManager grayPipelineMgr{deviceMgr, grayPLayoutMgr, grayShaderMgr};
 
     // Command Buffer

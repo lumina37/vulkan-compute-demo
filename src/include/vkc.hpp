@@ -12,5 +12,4 @@
 #include "vkc/queue_family.hpp"
 #include "vkc/resource.hpp"
 #include "vkc/shader.hpp"
-#include "vkc/spirv.hpp"
 #include "vkc/stb_image.hpp"
