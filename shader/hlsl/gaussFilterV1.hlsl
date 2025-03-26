@@ -12,20 +12,17 @@ struct UBO {
 };
 [[vk::binding(3)]] ConstantBuffer<UBO> ubo;
 
-float3 blurAtIdx(Texture2D tex, int2 idx)
-{
+float4 blurAtIdx(Texture2D tex, int2 idx) {
     int kSize = pc.kernelSize;
     int halfKSize = kSize / 2;
     int2 srcSize;
     tex.GetDimensions(srcSize.x, srcSize.y);
 
-    float3 color = float3(0.0, 0.0, 0.0);
-    for (int y = -halfKSize; y <= halfKSize; y++)
-    {
-        float3 rowAcc = float3(0.0, 0.0, 0.0);
+    float4 color = {0.0, 0.0, 0.0, 0.0};
+    for (int y = -halfKSize; y <= halfKSize; y++) {
+        float4 rowAcc = {0.0, 0.0, 0.0, 0.0};
 
-        for (int x = -halfKSize; x <= halfKSize; x++)
-        {
+        for (int x = -halfKSize; x <= halfKSize; x++) {
             int2 inCoord = idx + int2(x, y);
             float2 uv = (float2(inCoord) + 0.5) / float2(srcSize);
             float4 srcVal = tex.SampleLevel(srcSampler, uv, 0);
@@ -34,30 +31,29 @@ float3 blurAtIdx(Texture2D tex, int2 idx)
             int weightY = absX >> 2;
             int weightX = absX & (4 - 1);
             float weight = ubo.weights[weightY][weightX];
-            rowAcc += srcVal.rgb * weight;
+            rowAcc = mad(srcVal, weight, rowAcc);
         }
 
         int absY = abs(y);
         int weightY = absY >> 2;
         int weightX = absY & (4 - 1);
         float weight = ubo.weights[weightY][weightX];
-        color += rowAcc * weight;
+        color = mad(rowAcc, weight, color);
     }
+
+    color.w = 1.0;
 
     return color;
 }
 
-[numthreads(16, 16, 1)]
-void main(uint3 dtid : SV_DispatchThreadID)
-{
+[numthreads(16, 16, 1)] void main(uint3 dtid : SV_DispatchThreadID) {
     int2 dstIdx = int2(dtid.xy);
     int2 dstSize;
     dstImage.GetDimensions(dstSize.x, dstSize.y);
-    if (dstIdx.x >= dstSize.x || dstIdx.y >= dstSize.y)
-    {
+    if (dstIdx.x >= dstSize.x || dstIdx.y >= dstSize.y) {
         return;
     }
 
-    float3 color = blurAtIdx(srcTex, dstIdx);
-    dstImage[dstIdx] = float4(color, 1.0);
+    float4 color = blurAtIdx(srcTex, dstIdx);
+    dstImage[dstIdx] = color;
 }
