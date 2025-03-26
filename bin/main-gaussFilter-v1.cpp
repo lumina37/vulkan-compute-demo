@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr{deviceMgr, shader::gaussFilterSpirvCode};
+    vkc::ShaderManager gaussShaderMgr{deviceMgr, shader::gaussFilterV1SpirvCode};
     vkc::PipelineManager gaussPipelineMgr{deviceMgr, gaussPLayoutMgr, gaussShaderMgr};
 
     // Command Buffer
@@ -75,24 +75,24 @@ int main(int argc, char** argv) {
     srcImageMgr.uploadFrom(srcImage.getImageSpan());
     gaussKernelWeightsMgr.uploadFrom({(std::byte*)gaussKernelWeights.data(), sizeof(gaussKernelWeights)});
 
-    gaussCmdBufMgr.begin();
-    gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-    gaussCmdBufMgr.bindDescSet(gaussDescSetMgr, gaussPLayoutMgr);
-    gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
-    gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
-    gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgr);
-    gaussCmdBufMgr.recordUploadToSrc(srcImageMgr);
-    gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgr);
-    gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgr);
-    gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
-    gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
-    gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
-    gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgr);
-    gaussCmdBufMgr.recordDownloadToDst(dstImageMgr);
-    gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgr);
-    gaussCmdBufMgr.end();
-
     for (int i = 0; i < 15; i++) {
+        gaussCmdBufMgr.begin();
+        gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
+        gaussCmdBufMgr.bindDescSet(gaussDescSetMgr, gaussPLayoutMgr);
+        gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
+        gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
+        gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgr);
+        gaussCmdBufMgr.recordUploadToSrc(srcImageMgr);
+        gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgr);
+        gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgr);
+        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
+        gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
+        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
+        gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgr);
+        gaussCmdBufMgr.recordDownloadToDst(dstImageMgr);
+        gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgr);
+        gaussCmdBufMgr.end();
+
         gaussCmdBufMgr.submitTo(queueMgr);
         gaussCmdBufMgr.waitFence();
 

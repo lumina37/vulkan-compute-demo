@@ -5,13 +5,13 @@
 
 namespace shader {
 
-namespace _spirv::gaussFilter {
+namespace _spirv::gaussFilterV1 {
 
-#include "spirv/gaussFilter.hlsl.h"
+#include "spirv/gaussFilterV1.hlsl.h"
 
 }
 
-static const std::span gaussFilterSpirvCode{(std::byte*)_spirv::gaussFilter::g_main,
-                                             sizeof(_spirv::gaussFilter::g_main)};
+static const std::span gaussFilterV1SpirvCode{(std::byte*)_spirv::gaussFilterV1::g_main,
+                                              sizeof(_spirv::gaussFilterV1::g_main)};
 
-}  // namespace vkc
+}  // namespace shader

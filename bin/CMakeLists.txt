@@ -6,7 +6,6 @@ function(vkc_add_executable name src)
     copy_dlls_if_needed(${name})
 endfunction()
 
-vkc_add_executable(vkc-bin-gaussFilter-texture main-gaussFilter-texture.cpp)
-vkc_add_executable(vkc-bin-gaussFilter-image main-gaussFilter-image.cpp)
+vkc_add_executable(vkc-bin-gaussFilter-v1 main-gaussFilter-v1.cpp)
 
 vkc_add_executable(vkc-bin-gaussAndGrayscale main-gaussAndGrayscale.cpp)
