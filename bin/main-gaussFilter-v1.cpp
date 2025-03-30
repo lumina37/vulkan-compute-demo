@@ -48,7 +48,9 @@ int main(int argc, char** argv) {
     vkc::UBOManager gaussKernelWeightsMgr{phyDeviceMgr, deviceMgr, sizeof(gaussKernelWeights)};
 
     vkc::ImageManager srcImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::Read};
+    std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
     vkc::ImageManager dstImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::Write};
+    std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
 
     std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
     vkc::DescPoolManager descPoolMgr{deviceMgr, descPoolSizes};
@@ -81,16 +83,16 @@ int main(int argc, char** argv) {
         gaussCmdBufMgr.bindDescSet(gaussDescSetMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
-        gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgr);
-        gaussCmdBufMgr.recordUploadToSrc(srcImageMgr);
-        gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgr);
-        gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgr);
+        gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordUploadToSrc(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
         gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
-        gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgr);
-        gaussCmdBufMgr.recordDownloadToDst(dstImageMgr);
-        gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgr);
+        gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordDownloadToDst(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end();
 
         gaussCmdBufMgr.submitTo(queueMgr);
