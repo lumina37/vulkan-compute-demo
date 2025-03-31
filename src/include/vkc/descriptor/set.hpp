@@ -28,7 +28,6 @@ public:
 
 private:
     DeviceManager& deviceMgr_;      // FIXME: UAF
-    DescPoolManager& descPoolMgr_;  // FIXME: UAF
     vk::DescriptorSet descSet_;
 };
 

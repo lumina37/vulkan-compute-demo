@@ -12,9 +12,9 @@ namespace vkc {
 
 DescSetManager::DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
                                DescPoolManager& descPoolMgr)
-    : deviceMgr_(deviceMgr), descPoolMgr_(descPoolMgr) {
+    : deviceMgr_(deviceMgr) {
     vk::DescriptorSetAllocateInfo descSetAllocInfo;
-    auto& descPool = descPoolMgr_.getDescPool();
+    auto& descPool = descPoolMgr.getDescPool();
     descSetAllocInfo.setDescriptorPool(descPool);
     descSetAllocInfo.setDescriptorSetCount(1);
     const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
