@@ -8,9 +8,9 @@
 
 namespace vkc {
 
-class PhyDeviceManager {
+class PhysicalDeviceManager {
 public:
-    PhyDeviceManager(const InstanceManager& instMgr);
+    PhysicalDeviceManager(const InstanceManager& instMgr);
 
     template <typename Self>
     [[nodiscard]] auto&& getPhysicalDevice(this Self&& self) noexcept {

@@ -14,8 +14,8 @@
 
 namespace vkc {
 
-ImageManager::ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
-                           const ImageType imageType)
+ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
+                           const ExtentManager& extent, const ImageType imageType)
     : deviceMgr_(deviceMgr), extent_(extent), imageType_(imageType) {
     auto& device = deviceMgr.getDevice();
 

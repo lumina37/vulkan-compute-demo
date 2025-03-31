@@ -6,15 +6,7 @@
 
 namespace vkc {
 
-class QueueFamilyManager {
-public:
-    QueueFamilyManager(const PhyDeviceManager& phyDeviceMgr);
-
-    [[nodiscard]] uint32_t getComputeQFamilyIndex() const noexcept { return computeQFamilyIndex_; }
-
-private:
-    uint32_t computeQFamilyIndex_;
-};
+uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr);
 
 }  // namespace vkc
 

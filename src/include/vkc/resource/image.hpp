@@ -18,7 +18,7 @@ enum class ImageType {
 
 class ImageManager {
 public:
-    ImageManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
+    ImageManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
                  ImageType imageType);
     ~ImageManager() noexcept;
 

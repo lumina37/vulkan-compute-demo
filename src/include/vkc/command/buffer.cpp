@@ -6,11 +6,11 @@
 #include "vkc/command/pool.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device/logical.hpp"
+#include "vkc/device/queue.hpp"
 #include "vkc/extent.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
-#include "vkc/queue.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/command/buffer.hpp"

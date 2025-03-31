@@ -1,6 +1,5 @@
 #pragma once
 
-#include "vkc/device/context.hpp"
 #include "vkc/device/instance.hpp"
 #include "vkc/device/logical.hpp"
 #include "vkc/device/physical.hpp"

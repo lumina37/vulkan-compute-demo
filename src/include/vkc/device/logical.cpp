@@ -1,7 +1,8 @@
+#include <cstdint>
+
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/physical.hpp"
-#include "vkc/device/queue_family.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/logical.hpp"
@@ -9,11 +10,11 @@
 
 namespace vkc {
 
-DeviceManager::DeviceManager(PhyDeviceManager& phyDeviceMgr, const QueueFamilyManager& queueFamilyMgr) {
+DeviceManager::DeviceManager(PhysicalDeviceManager& phyDeviceMgr, const uint32_t queueFamilyIdx) {
     constexpr float priority = 1.0f;
     vk::DeviceQueueCreateInfo computeQueueInfo;
     computeQueueInfo.setQueuePriorities(priority);
-    computeQueueInfo.setQueueFamilyIndex(queueFamilyMgr.getComputeQFamilyIndex());
+    computeQueueInfo.setQueueFamilyIndex(queueFamilyIdx);
     computeQueueInfo.setQueueCount(1);
 
     vk::DeviceCreateInfo deviceInfo;

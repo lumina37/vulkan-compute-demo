@@ -31,9 +31,9 @@ int main(int argc, char** argv) {
 
     // Device
     vkc::InstanceManager instMgr;
-    vkc::PhyDeviceManager phyDeviceMgr{instMgr};
-    vkc::QueueFamilyManager queueFamilyMgr{phyDeviceMgr};
-    vkc::DeviceManager deviceMgr{phyDeviceMgr, queueFamilyMgr};
+    vkc::PhysicalDeviceManager phyDeviceMgr{instMgr};
+    const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr);
+    vkc::DeviceManager deviceMgr{phyDeviceMgr, computeQFamilyIdx};
 
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{deviceMgr};
@@ -80,8 +80,8 @@ int main(int argc, char** argv) {
     vkc::PipelineManager grayPipelineMgr{deviceMgr, grayPLayoutMgr, grayShaderMgr};
 
     // Command Buffer
-    vkc::QueueManager queueMgr{deviceMgr, queueFamilyMgr};
-    vkc::CommandPoolManager commandPoolMgr{deviceMgr, queueFamilyMgr};
+    vkc::QueueManager queueMgr{deviceMgr, computeQFamilyIdx};
+    vkc::CommandPoolManager commandPoolMgr{deviceMgr, computeQFamilyIdx};
     vkc::CommandBufferManager gaussCmdBufMgr{deviceMgr, commandPoolMgr};
     vkc::CommandBufferManager grayCmdBufMgr{deviceMgr, commandPoolMgr};
     vkc::TimestampQueryPoolManager queryPoolMgr{deviceMgr, 2, phyDeviceMgr.getTimestampPeriod()};

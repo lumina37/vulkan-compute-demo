@@ -11,13 +11,13 @@
 
 namespace vkc::_hp {
 
-uint32_t findMemoryTypeIdx(const PhyDeviceManager& phyDeviceMgr, uint32_t supportedMemType,
+uint32_t findMemoryTypeIdx(const PhysicalDeviceManager& phyDeviceMgr, uint32_t supportedMemType,
                            vk::MemoryPropertyFlags memProps);
 
-void allocBufferMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Buffer& buffer,
+void allocBufferMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Buffer& buffer,
                        vk::MemoryPropertyFlags memProps, vk::DeviceMemory& bufferMemory);
 
-void allocImageMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Image& image,
+void allocImageMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Image& image,
                       vk::MemoryPropertyFlags memProps, vk::DeviceMemory& bufferMemory);
 
 vk::Result uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory, std::span<std::byte> data);

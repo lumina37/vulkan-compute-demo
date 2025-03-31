@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <iostream>
 #include <print>
@@ -8,6 +9,7 @@
 
 #include "vkc/device/physical.hpp"
 #include "vkc/helper/defines.hpp"
+#include "vkc/helper/score.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/queue_family.hpp"
@@ -17,18 +19,7 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-class QueueFamilyScore {
-public:
-    int score;
-    uint32_t index;
-
-    static friend constexpr std::weak_ordering operator<=>(const QueueFamilyScore& lhs,
-                                                           const QueueFamilyScore& rhs) noexcept {
-        return lhs.score <=> rhs.score;
-    }
-};
-
-QueueFamilyManager::QueueFamilyManager(const PhyDeviceManager& phyDeviceMgr) : computeQFamilyIndex_(0) {
+uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
     const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
 
     const auto isQueueFamilyOK = [](const vk::QueueFamilyProperties& queueFamilyProp) {
@@ -42,13 +33,14 @@ QueueFamilyManager::QueueFamilyManager(const PhyDeviceManager& phyDeviceMgr) : c
     };
 
     const auto getQueueFamilyScore = [](const vk::QueueFamilyProperties& queueFamilyProp) {
-        if (queueFamilyProp.queueFlags == vk::QueueFlagBits::eCompute) return 1;
-        return 0;
+        constexpr int maxBitCount = std::popcount((uint32_t)vk::FlagTraits<vk::QueueFlagBits>::allFlags);
+        const int bitCount = std::popcount((uint32_t)queueFamilyProp.queueFlags);
+        return maxBitCount - bitCount;
     };
 
     const auto& queueFamilyProps = physicalDevice.getQueueFamilyProperties();
 
-    std::vector<QueueFamilyScore> scores;
+    std::vector<ScoreWithIndex> scores;
     scores.reserve(queueFamilyProps.size());
     for (const auto [idx, queueFamilyProp] : rgs::views::enumerate(queueFamilyProps)) {
         if (!isQueueFamilyOK(queueFamilyProp)) {
@@ -67,11 +59,11 @@ QueueFamilyManager::QueueFamilyManager(const PhyDeviceManager& phyDeviceMgr) : c
         if constexpr (ENABLE_DEBUG) {
             std::println(std::cerr, "No sufficient queue family found!");
         }
-        return;
+        return 0;
     }
 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());
-    computeQFamilyIndex_ = maxScoreIt->index;
+    return maxScoreIt->index;
 }
 
 }  // namespace vkc

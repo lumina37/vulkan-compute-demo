@@ -9,7 +9,7 @@ namespace vkc {
 
 class SSBOManager {
 public:
-    SSBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::DeviceSize size);
+    SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::DeviceSize size);
     ~SSBOManager() noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }

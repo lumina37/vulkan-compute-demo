@@ -1,17 +1,17 @@
 #pragma once
 
+#include <cstdint>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
-#include "vkc/device/queue_family.hpp"
 
 namespace vkc {
 
 class CommandPoolManager {
 public:
-    CommandPoolManager(DeviceManager& deviceMgr, const QueueFamilyManager& queueFamilyMgr);
+    CommandPoolManager(DeviceManager& deviceMgr, uint32_t queueFamilyIdx);
     ~CommandPoolManager() noexcept;
 
     template <typename Self>

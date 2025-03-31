@@ -12,7 +12,7 @@
 
 namespace vkc {
 
-SSBOManager::SSBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size)
+SSBOManager::SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size)
     : deviceMgr_(deviceMgr), size_(size) {
     auto& device = deviceMgr.getDevice();
 

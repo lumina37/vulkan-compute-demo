@@ -13,7 +13,7 @@ namespace vkc {
 
 class UBOManager {
 public:
-    UBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::DeviceSize size);
+    UBOManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::DeviceSize size);
     ~UBOManager() noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }

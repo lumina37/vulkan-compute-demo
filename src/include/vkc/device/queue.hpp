@@ -1,17 +1,17 @@
 #pragma once
 
+#include <cstdint>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
-#include "vkc/device/queue_family.hpp"
 
 namespace vkc {
 
 class QueueManager {
 public:
-    QueueManager(DeviceManager& deviceMgr, const QueueFamilyManager& queueFamilyMgr);
+    QueueManager(DeviceManager& deviceMgr, uint32_t queueFamilyIdx);
 
     template <typename Self>
     [[nodiscard]] auto&& getComputeQueue(this Self&& self) noexcept {
@@ -25,5 +25,5 @@ private:
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/queue.cpp"
+#    include "vkc/device/queue.cpp"
 #endif

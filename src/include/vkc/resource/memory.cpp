@@ -14,7 +14,7 @@ namespace vkc::_hp {
 
 namespace rgs = std::ranges;
 
-uint32_t findMemoryTypeIdx(const PhyDeviceManager& phyDeviceMgr, const uint32_t supportedMemType,
+uint32_t findMemoryTypeIdx(const PhysicalDeviceManager& phyDeviceMgr, const uint32_t supportedMemType,
                            const vk::MemoryPropertyFlags memProps) {
     const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
     const vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
@@ -30,7 +30,7 @@ uint32_t findMemoryTypeIdx(const PhyDeviceManager& phyDeviceMgr, const uint32_t 
     return 0;
 }
 
-void allocBufferMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Buffer& buffer,
+void allocBufferMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Buffer& buffer,
                        vk::MemoryPropertyFlags memProps, vk::DeviceMemory& bufferMemory) {
     auto& device = deviceMgr.getDevice();
 
@@ -41,7 +41,7 @@ void allocBufferMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& devi
     bufferMemory = device.allocateMemory(allocInfo);
 }
 
-void allocImageMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Image& image,
+void allocImageMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Image& image,
                       vk::MemoryPropertyFlags memProps, vk::DeviceMemory& bufferMemory) {
     auto& device = deviceMgr.getDevice();
 

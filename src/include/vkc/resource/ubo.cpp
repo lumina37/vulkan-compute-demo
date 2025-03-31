@@ -13,7 +13,7 @@
 
 namespace vkc {
 
-UBOManager::UBOManager(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size)
+UBOManager::UBOManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size)
     : deviceMgr_(deviceMgr), size_(size) {
     auto& device = deviceMgr.getDevice();
 

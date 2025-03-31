@@ -1,17 +1,17 @@
 #pragma once
 
+#include <cstdint>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/physical.hpp"
-#include "vkc/device/queue_family.hpp"
 
 namespace vkc {
 
 class DeviceManager {
 public:
-    DeviceManager(PhyDeviceManager& phyDeviceMgr, const QueueFamilyManager& queueFamilyMgr);
+    DeviceManager(PhysicalDeviceManager& phyDeviceMgr, uint32_t queueFamilyIdx);
     ~DeviceManager() noexcept;
 
     template <typename Self>

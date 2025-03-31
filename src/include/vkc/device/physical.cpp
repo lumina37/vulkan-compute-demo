@@ -7,6 +7,7 @@
 
 #include "vkc/device/instance.hpp"
 #include "vkc/helper/defines.hpp"
+#include "vkc/helper/score.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/physical.hpp"
@@ -16,18 +17,7 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-class PhysicalDeviceScore {
-public:
-    int score;
-    uint32_t index;
-
-    static friend constexpr std::weak_ordering operator<=>(const PhysicalDeviceScore& lhs,
-                                                           const PhysicalDeviceScore& rhs) noexcept {
-        return lhs.score <=> rhs.score;
-    }
-};
-
-PhyDeviceManager::PhyDeviceManager(const InstanceManager& instMgr) {
+PhysicalDeviceManager::PhysicalDeviceManager(const InstanceManager& instMgr) {
     const auto& instance = instMgr.getInstance();
 
     const auto isPhysicalDeviceOK = [](const vk::PhysicalDeviceProperties& phyDeviceProp) {
@@ -50,7 +40,7 @@ PhyDeviceManager::PhyDeviceManager(const InstanceManager& instMgr) {
 
     const auto& physicalDevices = instance.enumeratePhysicalDevices();
 
-    std::vector<PhysicalDeviceScore> scores;
+    std::vector<ScoreWithIndex> scores;
     scores.reserve(physicalDevices.size());
     for (const auto [idx, physicalDevice] : rgs::views::enumerate(physicalDevices)) {
         const auto& phyDeviceProp = physicalDevice.getProperties();
@@ -59,7 +49,7 @@ PhyDeviceManager::PhyDeviceManager(const InstanceManager& instMgr) {
         }
 
         const int score = getPhysicalDeviceScore(phyDeviceProp);
-        scores.emplace_back(score, (uint32_t)idx);
+        scores.emplace_back(score, idx);
 
         if constexpr (ENABLE_DEBUG) {
             std::println("Candidate physical device: {}. Vk API version: {}.{}.{}. Score: {}",
