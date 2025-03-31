@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     vkc::ImageManager dstImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::Write};
     std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
     std::array<vkc::CommandBufferManager::TImageManagerRefPair, 1> imageMgrCRefPairs{
-        std::array{std::cref(srcImageMgr), std::cref(dstImageMgr)}};
+        std::array{std::cref(dstImageMgr), std::cref(srcImageMgr)}};
 
     std::vector descPoolSizes =
         genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr, srcImageMgr, samplerMgr, dstImageMgr);
