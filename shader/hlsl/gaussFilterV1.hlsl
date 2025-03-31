@@ -46,5 +46,5 @@ struct UBO {
         color = mad(rowAcc, weight, color);
     }
 
-    dstImage[dstIdx] = float4(color.xyz, 1.0);
+    dstImage[dstIdx] = float4(color.rgb, 1.0);
 }
