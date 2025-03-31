@@ -25,7 +25,7 @@ struct BlockSize {
 
 class CommandBufferManager {
 public:
-    CommandBufferManager(DeviceManager& deviceMgr, CommandPoolManager& commandPoolMgr);
+    CommandBufferManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, CommandPoolManager& commandPoolMgr);
     ~CommandBufferManager() noexcept;
 
     template <typename Self>
@@ -68,8 +68,9 @@ public:
     vk::Result waitFence();
 
 private:
-    DeviceManager& deviceMgr_;            // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
     CommandPoolManager& commandPoolMgr_;  // FIXME: UAF
+
     vk::CommandBuffer commandBuffer_;
     vk::Fence completeFence_;
 

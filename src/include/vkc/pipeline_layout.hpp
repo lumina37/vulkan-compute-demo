@@ -11,8 +11,8 @@ namespace vkc {
 
 class PipelineLayoutManager {
 public:
-    PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr);
-    PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
+    PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const DescSetLayoutManager& descSetLayoutMgr);
+    PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
                           const vk::PushConstantRange& pushConstantRange);
     ~PipelineLayoutManager() noexcept;
 
@@ -22,7 +22,8 @@ public:
     }
 
 private:
-    DeviceManager& deviceMgr_;  // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
     vk::PipelineLayout pipelineLayout_;
 };
 

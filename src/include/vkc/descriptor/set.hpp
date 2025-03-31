@@ -15,7 +15,7 @@ namespace vkc {
 
 class DescSetManager {
 public:
-    DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
+    DescSetManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
                    DescPoolManager& descPoolMgr);
 
     template <typename Self>
@@ -27,7 +27,8 @@ public:
     void updateDescSets(const TManager&... mgrs);
 
 private:
-    DeviceManager& deviceMgr_;      // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
     vk::DescriptorSet descSet_;
 };
 
@@ -46,7 +47,7 @@ void DescSetManager::updateDescSets(const TManager&... mgrs) {
 
     const std::array writeDescSets{genWriteDescSetHelper(std::index_sequence_for<TManager...>{})};
 
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
     device.updateDescriptorSets(writeDescSets, nullptr);
 }
 

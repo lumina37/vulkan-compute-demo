@@ -33,11 +33,11 @@ int main(int argc, char** argv) {
     vkc::InstanceManager instMgr;
     vkc::PhysicalDeviceManager phyDeviceMgr{instMgr};
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr);
-    vkc::DeviceManager deviceMgr{phyDeviceMgr, computeQFamilyIdx};
-    vkc::QueueManager queueMgr{deviceMgr, computeQFamilyIdx};
+    auto pDeviceMgr = std::make_shared<vkc::DeviceManager>(phyDeviceMgr, computeQFamilyIdx);
+    vkc::QueueManager queueMgr{*pDeviceMgr, computeQFamilyIdx};
 
     // Descriptor & Layouts
-    vkc::SamplerManager samplerMgr{deviceMgr};
+    vkc::SamplerManager samplerMgr{pDeviceMgr};
 
     constexpr int uboLen = 16;
     constexpr int maxKernelSize = uboLen * 2 + 1;
@@ -47,44 +47,44 @@ int main(int argc, char** argv) {
 
     std::array<float, uboLen> gaussKernelWeights;
     genGaussKernel(gaussKernelWeights, kernelSize, 1.5);
-    vkc::UBOManager gaussKernelWeightsMgr{phyDeviceMgr, deviceMgr, sizeof(gaussKernelWeights)};
+    vkc::UBOManager gaussKernelWeightsMgr{phyDeviceMgr, pDeviceMgr, sizeof(gaussKernelWeights)};
 
-    vkc::ImageManager srcImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::Read};
+    vkc::ImageManager srcImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Read};
     std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
-    vkc::ImageManager dstImageMgr{phyDeviceMgr, deviceMgr, srcImage.getExtent(), vkc::ImageType::Write};
+    vkc::ImageManager dstImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Write};
     std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
     std::array<vkc::CommandBufferManager::TImageManagerRefPair, 1> imageMgrCRefPairs{
         std::array{std::cref(dstImageMgr), std::cref(srcImageMgr)}};
 
     std::vector descPoolSizes =
         genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr, srcImageMgr, samplerMgr, dstImageMgr);
-    vkc::DescPoolManager descPoolMgr{deviceMgr, descPoolSizes};
+    vkc::DescPoolManager descPoolMgr{pDeviceMgr, descPoolSizes};
 
     std::array gaussDLayoutBindings =
         genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
-    vkc::DescSetLayoutManager gaussDLayoutMgr{deviceMgr, gaussDLayoutBindings};
-    vkc::PipelineLayoutManager gaussPLayoutMgr{deviceMgr, gaussDLayoutMgr, kernelSizePcMgr.getPushConstantRange()};
-    vkc::DescSetManager gaussDescSetMgr{deviceMgr, gaussDLayoutMgr, descPoolMgr};
+    vkc::DescSetLayoutManager gaussDLayoutMgr{pDeviceMgr, gaussDLayoutBindings};
+    vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgr, kernelSizePcMgr.getPushConstantRange()};
+    vkc::DescSetManager gaussDescSetMgr{pDeviceMgr, gaussDLayoutMgr, descPoolMgr};
     gaussDescSetMgr.updateDescSets(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
 
     std::array grayDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
-    vkc::DescSetLayoutManager grayDLayoutMgr{deviceMgr, grayDLayoutBindings};
-    vkc::PipelineLayoutManager grayPLayoutMgr{deviceMgr, grayDLayoutMgr};
-    vkc::DescSetManager grayDescSetMgr{deviceMgr, grayDLayoutMgr, descPoolMgr};
+    vkc::DescSetLayoutManager grayDLayoutMgr{pDeviceMgr, grayDLayoutBindings};
+    vkc::PipelineLayoutManager grayPLayoutMgr{pDeviceMgr, grayDLayoutMgr};
+    vkc::DescSetManager grayDescSetMgr{pDeviceMgr, grayDLayoutMgr, descPoolMgr};
     grayDescSetMgr.updateDescSets(srcImageMgr, samplerMgr, dstImageMgr);
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr{deviceMgr, shader::gaussFilterV1SpirvCode};
-    vkc::PipelineManager gaussPipelineMgr{deviceMgr, gaussPLayoutMgr, gaussShaderMgr};
-    vkc::ShaderManager grayShaderMgr{deviceMgr, shader::grayscaleSpirvCode};
-    vkc::PipelineManager grayPipelineMgr{deviceMgr, grayPLayoutMgr, grayShaderMgr};
+    vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV1SpirvCode};
+    vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
+    vkc::ShaderManager grayShaderMgr{pDeviceMgr, shader::grayscaleSpirvCode};
+    vkc::PipelineManager grayPipelineMgr{pDeviceMgr, grayPLayoutMgr, grayShaderMgr};
 
     // Command Buffer
-    vkc::CommandPoolManager commandPoolMgr{deviceMgr, computeQFamilyIdx};
-    vkc::CommandBufferManager gaussCmdBufMgr{deviceMgr, commandPoolMgr};
-    vkc::CommandBufferManager grayCmdBufMgr{deviceMgr, commandPoolMgr};
-    vkc::TimestampQueryPoolManager queryPoolMgr{deviceMgr, 2, phyDeviceMgr.getTimestampPeriod()};
+    vkc::CommandPoolManager commandPoolMgr{pDeviceMgr, computeQFamilyIdx};
+    vkc::CommandBufferManager gaussCmdBufMgr{pDeviceMgr, commandPoolMgr};
+    vkc::CommandBufferManager grayCmdBufMgr{pDeviceMgr, commandPoolMgr};
+    vkc::TimestampQueryPoolManager queryPoolMgr{pDeviceMgr, 2, phyDeviceMgr.getTimestampPeriod()};
 
     // Gaussian Blur
     gaussCmdBufMgr.begin();

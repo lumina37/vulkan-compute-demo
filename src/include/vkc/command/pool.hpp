@@ -11,7 +11,7 @@ namespace vkc {
 
 class CommandPoolManager {
 public:
-    CommandPoolManager(DeviceManager& deviceMgr, uint32_t queueFamilyIdx);
+    CommandPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, uint32_t queueFamilyIdx);
     ~CommandPoolManager() noexcept;
 
     template <typename Self>
@@ -20,7 +20,8 @@ public:
     }
 
 private:
-    DeviceManager& deviceMgr_;  // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
     vk::CommandPool commandPool_;
 };
 

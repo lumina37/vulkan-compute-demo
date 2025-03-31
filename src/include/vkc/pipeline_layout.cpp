@@ -9,30 +9,32 @@
 
 namespace vkc {
 
-PipelineLayoutManager::PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr)
-    : deviceMgr_(deviceMgr) {
+PipelineLayoutManager::PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                                             const DescSetLayoutManager& descSetLayoutMgr)
+    : pDeviceMgr_(pDeviceMgr) {
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
     const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
     pipelineLayoutInfo.setSetLayouts(descSetLayout);
 
-    auto& device = deviceMgr.getDevice();
+    auto& device = pDeviceMgr->getDevice();
     pipelineLayout_ = device.createPipelineLayout(pipelineLayoutInfo);
 }
 
-PipelineLayoutManager::PipelineLayoutManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
+PipelineLayoutManager::PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                                             const DescSetLayoutManager& descSetLayoutMgr,
                                              const vk::PushConstantRange& pushConstantRange)
-    : deviceMgr_(deviceMgr) {
+    : pDeviceMgr_(pDeviceMgr) {
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
     const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
     pipelineLayoutInfo.setSetLayouts(descSetLayout);
     pipelineLayoutInfo.setPushConstantRanges(pushConstantRange);
 
-    auto& device = deviceMgr.getDevice();
+    auto& device = pDeviceMgr->getDevice();
     pipelineLayout_ = device.createPipelineLayout(pipelineLayoutInfo);
 }
 
 PipelineLayoutManager::~PipelineLayoutManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
     device.destroyPipelineLayout(pipelineLayout_);
 }
 

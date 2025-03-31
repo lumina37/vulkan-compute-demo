@@ -8,7 +8,7 @@ namespace vkc {
 
 class SamplerManager {
 public:
-    SamplerManager(DeviceManager& deviceMgr);
+    SamplerManager(const std::shared_ptr<DeviceManager>& pDeviceMgr);
     ~SamplerManager() noexcept;
 
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept { return vk::DescriptorType::eSampler; }
@@ -16,7 +16,8 @@ public:
     [[nodiscard]] static constexpr vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() noexcept;
 
 private:
-    DeviceManager& deviceMgr_;  // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
     vk::Sampler sampler_;
     vk::DescriptorImageInfo samplerInfo_;
 };

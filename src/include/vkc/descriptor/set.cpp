@@ -10,9 +10,9 @@
 
 namespace vkc {
 
-DescSetManager::DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
-                               DescPoolManager& descPoolMgr)
-    : deviceMgr_(deviceMgr) {
+DescSetManager::DescSetManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                               const DescSetLayoutManager& descSetLayoutMgr, DescPoolManager& descPoolMgr)
+    : pDeviceMgr_(pDeviceMgr) {
     vk::DescriptorSetAllocateInfo descSetAllocInfo;
     auto& descPool = descPoolMgr.getDescPool();
     descSetAllocInfo.setDescriptorPool(descPool);
@@ -20,7 +20,7 @@ DescSetManager::DescSetManager(DeviceManager& deviceMgr, const DescSetLayoutMana
     const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
     descSetAllocInfo.setSetLayouts(descSetLayout);
 
-    auto& device = deviceMgr.getDevice();
+    auto& device = pDeviceMgr->getDevice();
     const auto& descSets = device.allocateDescriptorSets(descSetAllocInfo);
     descSet_ = descSets[0];
 }

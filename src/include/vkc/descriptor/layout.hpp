@@ -11,7 +11,8 @@ namespace vkc {
 
 class DescSetLayoutManager {
 public:
-    DescSetLayoutManager(DeviceManager& deviceMgr, std::span<const vk::DescriptorSetLayoutBinding> bindings);
+    DescSetLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                         std::span<const vk::DescriptorSetLayoutBinding> bindings);
     ~DescSetLayoutManager() noexcept;
 
     template <typename Self>
@@ -20,7 +21,8 @@ public:
     }
 
 private:
-    DeviceManager& deviceMgr_;  // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDdeviceMgr_;
+
     vk::DescriptorSetLayout descSetlayout_;
 };
 

@@ -14,9 +14,9 @@
 
 namespace vkc {
 
-PipelineManager::PipelineManager(DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                                 const ShaderManager& computeShaderMgr)
-    : deviceMgr_(deviceMgr) {
+PipelineManager::PipelineManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                                 const PipelineLayoutManager& pipelineLayoutMgr, const ShaderManager& computeShaderMgr)
+    : pDeviceMgr_(pDeviceMgr) {
     vk::ComputePipelineCreateInfo pipelineInfo;
 
     // Shaders
@@ -31,7 +31,7 @@ PipelineManager::PipelineManager(DeviceManager& deviceMgr, const PipelineLayoutM
     pipelineInfo.setLayout(pipelineLayout);
 
     // Create Pipeline
-    auto& device = deviceMgr.getDevice();
+    auto& device = pDeviceMgr->getDevice();
     auto pipelineResult = device.createComputePipeline(nullptr, pipelineInfo);
     if constexpr (ENABLE_DEBUG) {
         if (pipelineResult.result != vk::Result::eSuccess) {
@@ -42,7 +42,7 @@ PipelineManager::PipelineManager(DeviceManager& deviceMgr, const PipelineLayoutM
 }
 
 PipelineManager::~PipelineManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
     device.destroyPipeline(pipeline_);
 }
 

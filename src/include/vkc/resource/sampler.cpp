@@ -10,12 +10,12 @@
 
 namespace vkc {
 
-SamplerManager::SamplerManager(DeviceManager& deviceMgr) : deviceMgr_(deviceMgr) {
+SamplerManager::SamplerManager(const std::shared_ptr<DeviceManager>& pDeviceMgr) : pDeviceMgr_(pDeviceMgr) {
     vk::SamplerCreateInfo samplerInfo;
     samplerInfo.setMagFilter(vk::Filter::eLinear);
     samplerInfo.setMinFilter(vk::Filter::eLinear);
 
-    auto& device = deviceMgr.getDevice();
+    auto& device = pDeviceMgr->getDevice();
     sampler_ = device.createSampler(samplerInfo);
 
     // Image Info
@@ -23,7 +23,7 @@ SamplerManager::SamplerManager(DeviceManager& deviceMgr) : deviceMgr_(deviceMgr)
 }
 
 SamplerManager::~SamplerManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
     device.destroySampler(sampler_);
 }
 

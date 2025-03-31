@@ -46,7 +46,7 @@ template <CSupportGetDescType... TManager>
 
 class DescPoolManager {
 public:
-    DescPoolManager(DeviceManager& deviceMgr, std::span<const vk::DescriptorPoolSize> poolSizes);
+    DescPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, std::span<const vk::DescriptorPoolSize> poolSizes);
     ~DescPoolManager() noexcept;
 
     template <typename Self>
@@ -55,7 +55,8 @@ public:
     }
 
 private:
-    DeviceManager& deviceMgr_;  // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
     vk::DescriptorPool descPool_;
 };
 

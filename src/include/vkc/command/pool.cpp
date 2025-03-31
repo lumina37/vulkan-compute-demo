@@ -10,18 +10,18 @@
 
 namespace vkc {
 
-CommandPoolManager::CommandPoolManager(DeviceManager& deviceMgr, const uint32_t queueFamilyIdx)
-    : deviceMgr_(deviceMgr) {
+CommandPoolManager::CommandPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const uint32_t queueFamilyIdx)
+    : pDeviceMgr_(pDeviceMgr) {
     vk::CommandPoolCreateInfo commandPoolInfo;
     commandPoolInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     commandPoolInfo.setQueueFamilyIndex(queueFamilyIdx);
 
-    auto& device = deviceMgr.getDevice();
+    auto& device = pDeviceMgr->getDevice();
     commandPool_ = device.createCommandPool(commandPoolInfo);
 }
 
 CommandPoolManager::~CommandPoolManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
     device.destroyCommandPool(commandPool_);
 }
 

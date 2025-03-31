@@ -10,7 +10,7 @@ namespace vkc {
 
 class TimestampQueryPoolManager {
 public:
-    TimestampQueryPoolManager(DeviceManager& deviceMgr, int queryCount, float timestampPeriod);
+    TimestampQueryPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, int queryCount, float timestampPeriod);
     ~TimestampQueryPoolManager() noexcept;
 
     int getQueryIndex() const noexcept { return queryIndex_; }
@@ -27,7 +27,8 @@ public:
     [[nodiscard]] std::vector<float> getElaspedTimes() const noexcept;
 
 private:
-    DeviceManager& deviceMgr_;  // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
     vk::QueryPool queryPool_;
     int queryCount_;
     int queryIndex_;

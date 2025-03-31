@@ -10,18 +10,19 @@
 
 namespace vkc {
 
-DescPoolManager::DescPoolManager(DeviceManager& deviceMgr, const std::span<const vk::DescriptorPoolSize> poolSizes)
-    : deviceMgr_(deviceMgr) {
+DescPoolManager::DescPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                                 const std::span<const vk::DescriptorPoolSize> poolSizes)
+    : pDeviceMgr_(pDeviceMgr) {
     vk::DescriptorPoolCreateInfo poolInfo;
     poolInfo.setMaxSets(poolSizes.size());
     poolInfo.setPoolSizes(poolSizes);
 
-    auto& device = deviceMgr.getDevice();
+    auto& device = pDeviceMgr->getDevice();
     descPool_ = device.createDescriptorPool(poolInfo);
 }
 
 DescPoolManager::~DescPoolManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
     device.destroyDescriptorPool(descPool_);
 }
 

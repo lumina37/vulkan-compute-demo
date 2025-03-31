@@ -18,8 +18,8 @@ enum class ImageType {
 
 class ImageManager {
 public:
-    ImageManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const ExtentManager& extent,
-                 ImageType imageType);
+    ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                 const ExtentManager& extent, ImageType imageType);
     ~ImageManager() noexcept;
 
     template <typename Self>
@@ -51,7 +51,7 @@ public:
     vk::Result downloadTo(std::span<std::byte> data);
 
 private:
-    DeviceManager& deviceMgr_;  // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
 
     ExtentManager extent_;
     ImageType imageType_;

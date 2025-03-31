@@ -12,9 +12,10 @@
 
 namespace vkc {
 
-SSBOManager::SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, const vk::DeviceSize size)
-    : deviceMgr_(deviceMgr), size_(size) {
-    auto& device = deviceMgr.getDevice();
+SSBOManager::SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                         const vk::DeviceSize size)
+    : pDeviceMgr_(pDeviceMgr), size_(size) {
+    auto& device = pDeviceMgr->getDevice();
 
     // Buffer
     vk::BufferCreateInfo bufferInfo;
@@ -23,7 +24,7 @@ SSBOManager::SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManage
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
     buffer_ = device.createBuffer(bufferInfo);
 
-    _hp::allocBufferMemory(phyDeviceMgr, deviceMgr, buffer_, vk::MemoryPropertyFlagBits::eHostVisible, memory_);
+    _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, buffer_, vk::MemoryPropertyFlagBits::eHostVisible, memory_);
     device.bindBufferMemory(buffer_, memory_, 0);
 
     // Descriptor Buffer Info
@@ -32,7 +33,7 @@ SSBOManager::SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManage
 }
 
 SSBOManager::~SSBOManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
     device.destroyBuffer(buffer_);
     device.freeMemory(memory_);
 }
@@ -46,9 +47,9 @@ vk::WriteDescriptorSet SSBOManager::draftWriteDescSet() const noexcept {
 }
 
 vk::Result SSBOManager::uploadFrom(const std::span<std::byte> data) {
-    return _hp::uploadFrom(deviceMgr_, memory_, data);
+    return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
 }
 
-vk::Result SSBOManager::downloadTo(std::span<std::byte> data) { return _hp::downloadTo(deviceMgr_, memory_, data); }
+vk::Result SSBOManager::downloadTo(std::span<std::byte> data) { return _hp::downloadTo(*pDeviceMgr_, memory_, data); }
 
 }  // namespace vkc

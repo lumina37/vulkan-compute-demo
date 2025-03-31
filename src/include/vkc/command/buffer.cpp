@@ -20,9 +20,10 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-CommandBufferManager::CommandBufferManager(DeviceManager& deviceMgr, CommandPoolManager& commandPoolMgr)
-    : deviceMgr_(deviceMgr), commandPoolMgr_(commandPoolMgr) {
-    auto& device = deviceMgr.getDevice();
+CommandBufferManager::CommandBufferManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                                           CommandPoolManager& commandPoolMgr)
+    : pDeviceMgr_(pDeviceMgr), commandPoolMgr_(commandPoolMgr) {
+    auto& device = pDeviceMgr->getDevice();
     auto& commandPool = commandPoolMgr.getCommandPool();
 
     vk::CommandBufferAllocateInfo allocInfo;
@@ -35,7 +36,7 @@ CommandBufferManager::CommandBufferManager(DeviceManager& deviceMgr, CommandPool
 }
 
 CommandBufferManager::~CommandBufferManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
     auto& commandPool = commandPoolMgr_.getCommandPool();
     device.freeCommandBuffers(commandPool, commandBuffer_);
     device.destroyFence(completeFence_);
@@ -248,7 +249,7 @@ void CommandBufferManager::submitTo(QueueManager& queueMgr) {
 }
 
 vk::Result CommandBufferManager::waitFence() {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
 
     auto waitFenceResult = device.waitForFences(completeFence_, true, std::numeric_limits<uint64_t>::max());
     if (waitFenceResult != vk::Result::eSuccess) {

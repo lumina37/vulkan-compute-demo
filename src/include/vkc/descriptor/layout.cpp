@@ -10,18 +10,18 @@
 
 namespace vkc {
 
-DescSetLayoutManager::DescSetLayoutManager(DeviceManager& deviceMgr,
+DescSetLayoutManager::DescSetLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
                                            const std::span<const vk::DescriptorSetLayoutBinding> bindings)
-    : deviceMgr_(deviceMgr) {
+    : pDdeviceMgr_(pDeviceMgr) {
     vk::DescriptorSetLayoutCreateInfo layoutInfo;
     layoutInfo.setBindings(bindings);
 
-    auto& device = deviceMgr.getDevice();
+    auto& device = pDeviceMgr->getDevice();
     descSetlayout_ = device.createDescriptorSetLayout(layoutInfo);
 }
 
 DescSetLayoutManager::~DescSetLayoutManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDdeviceMgr_->getDevice();
     device.destroyDescriptorSetLayout(descSetlayout_);
 }
 

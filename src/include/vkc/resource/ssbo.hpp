@@ -9,7 +9,8 @@ namespace vkc {
 
 class SSBOManager {
 public:
-    SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::DeviceSize size);
+    SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                vk::DeviceSize size);
     ~SSBOManager() noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
@@ -34,7 +35,8 @@ public:
     vk::Result downloadTo(std::span<std::byte> data);
 
 private:
-    DeviceManager& deviceMgr_;  // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
     vk::DeviceSize size_;
     vk::DeviceMemory memory_;
     vk::Buffer buffer_;

@@ -12,7 +12,7 @@ namespace vkc {
 
 class PipelineManager {
 public:
-    PipelineManager(DeviceManager& deviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
+    PipelineManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
                     const ShaderManager& computeShaderMgr);
     ~PipelineManager() noexcept;
 
@@ -22,7 +22,8 @@ public:
     }
 
 private:
-    DeviceManager& deviceMgr_;  // FIXME: UAF
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
     vk::Pipeline pipeline_;
 };
 

@@ -14,10 +14,10 @@
 
 namespace vkc {
 
-ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
+ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
                            const ExtentManager& extent, const ImageType imageType)
-    : deviceMgr_(deviceMgr), extent_(extent), imageType_(imageType) {
-    auto& device = deviceMgr.getDevice();
+    : pDeviceMgr_(pDeviceMgr), extent_(extent), imageType_(imageType) {
+    auto& device = pDeviceMgr->getDevice();
 
     vk::ImageUsageFlags imageUsage;
     vk::BufferUsageFlags bufferUsage;
@@ -54,7 +54,7 @@ ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceMana
     image_ = device.createImage(imageInfo);
 
     // Device Memory
-    _hp::allocImageMemory(phyDeviceMgr, deviceMgr, image_, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory_);
+    _hp::allocImageMemory(phyDeviceMgr, *pDeviceMgr, image_, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory_);
     device.bindImageMemory(image_, imageMemory_, 0);
 
     // Image View
@@ -79,7 +79,7 @@ ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceMana
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
     stagingBuffer_ = device.createBuffer(bufferInfo);
 
-    _hp::allocBufferMemory(phyDeviceMgr, deviceMgr, stagingBuffer_,
+    _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, stagingBuffer_,
                            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                            stagingMemory_);
     device.bindBufferMemory(stagingBuffer_, stagingMemory_, 0);
@@ -90,7 +90,7 @@ ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, DeviceMana
 }
 
 ImageManager::~ImageManager() noexcept {
-    auto& device = deviceMgr_.getDevice();
+    auto& device = pDeviceMgr_->getDevice();
     device.destroyBuffer(stagingBuffer_);
     device.freeMemory(stagingMemory_);
     device.destroyImageView(imageView_);
@@ -115,11 +115,11 @@ vk::DescriptorSetLayoutBinding ImageManager::draftDescSetLayoutBinding() const n
 }
 
 vk::Result ImageManager::uploadFrom(const std::span<std::byte> data) {
-    return _hp::uploadFrom(deviceMgr_, stagingMemory_, data);
+    return _hp::uploadFrom(*pDeviceMgr_, stagingMemory_, data);
 }
 
 vk::Result ImageManager::downloadTo(std::span<std::byte> data) {
-    return _hp::downloadTo(deviceMgr_, stagingMemory_, data);
+    return _hp::downloadTo(*pDeviceMgr_, stagingMemory_, data);
 }
 
 }  // namespace vkc
