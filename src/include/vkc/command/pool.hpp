@@ -5,7 +5,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
-#include "vkc/queue_family.hpp"
+#include "vkc/device/queue_family.hpp"
 
 namespace vkc {
 

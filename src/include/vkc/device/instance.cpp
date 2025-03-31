@@ -6,7 +6,7 @@
 #include "vkc/helper/defines.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/instance.hpp"
+#    include "vkc/device/instance.hpp"
 #endif
 
 namespace vkc {
@@ -18,7 +18,7 @@ InstanceManager::InstanceManager() {
 
     vk::ApplicationInfo appInfo;
     appInfo.setPApplicationName("vk-compute-demo");
-    appInfo.setApiVersion(VK_API_VERSION_1_3);
+    appInfo.setApiVersion(VK_API_VERSION_1_0);
 
     vk::InstanceCreateInfo instInfo;
     instInfo.setPApplicationInfo(&appInfo);

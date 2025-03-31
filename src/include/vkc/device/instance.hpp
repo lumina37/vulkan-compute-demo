@@ -27,5 +27,5 @@ private:
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/instance.cpp"
+#    include "vkc/device/instance.cpp"
 #endif

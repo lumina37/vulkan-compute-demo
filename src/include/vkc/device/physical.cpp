@@ -5,8 +5,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkc/device/instance.hpp"
 #include "vkc/helper/defines.hpp"
-#include "vkc/instance.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/physical.hpp"

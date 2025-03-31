@@ -10,7 +10,7 @@
 #include "vkc/helper/defines.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/queue_family.hpp"
+#    include "vkc/device/queue_family.hpp"
 #endif
 
 namespace vkc {

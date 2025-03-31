@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "vkc/instance.hpp"
+#include "vkc/device/instance.hpp"
 
 namespace vkc {
 

@@ -1,7 +1,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
-#include "vkc/queue_family.hpp"
+#include "vkc/device/queue_family.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/command/pool.hpp"

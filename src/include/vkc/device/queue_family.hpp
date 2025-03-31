@@ -19,5 +19,5 @@ private:
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/queue_family.cpp"
+#    include "vkc/device/queue_family.cpp"
 #endif
