@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <span>
 
 #include <vulkan/vulkan.hpp>

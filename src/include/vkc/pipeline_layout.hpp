@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
@@ -11,9 +12,10 @@ namespace vkc {
 
 class PipelineLayoutManager {
 public:
-    PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const DescSetLayoutManager& descSetLayoutMgr);
-    PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
-                          const vk::PushConstantRange& pushConstantRange);
+    PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                          const DescSetLayoutManager& descSetLayoutMgr);
+    PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                          const DescSetLayoutManager& descSetLayoutMgr, const vk::PushConstantRange& pushConstantRange);
     ~PipelineLayoutManager() noexcept;
 
     template <typename Self>

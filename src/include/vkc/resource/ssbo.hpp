@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"

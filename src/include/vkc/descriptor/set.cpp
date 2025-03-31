@@ -1,3 +1,5 @@
+#include <memory>
+
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/descriptor/layout.hpp"

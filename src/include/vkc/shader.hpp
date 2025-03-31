@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <memory>
 #include <span>
 #include <utility>
 

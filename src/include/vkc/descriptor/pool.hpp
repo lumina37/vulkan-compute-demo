@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <ranges>
 #include <span>
 #include <utility>
@@ -46,7 +47,8 @@ template <CSupportGetDescType... TManager>
 
 class DescPoolManager {
 public:
-    DescPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, std::span<const vk::DescriptorPoolSize> poolSizes);
+    DescPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                    std::span<const vk::DescriptorPoolSize> poolSizes);
     ~DescPoolManager() noexcept;
 
     template <typename Self>

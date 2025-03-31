@@ -1,3 +1,4 @@
+#include <memory>
 #include <span>
 
 #include <vulkan/vulkan.hpp>

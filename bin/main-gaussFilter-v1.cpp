@@ -1,6 +1,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <memory>
 #include <print>
 #include <span>
 #include <vector>
@@ -69,8 +70,8 @@ int main(int argc, char** argv) {
     vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
 
     // Command Buffer
-    vkc::CommandPoolManager commandPoolMgr{pDeviceMgr, computeQFamilyIdx};
-    vkc::CommandBufferManager gaussCmdBufMgr{pDeviceMgr, commandPoolMgr};
+    auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(pDeviceMgr, computeQFamilyIdx);
+    vkc::CommandBufferManager gaussCmdBufMgr{pDeviceMgr, pCommandPoolMgr};
     vkc::TimestampQueryPoolManager queryPoolMgr{pDeviceMgr, 2, phyDeviceMgr.getTimestampPeriod()};
 
     // Gaussian Blur

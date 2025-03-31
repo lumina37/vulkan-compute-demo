@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <memory>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
@@ -25,7 +26,8 @@ struct BlockSize {
 
 class CommandBufferManager {
 public:
-    CommandBufferManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, CommandPoolManager& commandPoolMgr);
+    CommandBufferManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                         const std::shared_ptr<CommandPoolManager>& pCommandPoolMgr);
     ~CommandBufferManager() noexcept;
 
     template <typename Self>
@@ -69,7 +71,7 @@ public:
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;
-    CommandPoolManager& commandPoolMgr_;  // FIXME: UAF
+    std::shared_ptr<CommandPoolManager> pCommandPoolMgr_;
 
     vk::CommandBuffer commandBuffer_;
     vk::Fence completeFence_;

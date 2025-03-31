@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <memory>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>

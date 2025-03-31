@@ -1,4 +1,5 @@
 #include <limits>
+#include <memory>
 #include <ranges>
 
 #include <vulkan/vulkan.hpp>
@@ -21,10 +22,10 @@ namespace vkc {
 namespace rgs = std::ranges;
 
 CommandBufferManager::CommandBufferManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                                           CommandPoolManager& commandPoolMgr)
-    : pDeviceMgr_(pDeviceMgr), commandPoolMgr_(commandPoolMgr) {
+                                           const std::shared_ptr<CommandPoolManager>& pCommandPoolMgr)
+    : pDeviceMgr_(pDeviceMgr), pCommandPoolMgr_(pCommandPoolMgr) {
     auto& device = pDeviceMgr->getDevice();
-    auto& commandPool = commandPoolMgr.getCommandPool();
+    auto& commandPool = pCommandPoolMgr->getCommandPool();
 
     vk::CommandBufferAllocateInfo allocInfo;
     allocInfo.setCommandPool(commandPool);
@@ -37,7 +38,7 @@ CommandBufferManager::CommandBufferManager(const std::shared_ptr<DeviceManager>&
 
 CommandBufferManager::~CommandBufferManager() noexcept {
     auto& device = pDeviceMgr_->getDevice();
-    auto& commandPool = commandPoolMgr_.getCommandPool();
+    auto& commandPool = pCommandPoolMgr_->getCommandPool();
     device.freeCommandBuffers(commandPool, commandBuffer_);
     device.destroyFence(completeFence_);
 }
