@@ -50,8 +50,12 @@ public:
     using TImageMgrCRef = std::reference_wrapper<const ImageManager>;
     void recordSrcPrepareTranfer(std::span<const TImageMgrCRef> srcImageMgrRefs);
     void recordUploadToSrc(std::span<const TImageMgrCRef> srcImageMgrRefs);
-    using TImageManagerCRefPair = std::pair<const TImageMgrCRef, const TImageMgrCRef>;
-    void recordImageCopy(std::span<const TImageManagerCRefPair> imageMgrRefPairs);
+
+    struct ImageManagerPair {
+        const ImageManager& copyFrom;
+        const ImageManager& copyTo;
+    };
+    void recordImageCopy(std::span<const ImageManagerPair> imageMgrPairs);
     void recordSrcPrepareShaderRead(std::span<const TImageMgrCRef> srcImageMgrRefs);
     void recordDstPrepareShaderWrite(std::span<const TImageMgrCRef> dstImageMgrRefs);
     void recordDispatch(ExtentManager extent, BlockSize blockSize);

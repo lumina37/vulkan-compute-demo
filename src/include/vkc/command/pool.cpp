@@ -12,7 +12,7 @@
 namespace vkc {
 
 CommandPoolManager::CommandPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const uint32_t queueFamilyIdx)
-    : pDeviceMgr_(pDeviceMgr) {
+    : pDeviceMgr_(pDeviceMgr), queueFamilyIdx_(queueFamilyIdx) {
     vk::CommandPoolCreateInfo commandPoolInfo;
     commandPoolInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     commandPoolInfo.setQueueFamilyIndex(queueFamilyIdx);

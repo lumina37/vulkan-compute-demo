@@ -54,8 +54,7 @@ int main(int argc, char** argv) {
     const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
     vkc::ImageManager dstImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Write};
     const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
-    std::array<const vkc::CommandBufferManager::TImageManagerCRefPair, 1> imageMgrCRefPairs{
-        std::pair{std::cref(dstImageMgr), std::cref(srcImageMgr)}};
+    const std::array imageMgrPairs{vkc::CommandBufferManager::ImageManagerPair{dstImageMgr, srcImageMgr}};
 
     std::vector descPoolSizes =
         genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr, srcImageMgr, samplerMgr, dstImageMgr);
@@ -106,9 +105,6 @@ int main(int argc, char** argv) {
     gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
     gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
     gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
-    gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
-    gaussCmdBufMgr.recordDownloadToDst(dstImageMgrCRefs);
-    gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
     gaussCmdBufMgr.end();
 
     srcImageMgr.uploadFrom(srcImage.getImageSpan());
@@ -116,8 +112,6 @@ int main(int argc, char** argv) {
 
     gaussCmdBufMgr.submitTo(queueMgr);
     gaussCmdBufMgr.waitFence();
-
-    dstImageMgr.downloadTo(dstImage.getImageSpan());
 
     std::println("Gaussian blur timecost: {} ms", queryPoolMgr.getElaspedTimes()[0]);
 
@@ -127,7 +121,8 @@ int main(int argc, char** argv) {
     grayCmdBufMgr.bindDescSets(grayDescSetMgr, grayPLayoutMgr);
     grayCmdBufMgr.recordResetQueryPool(queryPoolMgr);
     grayCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
-    grayCmdBufMgr.recordImageCopy(imageMgrCRefPairs);
+    grayCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
+    grayCmdBufMgr.recordImageCopy(imageMgrPairs);
     grayCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
     grayCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
     grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);

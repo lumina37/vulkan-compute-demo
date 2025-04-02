@@ -67,6 +67,8 @@ void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageM
     uploadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
     uploadConvBarrierTemplate.setOldLayout(vk::ImageLayout::eUndefined);
     uploadConvBarrierTemplate.setNewLayout(vk::ImageLayout::eTransferDstOptimal);
+    uploadConvBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    uploadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     uploadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
     const auto uploadConvBarriers = srcImageMgrRefs |
@@ -98,7 +100,7 @@ void CommandBufferManager::recordUploadToSrc(const std::span<const TImageMgrCRef
     }
 }
 
-void CommandBufferManager::recordImageCopy(const std::span<const TImageManagerCRefPair> imageMgrRefPairs) {
+void CommandBufferManager::recordImageCopy(const std::span<const ImageManagerPair> imageMgrPairs) {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -106,12 +108,11 @@ void CommandBufferManager::recordImageCopy(const std::span<const TImageManagerCR
     copyRegionTemplate.setSrcSubresource(subresourceLayers);
     copyRegionTemplate.setDstSubresource(subresourceLayers);
 
-    for (const auto mgrRefPair : imageMgrRefPairs) {
+    for (const auto mgrPair : imageMgrPairs) {
         vk::ImageCopy copyRegion = copyRegionTemplate;
-        copyRegion.setExtent(mgrRefPair.first.get().getExtent().extent3D());
-        commandBuffer_.copyImage(mgrRefPair.first.get().getImage(), vk::ImageLayout::eTransferSrcOptimal,
-                                 mgrRefPair.second.get().getImage(), vk::ImageLayout::eTransferDstOptimal, 1,
-                                 &copyRegion);
+        copyRegion.setExtent(mgrPair.copyFrom.getExtent().extent3D());
+        commandBuffer_.copyImage(mgrPair.copyFrom.getImage(), vk::ImageLayout::eTransferSrcOptimal,
+                                 mgrPair.copyTo.getImage(), vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
     }
 }
 
@@ -121,6 +122,8 @@ void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TIma
     shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
     shaderCompatibleBarrierTemplate.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
     shaderCompatibleBarrierTemplate.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    shaderCompatibleBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     shaderCompatibleBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
     const auto shaderCompatibleBarriers =
@@ -148,6 +151,8 @@ void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TIm
     shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderWrite);
     shaderCompatibleBarrierTemplate.setOldLayout(vk::ImageLayout::eUndefined);
     shaderCompatibleBarrierTemplate.setNewLayout(vk::ImageLayout::eGeneral);
+    shaderCompatibleBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     shaderCompatibleBarrierTemplate.setSubresourceRange(subresourceRange);
 
     const auto shaderCompatibleBarriers =
@@ -175,6 +180,8 @@ void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImage
     downloadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
     downloadConvBarrierTemplate.setOldLayout(vk::ImageLayout::eGeneral);
     downloadConvBarrierTemplate.setNewLayout(vk::ImageLayout::eTransferSrcOptimal);
+    downloadConvBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    downloadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     downloadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
     const auto downloadConvBarriers = dstImageMgrRefs |
@@ -207,12 +214,16 @@ void CommandBufferManager::recordDownloadToDst(std::span<const TImageMgrCRef> ds
 }
 
 void CommandBufferManager::recordWaitDownloadComplete(const std::span<const TImageMgrCRef> dstImageMgrRefs) {
+    vk::BufferMemoryBarrier downloadCompleteBarrierTemplate;
+    downloadCompleteBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
+    downloadCompleteBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eHostRead);
+    downloadCompleteBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    downloadCompleteBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+
     const auto downloadCompleteBarriers =
-        dstImageMgrRefs | rgs::views::transform([](const TImageMgrCRef mgrRef) {
+        dstImageMgrRefs | rgs::views::transform([&downloadCompleteBarrierTemplate](const TImageMgrCRef mgrRef) {
             const auto& mgr = mgrRef.get();
-            vk::BufferMemoryBarrier downloadCompleteBarrier;
-            downloadCompleteBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
-            downloadCompleteBarrier.setDstAccessMask(vk::AccessFlagBits::eHostRead);
+            vk::BufferMemoryBarrier downloadCompleteBarrier = downloadCompleteBarrierTemplate;
             downloadCompleteBarrier.setBuffer(mgr.getStagingBuffer());
             downloadCompleteBarrier.setSize(mgr.getExtent().size());
             return downloadCompleteBarrier;

@@ -13,4 +13,4 @@ namespace _spirv::grayscale {
 
 static const std::span grayscaleSpirvCode{(std::byte*)_spirv::grayscale::g_main, sizeof(_spirv::grayscale::g_main)};
 
-}  // namespace vkc
+}  // namespace shader

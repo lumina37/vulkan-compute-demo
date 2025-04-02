@@ -33,9 +33,8 @@ uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
     };
 
     const auto getQueueFamilyScore = [](const vk::QueueFamilyProperties& queueFamilyProp) {
-        constexpr int maxBitCount = std::popcount((uint32_t)vk::FlagTraits<vk::QueueFlagBits>::allFlags);
         const int bitCount = std::popcount((uint32_t)queueFamilyProp.queueFlags);
-        return maxBitCount - bitCount;
+        return bitCount;
     };
 
     const auto& queueFamilyProps = physicalDevice.getQueueFamilyProperties();

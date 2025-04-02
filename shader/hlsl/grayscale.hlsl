@@ -2,14 +2,11 @@
 [[vk::binding(1)]] SamplerState srcSampler;
 [[vk::binding(2)]] [[vk::image_format("rgba8")]] RWTexture2D<float4> dstImage;
 
-[numthreads(16, 16, 1)]
-void main(uint3 dtid : SV_DispatchThreadID)
-{
+[numthreads(16, 16, 1)] void main(uint3 dtid : SV_DispatchThreadID) {
     int2 dstIdx = int2(dtid.xy);
     int2 dstSize;
     dstImage.GetDimensions(dstSize.x, dstSize.y);
-    if (dstIdx.x >= dstSize.x || dstIdx.y >= dstSize.y)
-    {
+    if (dstIdx.x >= dstSize.x || dstIdx.y >= dstSize.y) {
         return;
     }
 
