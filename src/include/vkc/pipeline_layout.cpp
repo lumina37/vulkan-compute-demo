@@ -1,4 +1,6 @@
 #include <memory>
+#include <ranges>
+#include <vector>
 
 #include <vulkan/vulkan.hpp>
 
@@ -11,24 +13,38 @@
 
 namespace vkc {
 
+namespace rgs = std::ranges;
+
 PipelineLayoutManager::PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                                             const DescSetLayoutManager& descSetLayoutMgr)
+                                             const std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs)
     : pDeviceMgr_(pDeviceMgr) {
+    const auto descSetLayouts = descSetLayoutMgrCRefs | rgs::views::transform([](const TDescSetLayoutMgrCRef& mgrRef) {
+                                    const auto& descSetLayoutMgr = mgrRef.get();
+                                    const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
+                                    return descSetLayout;
+                                }) |
+                                rgs::to<std::vector>();
+
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-    const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
-    pipelineLayoutInfo.setSetLayouts(descSetLayout);
+    pipelineLayoutInfo.setSetLayouts(descSetLayouts);
 
     auto& device = pDeviceMgr->getDevice();
     pipelineLayout_ = device.createPipelineLayout(pipelineLayoutInfo);
 }
 
 PipelineLayoutManager::PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                                             const DescSetLayoutManager& descSetLayoutMgr,
+                                             const std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs,
                                              const vk::PushConstantRange& pushConstantRange)
     : pDeviceMgr_(pDeviceMgr) {
+    const auto descSetLayouts = descSetLayoutMgrCRefs | rgs::views::transform([](const TDescSetLayoutMgrCRef& mgrRef) {
+                                    const auto& descSetLayoutMgr = mgrRef.get();
+                                    const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
+                                    return descSetLayout;
+                                }) |
+                                rgs::to<std::vector>();
+
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-    const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
-    pipelineLayoutInfo.setSetLayouts(descSetLayout);
+    pipelineLayoutInfo.setSetLayouts(descSetLayouts);
     pipelineLayoutInfo.setPushConstantRanges(pushConstantRange);
 
     auto& device = pDeviceMgr->getDevice();

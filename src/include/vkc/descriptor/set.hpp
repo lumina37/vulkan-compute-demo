@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <memory>
+#include <span>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
@@ -14,30 +15,10 @@
 
 namespace vkc {
 
-class DescSetManager {
-public:
-    DescSetManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const DescSetLayoutManager& descSetLayoutMgr,
-                   DescPoolManager& descPoolMgr);
-
-    template <typename Self>
-    [[nodiscard]] auto&& getDescSet(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).descSet_;
-    }
-
-    template <CSupportDraftWriteDescSet... TManager>
-    void updateDescSets(const TManager&... mgrs);
-
-private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
-
-    vk::DescriptorSet descSet_;
-};
-
 template <CSupportDraftWriteDescSet... TManager>
-void DescSetManager::updateDescSets(const TManager&... mgrs) {
-    const auto genWriteDescSet = [this](const auto& mgr, size_t index) {
+[[nodiscard]] static constexpr inline auto genWriteDescSets(const TManager&... mgrs) {
+    const auto genWriteDescSet = [](const auto& mgr, const size_t index) {
         vk::WriteDescriptorSet writeDescSet = mgr.draftWriteDescSet();
-        writeDescSet.setDstSet(getDescSet());
         writeDescSet.setDstBinding(index);
         return writeDescSet;
     };
@@ -46,11 +27,32 @@ void DescSetManager::updateDescSets(const TManager&... mgrs) {
         return std::array{genWriteDescSet(mgrs, Is)...};
     };
 
-    const std::array writeDescSets{genWriteDescSetHelper(std::index_sequence_for<TManager...>{})};
-
-    auto& device = pDeviceMgr_->getDevice();
-    device.updateDescriptorSets(writeDescSets, nullptr);
+    return genWriteDescSetHelper(std::index_sequence_for<TManager...>{});
 }
+
+class DescSetsManager {
+public:
+    using TDescSetLayoutMgrCRef = std::reference_wrapper<const DescSetLayoutManager>;
+    DescSetsManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, DescPoolManager& descPoolMgr,
+                    std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs);
+
+    template <typename Self>
+    [[nodiscard]] auto&& getDescSets(this Self&& self) noexcept {
+        return std::forward_like<Self>(self).descSets_;
+    }
+
+    template <typename Self>
+    [[nodiscard]] auto&& getDescSet(this Self&& self, const int index) noexcept {
+        return std::forward_like<Self>(self).descSets_[index];
+    }
+
+    void updateDescSets(std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs);
+
+private:
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
+    std::vector<vk::DescriptorSet> descSets_;
+};
 
 }  // namespace vkc
 

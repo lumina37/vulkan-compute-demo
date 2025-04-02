@@ -41,23 +41,23 @@ public:
     }
 
     void bindPipeline(PipelineManager& pipelineMgr);
-    void bindDescSet(DescSetManager& descSetMgr, const PipelineLayoutManager& pipelineLayoutMgr);
+    void bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr);
 
     template <typename TPc>
     void pushConstant(const PushConstantManager<TPc>& pushConstantMgr, const PipelineLayoutManager& pipelineLayoutMgr);
     void begin();
 
-    using TImageManagerRef = std::reference_wrapper<const ImageManager>;
-    void recordSrcPrepareTranfer(std::span<TImageManagerRef> srcImageMgrRefs);
-    void recordUploadToSrc(std::span<TImageManagerRef> srcImageMgrRefs);
-    using TImageManagerRefPair = std::array<TImageManagerRef, 2>;
-    void recordImageCopy(std::span<TImageManagerRefPair> imageMgrRefPairs);
-    void recordSrcPrepareShaderRead(std::span<TImageManagerRef> srcImageMgrRefs);
-    void recordDstPrepareShaderWrite(std::span<TImageManagerRef> dstImageMgrRefs);
+    using TImageMgrCRef = std::reference_wrapper<const ImageManager>;
+    void recordSrcPrepareTranfer(std::span<const TImageMgrCRef> srcImageMgrRefs);
+    void recordUploadToSrc(std::span<const TImageMgrCRef> srcImageMgrRefs);
+    using TImageManagerCRefPair = std::pair<const TImageMgrCRef, const TImageMgrCRef>;
+    void recordImageCopy(std::span<const TImageManagerCRefPair> imageMgrRefPairs);
+    void recordSrcPrepareShaderRead(std::span<const TImageMgrCRef> srcImageMgrRefs);
+    void recordDstPrepareShaderWrite(std::span<const TImageMgrCRef> dstImageMgrRefs);
     void recordDispatch(ExtentManager extent, BlockSize blockSize);
-    void recordDstPrepareTransfer(std::span<TImageManagerRef> dstImageMgrRefs);
-    void recordDownloadToDst(std::span<TImageManagerRef> dstImageMgrRefs);
-    void recordWaitDownloadComplete(std::span<TImageManagerRef> dstImageMgrRefs);
+    void recordDstPrepareTransfer(std::span<const TImageMgrCRef> dstImageMgrRefs);
+    void recordDownloadToDst(std::span<const TImageMgrCRef> dstImageMgrRefs);
+    void recordWaitDownloadComplete(std::span<const TImageMgrCRef> dstImageMgrRefs);
 
     template <typename TQueryPoolManager>
         requires CQueryPoolManager<TQueryPoolManager>

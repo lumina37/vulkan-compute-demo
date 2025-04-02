@@ -12,10 +12,12 @@ namespace vkc {
 
 class PipelineLayoutManager {
 public:
+    using TDescSetLayoutMgrCRef = std::reference_wrapper<const DescSetLayoutManager>;
     PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                          const DescSetLayoutManager& descSetLayoutMgr);
+                          std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs);
     PipelineLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                          const DescSetLayoutManager& descSetLayoutMgr, const vk::PushConstantRange& pushConstantRange);
+                          std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs,
+                          const vk::PushConstantRange& pushConstantRange);
     ~PipelineLayoutManager() noexcept;
 
     template <typename Self>

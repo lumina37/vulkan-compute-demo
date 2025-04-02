@@ -51,11 +51,11 @@ int main(int argc, char** argv) {
     vkc::UBOManager gaussKernelWeightsMgr{phyDeviceMgr, pDeviceMgr, sizeof(gaussKernelWeights)};
 
     vkc::ImageManager srcImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Read};
-    std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
+    const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
     vkc::ImageManager dstImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Write};
-    std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
-    std::array<vkc::CommandBufferManager::TImageManagerRefPair, 1> imageMgrCRefPairs{
-        std::array{std::cref(dstImageMgr), std::cref(srcImageMgr)}};
+    const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
+    std::array<const vkc::CommandBufferManager::TImageManagerCRefPair, 1> imageMgrCRefPairs{
+        std::pair{std::cref(dstImageMgr), std::cref(srcImageMgr)}};
 
     std::vector descPoolSizes =
         genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr, srcImageMgr, samplerMgr, dstImageMgr);
@@ -64,15 +64,21 @@ int main(int argc, char** argv) {
     std::array gaussDLayoutBindings =
         genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
     vkc::DescSetLayoutManager gaussDLayoutMgr{pDeviceMgr, gaussDLayoutBindings};
-    vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgr, kernelSizePcMgr.getPushConstantRange()};
-    vkc::DescSetManager gaussDescSetMgr{pDeviceMgr, gaussDLayoutMgr, descPoolMgr};
-    gaussDescSetMgr.updateDescSets(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
+    const std::array gaussDLayoutMgrs{std::cref(gaussDLayoutMgr)};
+    vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgrs, kernelSizePcMgr.getPushConstantRange()};
+    vkc::DescSetsManager gaussDescSetsMgr{pDeviceMgr, descPoolMgr, gaussDLayoutMgrs};
+    const std::array gaussWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
+    const std::array gaussWriteDescSetsPerDescSet{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
+    gaussDescSetsMgr.updateDescSets(gaussWriteDescSetsPerDescSet);
 
     std::array grayDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescSetLayoutManager grayDLayoutMgr{pDeviceMgr, grayDLayoutBindings};
-    vkc::PipelineLayoutManager grayPLayoutMgr{pDeviceMgr, grayDLayoutMgr};
-    vkc::DescSetManager grayDescSetMgr{pDeviceMgr, grayDLayoutMgr, descPoolMgr};
-    grayDescSetMgr.updateDescSets(srcImageMgr, samplerMgr, dstImageMgr);
+    const std::array grayDLayoutMgrs{std::cref(grayDLayoutMgr)};
+    vkc::PipelineLayoutManager grayPLayoutMgr{pDeviceMgr, grayDLayoutMgrs};
+    vkc::DescSetsManager grayDescSetMgr{pDeviceMgr, descPoolMgr, grayDLayoutMgrs};
+    const std::array grayWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr);
+    const std::array grayWriteDescSetsPerDescSet{std::span{grayWriteDescSets.begin(), grayWriteDescSets.end()}};
+    grayDescSetMgr.updateDescSets(grayWriteDescSetsPerDescSet);
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
@@ -90,7 +96,7 @@ int main(int argc, char** argv) {
     // Gaussian Blur
     gaussCmdBufMgr.begin();
     gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-    gaussCmdBufMgr.bindDescSet(gaussDescSetMgr, gaussPLayoutMgr);
+    gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
     gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
     gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
     gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
@@ -118,7 +124,7 @@ int main(int argc, char** argv) {
     // Grayscale
     grayCmdBufMgr.begin();
     grayCmdBufMgr.bindPipeline(grayPipelineMgr);
-    grayCmdBufMgr.bindDescSet(grayDescSetMgr, grayPLayoutMgr);
+    grayCmdBufMgr.bindDescSets(grayDescSetMgr, grayPLayoutMgr);
     grayCmdBufMgr.recordResetQueryPool(queryPoolMgr);
     grayCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
     grayCmdBufMgr.recordImageCopy(imageMgrCRefPairs);

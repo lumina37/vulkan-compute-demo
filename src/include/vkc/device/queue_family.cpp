@@ -48,7 +48,7 @@ uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
         }
 
         const int score = getQueueFamilyScore(queueFamilyProp);
-        scores.emplace_back(score, (uint32_t)idx);
+        scores.emplace_back(score, idx);
 
         if constexpr (ENABLE_DEBUG) {
             std::println("Candidate queue family: {}. Score: {}", idx, score);

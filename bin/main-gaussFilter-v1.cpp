@@ -50,19 +50,22 @@ int main(int argc, char** argv) {
     vkc::UBOManager gaussKernelWeightsMgr{phyDeviceMgr, pDeviceMgr, sizeof(gaussKernelWeights)};
 
     vkc::ImageManager srcImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Read};
-    std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
+    const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
     vkc::ImageManager dstImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Write};
-    std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
+    const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
 
-    std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
+    const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
     vkc::DescPoolManager descPoolMgr{pDeviceMgr, descPoolSizes};
 
-    std::array gaussDLayoutBindings =
+    const std::array gaussDLayoutBindings =
         genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
     vkc::DescSetLayoutManager gaussDLayoutMgr{pDeviceMgr, gaussDLayoutBindings};
-    vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgr, kernelSizePcMgr.getPushConstantRange()};
-    vkc::DescSetManager gaussDescSetMgr{pDeviceMgr, gaussDLayoutMgr, descPoolMgr};
-    gaussDescSetMgr.updateDescSets(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
+    const std::array gaussDLayoutMgrs{std::cref(gaussDLayoutMgr)};
+    vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgrs, kernelSizePcMgr.getPushConstantRange()};
+    vkc::DescSetsManager gaussDescSetsMgr{pDeviceMgr, descPoolMgr, gaussDLayoutMgrs};
+    const std::array gaussWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
+    const std::array gaussWriteDescSetsPerDescSet{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
+    gaussDescSetsMgr.updateDescSets(gaussWriteDescSetsPerDescSet);
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
@@ -81,7 +84,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < 15; i++) {
         gaussCmdBufMgr.begin();
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-        gaussCmdBufMgr.bindDescSet(gaussDescSetMgr, gaussPLayoutMgr);
+        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
