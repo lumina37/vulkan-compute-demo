@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV1SpirvCode};
+    vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV2SpirvCode};
     vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
 
     // Command Buffer

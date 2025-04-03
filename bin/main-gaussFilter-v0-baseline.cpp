@@ -1,6 +1,5 @@
 #include <array>
 #include <cmath>
-#include <cstddef>
 #include <memory>
 #include <print>
 #include <span>
@@ -23,10 +22,7 @@ int main(int argc, char** argv) {
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{pDeviceMgr};
 
-    constexpr int registerLen = 16;
-    constexpr int maxKernelSize = registerLen * 2 + 1;
     constexpr int kernelSize = 23;
-    static_assert(kernelSize <= maxKernelSize);
     vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, 1.5f}};
 
     vkc::ImageManager srcImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Read};
@@ -37,7 +33,8 @@ int main(int argc, char** argv) {
     const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr{pDeviceMgr, descPoolSizes};
 
-    const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
+    const std::array gaussDLayoutBindings =
+        genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescSetLayoutManager gaussDLayoutMgr{pDeviceMgr, gaussDLayoutBindings};
     const std::array gaussDLayoutMgrs{std::cref(gaussDLayoutMgr)};
     vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgrs, kernelSizePcMgr.getPushConstantRange()};
@@ -48,7 +45,7 @@ int main(int argc, char** argv) {
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV1SpirvCode};
+    vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV0SpirvCode};
     vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
 
     // Command Buffer

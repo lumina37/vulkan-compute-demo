@@ -18,15 +18,14 @@ struct PushConstants {
 
     const int kSize = pc.kernelSize;
     const int halfKSize = kSize / 2;
-    const float sigma2 = pc.sigma * pc.sigma * 2.0;
+    const float sigma = pc.sigma;
 
     float4 color = {0.0, 0.0, 0.0, 0.0};
     float weightSum = 0.0;
     for (int y = -halfKSize; y <= halfKSize; y++) {
         for (int x = -halfKSize; x <= halfKSize; x++) {
-            const int2 offset = int2(x, y);
-            const float weight = exp(-float(dot(offset, offset)) / sigma2);
-            const int2 inCoord = dstIdx + offset;
+            const float weight = exp(-float(x * x + y * y) / (sigma * sigma * 2.0));
+            const int2 inCoord = dstIdx + int2(x, y);
             const float2 uv = (float2(inCoord) + 0.5) / float2(dstSize);
             const float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
             color += srcVal * weight;

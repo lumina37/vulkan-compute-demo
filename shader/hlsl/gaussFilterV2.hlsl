@@ -16,22 +16,33 @@ struct PushConstants {
         return;
     }
 
-    const int kSize = pc.kernelSize;
-    const int halfKSize = kSize / 2;
-    const float sigma2 = pc.sigma * pc.sigma * 2.0;
+    int kSize = pc.kernelSize;
+    int halfKSize = kSize / 2;
+
+    const float sigma = pc.sigma;
+    float weights[16];
+    weights[0] = 1.0;
+    float weightSum = 1.0;
+    for (int i = 1; i < halfKSize; i++) {
+        const float weight = exp(-float(i * i) / (sigma * sigma * 2.0));
+        weights[i] = weight;
+        weightSum += weight;
+    }
 
     float4 color = {0.0, 0.0, 0.0, 0.0};
-    float weightSum = 0.0;
     for (int y = -halfKSize; y <= halfKSize; y++) {
+        float4 rowAcc = {0.0, 0.0, 0.0, 0.0};
+
         for (int x = -halfKSize; x <= halfKSize; x++) {
-            const int2 offset = int2(x, y);
-            const float weight = exp(-float(dot(offset, offset)) / sigma2);
-            const int2 inCoord = dstIdx + offset;
-            const float2 uv = (float2(inCoord) + 0.5) / float2(dstSize);
-            const float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
-            color += srcVal * weight;
-            weightSum += weight;
+            int2 inCoord = dstIdx + int2(x, y);
+            float2 uv = (float2(inCoord) + 0.5) / float2(dstSize);
+            float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
+            const float weight = weights[abs(x)];
+            rowAcc += srcVal * weight;
         }
+
+        const float weight = weights[abs(y)];
+        color += rowAcc * weight;
     }
     color /= weightSum;
 

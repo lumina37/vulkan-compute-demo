@@ -1,5 +1,7 @@
 set(_VKC_HLSL_SRCS
+        gaussFilterV0
         gaussFilterV1
+        gaussFilterV2
         grayscale
 )
 set(_VKC_SPIRV_SHADERS)
