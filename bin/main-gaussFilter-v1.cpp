@@ -64,8 +64,8 @@ int main(int argc, char** argv) {
     vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgrs, kernelSizePcMgr.getPushConstantRange()};
     vkc::DescSetsManager gaussDescSetsMgr{pDeviceMgr, descPoolMgr, gaussDLayoutMgrs};
     const std::array gaussWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
-    const std::array gaussWriteDescSetsPerDescSet{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
-    gaussDescSetsMgr.updateDescSets(gaussWriteDescSetsPerDescSet);
+    const std::array gaussWriteDescSetss{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
+    gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};

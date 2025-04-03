@@ -67,8 +67,8 @@ int main(int argc, char** argv) {
     vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgrs, kernelSizePcMgr.getPushConstantRange()};
     vkc::DescSetsManager gaussDescSetsMgr{pDeviceMgr, descPoolMgr, gaussDLayoutMgrs};
     const std::array gaussWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr, gaussKernelWeightsMgr);
-    const std::array gaussWriteDescSetsPerDescSet{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
-    gaussDescSetsMgr.updateDescSets(gaussWriteDescSetsPerDescSet);
+    const std::array gaussWriteDescSetss{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
+    gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
 
     std::array grayDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescSetLayoutManager grayDLayoutMgr{pDeviceMgr, grayDLayoutBindings};
@@ -76,8 +76,8 @@ int main(int argc, char** argv) {
     vkc::PipelineLayoutManager grayPLayoutMgr{pDeviceMgr, grayDLayoutMgrs};
     vkc::DescSetsManager grayDescSetMgr{pDeviceMgr, descPoolMgr, grayDLayoutMgrs};
     const std::array grayWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr);
-    const std::array grayWriteDescSetsPerDescSet{std::span{grayWriteDescSets.begin(), grayWriteDescSets.end()}};
-    grayDescSetMgr.updateDescSets(grayWriteDescSetsPerDescSet);
+    const std::array grayWriteDescSetss{std::span{grayWriteDescSets.begin(), grayWriteDescSets.end()}};
+    grayDescSetMgr.updateDescSets(grayWriteDescSetss);
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};

@@ -38,7 +38,7 @@ DescSetsManager::DescSetsManager(const std::shared_ptr<DeviceManager>& pDeviceMg
 void DescSetsManager::updateDescSets(std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs) {
     int writeDescSetCount = 0;
     for (const auto& writeDescSetTemplates : writeDescSetTemplatesRefs) {
-        writeDescSetCount += writeDescSetTemplates.size();
+        writeDescSetCount += (int)writeDescSetTemplates.size();
     }
 
     std::vector<vk::WriteDescriptorSet> writeDescSets;
@@ -49,7 +49,7 @@ void DescSetsManager::updateDescSets(std::span<const std::span<const vk::WriteDe
         for (const auto& writeDescSetTemplate : writeDescSetTemplates) {
             vk::WriteDescriptorSet writeDescSet = writeDescSetTemplate;
             writeDescSet.setDstSet(descSet);
-            writeDescSets.emplace_back(std::move(writeDescSet));
+            writeDescSets.emplace_back(writeDescSet);
         }
     }
 
