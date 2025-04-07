@@ -23,7 +23,7 @@ namespace fs = std::filesystem;
 StbImageManager::StbImageManager(const fs::path& path) {
     int width, height, oriComps;
     constexpr int comps = 4;
-    image_ = (std::byte*)stbi_load((char*)path.string().c_str(), &width, &height, &oriComps, comps);
+    image_ = (std::byte*)stbi_load(path.string().c_str(), &width, &height, &oriComps, comps);
     extent_ = {width, height, comps};
 }
 
@@ -34,7 +34,7 @@ StbImageManager::StbImageManager(const ExtentManager& extent) : extent_(extent) 
 StbImageManager::~StbImageManager() noexcept { STBI_FREE(image_); }
 
 void StbImageManager::saveTo(const fs::path& path) const {
-    stbi_write_png((char*)path.string().c_str(), extent_.width(), extent_.height(), extent_.comps(), image_, 0);
+    stbi_write_png(path.string().c_str(), extent_.width(), extent_.height(), extent_.comps(), image_, 0);
 }
 
 }  // namespace vkc
