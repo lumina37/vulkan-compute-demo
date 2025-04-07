@@ -30,17 +30,23 @@ static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
     const int2 srcBaseCoord = int2(srcStartX, srcStartY);
 
     // Gather col cache for each `[srcStartX, srcStartX + GROUP_SIZE, srcStartX + 2*GROUP_SIZE, ...]` cols
+    const bool isKSizeOdd = bool(pc.kernelSize & 1);
     for (int x = 0; x < SAMPLE_TIMES; x++) {
         const int smemWriteX = GROUP_SIZE * x + groupTID.x;
         if (smemWriteX < SHARED_MEM_SIZE) {
             // Gather from `[srcStartY-halfKSize, srcStartY+halfKSise]` rows
-            float4 acc = float4(0.0, 0.0, 0.0, 0.0);
-            float accWeight = 0.0;
             const float inX = (float(srcStartX + GROUP_SIZE * x) + 0.5) / float(dstSize.x);
-            for (int y = -halfKSize; y <= halfKSize; y++) {
-                const float inY = (float(srcStartY + y) + 0.5) / float(dstSize.y);
+            const float inY = (float(srcStartY - halfKSize) + 0.5) / float(dstSize.y);
+            float accWeight = exp(-float(halfKSize * halfKSize) / sigma2);
+            float4 acc = srcTex.SampleLevel(srcSampler, float2(inX, inY), 0) * accWeight;
+            for (int y = 1 - halfKSize; y <= halfKSize; y += 2) {
+                const float inYUp = (float(srcStartY + y) + 0.5) / float(dstSize.y);
+                const float weightUp = exp(-float(y * y) / sigma2);
+                const float weightDown = exp(-float((y + 1) * (y + 1)) / sigma2);
+                const float weight = weightUp + weightDown;
+                const float shift = weightDown / weight;
+                const float inY = inYUp + shift / float(dstSize.y);
                 const float4 srcVal = srcTex.SampleLevel(srcSampler, float2(inX, inY), 0);
-                const float weight = exp(-float(y * y) / sigma2);
                 acc = mad(srcVal, weight, acc);
                 accWeight += weight;
             }

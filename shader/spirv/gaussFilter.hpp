@@ -17,10 +17,18 @@ namespace _spirv::gaussFilterV1 {
 
 }
 
+namespace _spirv::gaussFilterV2 {
+
+#include "spirv/gaussFilterV2.hlsl.h"
+
+}
+
 
 static const std::span gaussFilterV0SpirvCode{(std::byte*)_spirv::gaussFilterV0::g_main,
                                               sizeof(_spirv::gaussFilterV0::g_main)};
 static const std::span gaussFilterV1SpirvCode{(std::byte*)_spirv::gaussFilterV1::g_main,
                                               sizeof(_spirv::gaussFilterV1::g_main)};
+static const std::span gaussFilterV2SpirvCode{(std::byte*)_spirv::gaussFilterV2::g_main,
+                                              sizeof(_spirv::gaussFilterV2::g_main)};
 
 }  // namespace shader
