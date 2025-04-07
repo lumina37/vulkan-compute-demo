@@ -33,8 +33,7 @@ int main(int argc, char** argv) {
     const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr{pDeviceMgr, descPoolSizes};
 
-    const std::array gaussDLayoutBindings =
-        genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
+    const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescSetLayoutManager gaussDLayoutMgr{pDeviceMgr, gaussDLayoutBindings};
     const std::array gaussDLayoutMgrs{std::cref(gaussDLayoutMgr)};
     vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgrs, kernelSizePcMgr.getPushConstantRange()};

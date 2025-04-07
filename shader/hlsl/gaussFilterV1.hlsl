@@ -8,32 +8,64 @@ struct PushConstants {
 [[vk::binding(1)]] SamplerState srcSampler;
 [[vk::binding(2)]] [[vk::image_format("rgba8")]] RWTexture2D<float4> dstImage;
 
-[numthreads(16, 16, 1)] void main(uint3 globalTid : SV_DispatchThreadID) {
-    const int2 dstIdx = int2(globalTid.xy);
+static const uint MAX_HALF_KSIZE = 16;
+static const uint GROUP_SIZE = 256;
+static const uint SHARED_MEM_SIZE = GROUP_SIZE + 2 * MAX_HALF_KSIZE;
+// Gathered Y for each X
+groupshared float4 gatheredY[SHARED_MEM_SIZE];
+// Each thread should sample multiple times to fill up the `gatheredY`
+static const int ALIGNED_SHARED_MEM_SIZE = (SHARED_MEM_SIZE + (GROUP_SIZE - 1)) & ((~GROUP_SIZE) + 1);
+static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
+
+[numthreads(GROUP_SIZE, 1, 1)] void main(uint3 dispTid : SV_DispatchThreadID, uint3 groupID : SV_GroupID,
+                                         uint3 groupTID : SV_GroupThreadID) {
+    const int2 dstIdx = int2(dispTid.xy);
     int2 dstSize;
     dstImage.GetDimensions(dstSize.x, dstSize.y);
+    const int halfKSize = pc.kernelSize / 2;
+    const float sigma2 = pc.sigma * pc.sigma * 2.0;
+
+    const int srcStartX = groupID.x * GROUP_SIZE + groupTID.x - MAX_HALF_KSIZE;
+    const int srcStartY = groupID.y;
+    const int2 srcBaseCoord = int2(srcStartX, srcStartY);
+
+    // Gather col cache for each `[srcStartX, srcStartX + GROUP_SIZE, srcStartX + 2*GROUP_SIZE, ...]` cols
+    for (int x = 0; x < SAMPLE_TIMES; x++) {
+        const int smemWriteX = GROUP_SIZE * x + groupTID.x;
+        if (smemWriteX < SHARED_MEM_SIZE) {
+            float4 acc = float4(0.0, 0.0, 0.0, 0.0);
+            float accWeight = 0.0;
+            // Gather from `[srcStartY-halfKSize, srcStartY+halfKSise]` rows
+            for (int y = -halfKSize; y <= halfKSize; y++) {
+                const int2 inCoord = srcBaseCoord + int2(GROUP_SIZE * x, y);
+                const float2 uv = (float2(inCoord) + 0.5) / float2(dstSize);
+                const float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
+                const float weight = exp(-float(y * y) / sigma2);
+                acc = mad(srcVal, weight, acc);
+                accWeight += weight;
+            }
+            gatheredY[smemWriteX] = acc / accWeight;
+        }
+    }
+
+    // Never put the barrier after the divergence !!!
+    GroupMemoryBarrierWithGroupSync();
+
     if (dstIdx.x >= dstSize.x || dstIdx.y >= dstSize.y) {
         return;
     }
 
-    const int kSize = pc.kernelSize;
-    const int halfKSize = kSize / 2;
-    const float sigma2 = pc.sigma * pc.sigma * 2.0;
-
-    float4 color = {0.0, 0.0, 0.0, 0.0};
-    float weightSum = 0.0;
-    for (int y = -halfKSize; y <= halfKSize; y++) {
-        for (int x = -halfKSize; x <= halfKSize; x++) {
-            const int2 offset = int2(x, y);
-            const float weight = exp(-float(dot(offset, offset)) / sigma2);
-            const int2 inCoord = dstIdx + offset;
-            const float2 uv = (float2(inCoord) + 0.5) / float2(dstSize);
-            const float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
-            color += srcVal * weight;
-            weightSum += weight;
-        }
+    // Calculate the final output by gathering cached cols
+    float4 acc = float4(0.0, 0.0, 0.0, 0.0);
+    float accWeight = 0.0;
+    for (int x = -halfKSize; x <= halfKSize; x++) {
+        const float weight = exp(-float(x * x) / sigma2);
+        const int smemX = MAX_HALF_KSIZE + groupTID.x + x;
+        const float4 srcVal = gatheredY[smemX];
+        acc = mad(srcVal, weight, acc);
+        accWeight += weight;
     }
-    color /= weightSum;
+    const float4 dstVal = acc / accWeight;
 
-    dstImage[dstIdx] = float4(color.rgb, 1.0);
+    dstImage[dstIdx] = float4(dstVal.rgb, 1.0);
 }

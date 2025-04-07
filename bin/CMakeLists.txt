@@ -8,4 +8,3 @@ endfunction()
 
 vkc_add_executable(vkc-bin-gaussFilter-v0-baseline main-gaussFilter-v0-baseline.cpp)
 vkc_add_executable(vkc-bin-gaussFilter-v1 main-gaussFilter-v1.cpp)
-vkc_add_executable(vkc-bin-gaussFilter-v2 main-gaussFilter-v2.cpp)

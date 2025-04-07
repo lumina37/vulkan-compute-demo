@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
 
     // Pipeline
-    constexpr vkc::BlockSize blockSize{16, 16, 1};
+    constexpr vkc::BlockSize blockSize{256, 1, 1};
     vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV1SpirvCode};
     vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
 

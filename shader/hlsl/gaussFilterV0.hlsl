@@ -8,27 +8,26 @@ struct PushConstants {
 [[vk::binding(1)]] SamplerState srcSampler;
 [[vk::binding(2)]] [[vk::image_format("rgba8")]] RWTexture2D<float4> dstImage;
 
-[numthreads(16, 16, 1)] void main(uint3 globalTid : SV_DispatchThreadID) {
-    const int2 dstIdx = int2(globalTid.xy);
+[numthreads(16, 16, 1)] void main(uint3 dispTid : SV_DispatchThreadID) {
+    const int2 dstIdx = int2(dispTid.xy);
     int2 dstSize;
     dstImage.GetDimensions(dstSize.x, dstSize.y);
     if (dstIdx.x >= dstSize.x || dstIdx.y >= dstSize.y) {
         return;
     }
 
-    const int kSize = pc.kernelSize;
-    const int halfKSize = kSize / 2;
-    const float sigma = pc.sigma;
+    const int halfKSize = pc.kernelSize / 2;
 
     float4 color = {0.0, 0.0, 0.0, 0.0};
     float weightSum = 0.0;
     for (int y = -halfKSize; y <= halfKSize; y++) {
         for (int x = -halfKSize; x <= halfKSize; x++) {
-            const float weight = exp(-float(x * x + y * y) / (sigma * sigma * 2.0));
+            const int2 offset = int2(x, y);
             const int2 inCoord = dstIdx + int2(x, y);
             const float2 uv = (float2(inCoord) + 0.5) / float2(dstSize);
             const float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
-            color += srcVal * weight;
+            const float weight = exp(-float(dot(offset, offset)) / (pc.sigma * pc.sigma * 2.0));
+            color = mad(srcVal, weight, color);
             weightSum += weight;
         }
     }
