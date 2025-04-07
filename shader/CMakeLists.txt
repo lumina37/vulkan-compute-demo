@@ -1,7 +1,6 @@
 set(_VKC_HLSL_SRCS
         gaussFilterV0
         gaussFilterV1
-        grayscale
 )
 set(_VKC_SPIRV_SHADERS)
 
@@ -12,7 +11,7 @@ function(vkc_add_hlsl2spirv name)
     set(_VKC_SPIRV_SHADERS ${_VKC_SPIRV_SHADERS} PARENT_SCOPE)
     add_custom_command(
             OUTPUT ${__VKC_OUT_PATH}
-            COMMAND ${Vulkan_dxc_EXECUTABLE} -T cs_6_0 -spirv -fspv-target-env=vulkan1.1 -Fh ${__VKC_OUT_PATH} ${__VKC_IN_PATH}
+            COMMAND ${Vulkan_dxc_EXECUTABLE} -T cs_6_0 -spirv -Fh ${__VKC_OUT_PATH} ${__VKC_IN_PATH}
             MAIN_DEPENDENCY ${__VKC_IN_PATH}
             COMMENT "Compile shader - ${name}"
     )

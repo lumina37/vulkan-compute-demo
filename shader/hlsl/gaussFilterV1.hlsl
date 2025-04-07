@@ -14,8 +14,8 @@ static const uint SHARED_MEM_SIZE = GROUP_SIZE + 2 * MAX_HALF_KSIZE;
 // Gathered Y for each X
 groupshared float4 gatheredY[SHARED_MEM_SIZE];
 // Each thread should sample multiple times to fill up the `gatheredY`
-static const int ALIGNED_SHARED_MEM_SIZE = (SHARED_MEM_SIZE + (GROUP_SIZE - 1)) & ((~GROUP_SIZE) + 1);
-static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
+static const uint ALIGNED_SHARED_MEM_SIZE = (SHARED_MEM_SIZE + (GROUP_SIZE - 1)) & ((~GROUP_SIZE) + 1);
+static const uint SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
 
 [numthreads(GROUP_SIZE, 1, 1)] void main(uint3 dispTid : SV_DispatchThreadID, uint3 groupID : SV_GroupID,
                                          uint3 groupTID : SV_GroupThreadID) {

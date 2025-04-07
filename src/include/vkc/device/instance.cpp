@@ -18,7 +18,7 @@ InstanceManager::InstanceManager() {
 
     vk::ApplicationInfo appInfo;
     appInfo.setPApplicationName("vk-compute-demo");
-    appInfo.setApiVersion(VK_API_VERSION_1_1);
+    appInfo.setApiVersion(VK_API_VERSION_1_0);
 
     vk::InstanceCreateInfo instInfo;
     instInfo.setPApplicationInfo(&appInfo);
