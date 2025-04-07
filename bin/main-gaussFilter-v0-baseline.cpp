@@ -22,8 +22,8 @@ int main(int argc, char** argv) {
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{pDeviceMgr};
 
-    constexpr int kernelSize = 23;
-    vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, 1.5f}};
+    constexpr int kernelSize = 49;
+    vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, 10.f}};
 
     vkc::ImageManager srcImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Read};
     const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};

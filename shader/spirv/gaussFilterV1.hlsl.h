@@ -39,7 +39,7 @@
                OpDecorate %16 NoContraction
                OpDecorate %17 NoContraction
        %uint = OpTypeInt 32 0
-    %uint_16 = OpConstant %uint 16
+   %uint_128 = OpConstant %uint 128
    %uint_256 = OpConstant %uint 256
      %uint_2 = OpConstant %uint 2
         %int = OpTypeInt 32 1
@@ -65,9 +65,9 @@
 %_ptr_UniformConstant_type_sampler = OpTypePointer UniformConstant %type_sampler
 %type_2d_image_0 = OpTypeImage %float 2D 2 0 0 2 Rgba8
 %_ptr_UniformConstant_type_2d_image_0 = OpTypePointer UniformConstant %type_2d_image_0
-   %uint_288 = OpConstant %uint 288
-%_arr_v4float_uint_288 = OpTypeArray %v4float %uint_288
-%_ptr_Workgroup__arr_v4float_uint_288 = OpTypePointer Workgroup %_arr_v4float_uint_288
+   %uint_512 = OpConstant %uint 512
+%_arr_v4float_uint_512 = OpTypeArray %v4float %uint_512
+%_ptr_Workgroup__arr_v4float_uint_512 = OpTypePointer Workgroup %_arr_v4float_uint_512
      %v3uint = OpTypeVector %uint 3
 %_ptr_Input_v3uint = OpTypePointer Input %v3uint
        %void = OpTypeVoid
@@ -83,7 +83,7 @@
      %srcTex = OpVariable %_ptr_UniformConstant_type_2d_image UniformConstant
  %srcSampler = OpVariable %_ptr_UniformConstant_type_sampler UniformConstant
    %dstImage = OpVariable %_ptr_UniformConstant_type_2d_image_0 UniformConstant
-  %gatheredY = OpVariable %_ptr_Workgroup__arr_v4float_uint_288 Workgroup
+  %gatheredY = OpVariable %_ptr_Workgroup__arr_v4float_uint_512 Workgroup
 %gl_GlobalInvocationID = OpVariable %_ptr_Input_v3uint Input
 %gl_WorkGroupID = OpVariable %_ptr_Input_v3uint Input
 %gl_LocalInvocationID = OpVariable %_ptr_Input_v3uint Input
@@ -118,7 +118,7 @@
          %80 = OpAccessChain %_ptr_Input_uint %gl_LocalInvocationID %int_0
          %81 = OpLoad %uint %80
          %82 = OpIAdd %uint %79 %81
-         %83 = OpISub %uint %82 %uint_16
+         %83 = OpISub %uint %82 %uint_128
          %84 = OpBitcast %int %83
          %85 = OpAccessChain %_ptr_Input_uint %gl_WorkGroupID %int_1
          %86 = OpLoad %uint %85
@@ -136,7 +136,7 @@
          %98 = OpIAdd %uint %97 %81
          %99 = OpBitcast %int %98
         %100 = OpBitcast %uint %99
-        %101 = OpULessThan %bool %100 %uint_288
+        %101 = OpULessThan %bool %100 %uint_512
                OpSelectionMerge %102 None
                OpBranchConditional %101 %103 %102
         %103 = OpLabel
@@ -215,7 +215,7 @@
         %156 = OpFNegate %float %155
         %157 = OpFDiv %float %156 %76
         %158 = OpExtInst %float %1 Exp %157
-        %159 = OpIAdd %uint %uint_16 %81
+        %159 = OpIAdd %uint %uint_128 %81
         %160 = OpBitcast %uint %150
         %161 = OpIAdd %uint %159 %160
         %162 = OpBitcast %int %161
@@ -300,7 +300,7 @@ const unsigned char g_main[] = {
   0x2a, 0x00, 0x00, 0x00, 0x47, 0x00, 0x03, 0x00, 0x11, 0x00, 0x00, 0x00,
   0x2a, 0x00, 0x00, 0x00, 0x15, 0x00, 0x04, 0x00, 0x12, 0x00, 0x00, 0x00,
   0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2b, 0x00, 0x04, 0x00,
-  0x12, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+  0x12, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
   0x2b, 0x00, 0x04, 0x00, 0x12, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00,
   0x00, 0x01, 0x00, 0x00, 0x2b, 0x00, 0x04, 0x00, 0x12, 0x00, 0x00, 0x00,
   0x15, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x15, 0x00, 0x04, 0x00,
@@ -338,7 +338,7 @@ const unsigned char g_main[] = {
   0x02, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00,
   0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
   0x2b, 0x00, 0x04, 0x00, 0x12, 0x00, 0x00, 0x00, 0x29, 0x00, 0x00, 0x00,
-  0x20, 0x01, 0x00, 0x00, 0x1c, 0x00, 0x04, 0x00, 0x2a, 0x00, 0x00, 0x00,
+  0x00, 0x02, 0x00, 0x00, 0x1c, 0x00, 0x04, 0x00, 0x2a, 0x00, 0x00, 0x00,
   0x1d, 0x00, 0x00, 0x00, 0x29, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00,
   0x2b, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x2a, 0x00, 0x00, 0x00,
   0x17, 0x00, 0x04, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00,

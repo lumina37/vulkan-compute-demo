@@ -8,7 +8,7 @@ struct PushConstants {
 [[vk::binding(1)]] SamplerState srcSampler;
 [[vk::binding(2)]] [[vk::image_format("rgba8")]] RWTexture2D<float4> dstImage;
 
-static const uint MAX_HALF_KSIZE = 16;
+static const uint MAX_HALF_KSIZE = 128;
 static const uint GROUP_SIZE = 256;
 static const uint SHARED_MEM_SIZE = GROUP_SIZE + 2 * MAX_HALF_KSIZE;
 // Gathered Y for each X

@@ -1,8 +1,14 @@
 #include <cstddef>
 #include <filesystem>
 
+#pragma push_macro("STB_IMAGE_IMPLEMENTATION")
+#pragma push_macro("STB_IMAGE_WRITE_IMPLEMENTATION")
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image.h>
 #include <stb_image_write.h>
+#pragma pop_macro("STB_IMAGE_IMPLEMENTATION")
+#pragma pop_macro("STB_IMAGE_WRITE_IMPLEMENTATION")
 
 #include "vkc/extent.hpp"
 

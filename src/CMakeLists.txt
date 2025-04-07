@@ -9,7 +9,3 @@ target_include_directories(vkc-lib PUBLIC
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_include_directories(vkc-lib PRIVATE ${stb_SOURCE_DIR})
-target_compile_definitions(vkc-lib PRIVATE
-        STB_IMAGE_IMPLEMENTATION
-        STB_IMAGE_WRITE_IMPLEMENTATION
-)
