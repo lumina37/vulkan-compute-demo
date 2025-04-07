@@ -16,6 +16,7 @@ struct PushConstants {
         return;
     }
 
+    const float2 invDstSize = 1.0 / float2(dstSize);
     const int halfKSize = pc.kernelSize / 2;
 
     float4 color = {0.0, 0.0, 0.0, 0.0};
@@ -24,7 +25,7 @@ struct PushConstants {
         for (int x = -halfKSize; x <= halfKSize; x++) {
             const int2 offset = int2(x, y);
             const int2 inCoord = dstIdx + int2(x, y);
-            const float2 uv = (float2(inCoord) + 0.5) / float2(dstSize);
+            const float2 uv = (float2(inCoord) + 0.5) * invDstSize;
             const float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
             const float weight = exp(-float(dot(offset, offset)) / (pc.sigma * pc.sigma * 2.0));
             color = mad(srcVal, weight, color);

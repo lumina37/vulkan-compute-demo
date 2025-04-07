@@ -22,31 +22,29 @@ static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
     const int2 dstIdx = int2(dispTid.xy);
     int2 dstSize;
     dstImage.GetDimensions(dstSize.x, dstSize.y);
+    const float2 invDstSize = 1.0 / float2(dstSize);
     const int halfKSize = pc.kernelSize / 2;
     const float sigma2 = pc.sigma * pc.sigma * 2.0;
 
     const int srcStartX = groupID.x * GROUP_SIZE + groupTID.x - MAX_HALF_KSIZE;
     const int srcStartY = groupID.y;
-    const int2 srcBaseCoord = int2(srcStartX, srcStartY);
 
     // Gather col cache for each `[srcStartX, srcStartX + GROUP_SIZE, srcStartX + 2*GROUP_SIZE, ...]` cols
-    const bool isKSizeOdd = bool(pc.kernelSize & 1);
     for (int x = 0; x < SAMPLE_TIMES; x++) {
         const int smemWriteX = GROUP_SIZE * x + groupTID.x;
         if (smemWriteX < SHARED_MEM_SIZE) {
             // Gather from `[srcStartY-halfKSize, srcStartY+halfKSise]` rows
-            const float inX = (float(srcStartX + GROUP_SIZE * x) + 0.5) / float(dstSize.x);
-            const float inY = (float(srcStartY - halfKSize) + 0.5) / float(dstSize.y);
+            const int2 iUv = int2(srcStartX + GROUP_SIZE * x, srcStartY - halfKSize);
+            const float2 uv = (float2(iUv) + 0.5) * invDstSize;
             float accWeight = exp(-float(halfKSize * halfKSize) / sigma2);
-            float4 acc = srcTex.SampleLevel(srcSampler, float2(inX, inY), 0) * accWeight;
+            float4 acc = srcTex.SampleLevel(srcSampler, uv, 0) * accWeight;
             for (int y = 1 - halfKSize; y <= halfKSize; y += 2) {
-                const float inYUp = (float(srcStartY + y) + 0.5) / float(dstSize.y);
-                const float weightUp = exp(-float(y * y) / sigma2);
-                const float weightDown = exp(-float((y + 1) * (y + 1)) / sigma2);
+                const int negY2 = - y * y;
+                const float weightUp = exp(float(negY2) / sigma2);
+                const float weightDown = exp(float(negY2 - (y << 1) - 1) / sigma2);
                 const float weight = weightUp + weightDown;
-                const float shift = weightDown / weight;
-                const float inY = inYUp + shift / float(dstSize.y);
-                const float4 srcVal = srcTex.SampleLevel(srcSampler, float2(inX, inY), 0);
+                const float yOffset = (float(y + halfKSize) + weightDown / weight) * invDstSize.y;
+                const float4 srcVal = srcTex.SampleLevel(srcSampler, float2(uv.x, uv.y + yOffset), 0);
                 acc = mad(srcVal, weight, acc);
                 accWeight += weight;
             }

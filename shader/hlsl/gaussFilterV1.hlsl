@@ -22,12 +22,12 @@ static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
     const int2 dstIdx = int2(dispTid.xy);
     int2 dstSize;
     dstImage.GetDimensions(dstSize.x, dstSize.y);
+    const float2 invDstSize = 1.0 / float2(dstSize);
     const int halfKSize = pc.kernelSize / 2;
     const float sigma2 = pc.sigma * pc.sigma * 2.0;
 
     const int srcStartX = groupID.x * GROUP_SIZE + groupTID.x - MAX_HALF_KSIZE;
     const int srcStartY = groupID.y;
-    const int2 srcBaseCoord = int2(srcStartX, srcStartY);
 
     // Gather col cache for each `[srcStartX, srcStartX + GROUP_SIZE, srcStartX + 2*GROUP_SIZE, ...]` cols
     for (int x = 0; x < SAMPLE_TIMES; x++) {
@@ -36,10 +36,10 @@ static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
             // Gather from `[srcStartY-halfKSize, srcStartY+halfKSise]` rows
             float4 acc = float4(0.0, 0.0, 0.0, 0.0);
             float accWeight = 0.0;
-            const float inX = (float(srcStartX + GROUP_SIZE * x) + 0.5) / float(dstSize.x);
             for (int y = -halfKSize; y <= halfKSize; y++) {
-                const float inY = (float(srcStartY + y) + 0.5) / float(dstSize.y);
-                const float4 srcVal = srcTex.SampleLevel(srcSampler, float2(inX, inY), 0);
+                const int2 iUv = int2(srcStartX + GROUP_SIZE * x, srcStartY + y);
+                const float2 uv = (float2(iUv) + 0.5) * invDstSize;
+                const float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
                 const float weight = exp(-float(y * y) / sigma2);
                 acc = mad(srcVal, weight, acc);
                 accWeight += weight;
