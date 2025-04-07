@@ -39,7 +39,7 @@ static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
             float accWeight = exp(-float(halfKSize * halfKSize) / sigma2);
             float4 acc = srcTex.SampleLevel(srcSampler, uv, 0) * accWeight;
             for (int y = 1 - halfKSize; y <= halfKSize; y += 2) {
-                const int negY2 = - y * y;
+                const int negY2 = -y * y;
                 const float weightUp = exp(float(negY2) / sigma2);
                 const float weightDown = exp(float(negY2 - (y << 1) - 1) / sigma2);
                 const float weight = weightUp + weightDown;
