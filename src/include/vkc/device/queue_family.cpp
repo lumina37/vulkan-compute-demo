@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <bit>
 #include <cstdint>
 #include <iostream>
 #include <print>
@@ -32,11 +31,6 @@ uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
         return true;
     };
 
-    const auto getQueueFamilyScore = [](const vk::QueueFamilyProperties& queueFamilyProp) {
-        const int bitCount = std::popcount((uint32_t)queueFamilyProp.queueFlags);
-        return bitCount;
-    };
-
     const auto& queueFamilyProps = physicalDevice.getQueueFamilyProperties();
 
     std::vector<ScoreWithIndex> scores;
@@ -46,7 +40,7 @@ uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
             continue;
         }
 
-        const int score = getQueueFamilyScore(queueFamilyProp);
+        const int score = -(int)idx;
         scores.emplace_back(score, idx);
 
         if constexpr (ENABLE_DEBUG) {
