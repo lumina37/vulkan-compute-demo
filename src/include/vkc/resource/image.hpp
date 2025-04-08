@@ -20,7 +20,7 @@ enum class ImageType {
 class ImageManager {
 public:
     ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                 const ExtentManager& extent, ImageType imageType);
+                 const Extent& extent, ImageType imageType);
     ~ImageManager() noexcept;
 
     template <typename Self>
@@ -54,7 +54,7 @@ public:
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;
 
-    ExtentManager extent_;
+    Extent extent_;
     ImageType imageType_;
     vk::DescriptorType descType_;
 

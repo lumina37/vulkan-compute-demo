@@ -16,7 +16,7 @@
 namespace vkc {
 
 ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                           const ExtentManager& extent, const ImageType imageType)
+                           const Extent& extent, const ImageType imageType)
     : pDeviceMgr_(pDeviceMgr), extent_(extent), imageType_(imageType) {
     auto& device = pDeviceMgr->getDevice();
 

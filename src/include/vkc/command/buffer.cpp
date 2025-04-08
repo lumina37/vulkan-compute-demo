@@ -168,7 +168,7 @@ void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TIm
                                    shaderCompatibleBarriers.data());
 }
 
-void CommandBufferManager::recordDispatch(const ExtentManager extent, const BlockSize blockSize) {
+void CommandBufferManager::recordDispatch(const Extent extent, const BlockSize blockSize) {
     uint32_t groupSizeX = (extent.width() + (blockSize.x - 1)) / blockSize.x;
     uint32_t groupSizeY = (extent.height() + (blockSize.y - 1)) / blockSize.y;
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);

@@ -8,7 +8,7 @@
 
 namespace vkc {
 
-vk::Format ExtentManager::formatUnorm() const noexcept {
+vk::Format Extent::formatUnorm() const noexcept {
     switch (comps_) {
         case 1:
             return vk::Format::eR8Unorm;

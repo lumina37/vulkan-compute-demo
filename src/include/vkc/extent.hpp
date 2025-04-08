@@ -7,10 +7,10 @@
 
 namespace vkc {
 
-class ExtentManager {
+class Extent {
 public:
-    ExtentManager() = default;
-    ExtentManager(const int width, const int height, const int comps)
+    Extent() = default;
+    Extent(const int width, const int height, const int comps)
         : extent_(width, height), comps_(comps), size_(width * height * comps) {}
 
     [[nodiscard]] uint32_t width() const noexcept { return extent_.width; }

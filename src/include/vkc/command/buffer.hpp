@@ -58,7 +58,7 @@ public:
     void recordImageCopy(std::span<const ImageManagerPair> imageMgrPairs);
     void recordSrcPrepareShaderRead(std::span<const TImageMgrCRef> srcImageMgrRefs);
     void recordDstPrepareShaderWrite(std::span<const TImageMgrCRef> dstImageMgrRefs);
-    void recordDispatch(ExtentManager extent, BlockSize blockSize);
+    void recordDispatch(Extent extent, BlockSize blockSize);
     void recordDstPrepareTransfer(std::span<const TImageMgrCRef> dstImageMgrRefs);
     void recordDownloadToDst(std::span<const TImageMgrCRef> dstImageMgrRefs);
     void recordWaitDownloadComplete(std::span<const TImageMgrCRef> dstImageMgrRefs);

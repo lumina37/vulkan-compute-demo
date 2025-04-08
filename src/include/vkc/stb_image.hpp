@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 class StbImageManager {
 public:
     StbImageManager(const fs::path& path);
-    StbImageManager(const ExtentManager& extent);
+    StbImageManager(const Extent& extent);
     ~StbImageManager() noexcept;
 
     std::span<std::byte> getImageSpan() const noexcept { return {image_, extent_.size()}; }
@@ -28,7 +28,7 @@ public:
 
 private:
     std::byte* image_;
-    ExtentManager extent_;
+    Extent extent_;
 };
 
 }  // namespace vkc

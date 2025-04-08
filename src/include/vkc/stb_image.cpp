@@ -27,7 +27,7 @@ StbImageManager::StbImageManager(const fs::path& path) {
     extent_ = {width, height, comps};
 }
 
-StbImageManager::StbImageManager(const ExtentManager& extent) : extent_(extent) {
+StbImageManager::StbImageManager(const Extent& extent) : extent_(extent) {
     image_ = (std::byte*)STBI_MALLOC(extent.size());
 }
 
