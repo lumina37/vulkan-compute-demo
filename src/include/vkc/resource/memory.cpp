@@ -52,7 +52,7 @@ void allocImageMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& 
     bufferMemory = device.allocateMemory(allocInfo);
 }
 
-vk::Result uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory, const std::span<std::byte> data) {
+vk::Result uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory, const std::span<const std::byte> data) {
     auto& device = deviceMgr.getDevice();
 
     // Upload to Buffer
@@ -67,7 +67,7 @@ vk::Result uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory, const 
     return vk::Result::eSuccess;
 }
 
-vk::Result downloadTo(DeviceManager& deviceMgr, vk::DeviceMemory& memory, std::span<std::byte> data) {
+vk::Result downloadTo(DeviceManager& deviceMgr, const vk::DeviceMemory& memory, const std::span<std::byte> data) {
     auto& device = deviceMgr.getDevice();
 
     // Download from Buffer

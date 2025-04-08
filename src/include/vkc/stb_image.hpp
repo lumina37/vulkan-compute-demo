@@ -17,7 +17,7 @@ public:
     StbImageManager(const Extent& extent);
     ~StbImageManager() noexcept;
 
-    std::span<std::byte> getImageSpan() const noexcept { return {image_, extent_.size()}; }
+    [[nodiscard]] std::span<std::byte> getImageSpan() const noexcept { return {image_, extent_.size()}; }
 
     template <typename Self>
     [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {

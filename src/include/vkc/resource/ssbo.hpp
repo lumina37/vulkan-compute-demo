@@ -33,7 +33,7 @@ public:
     [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
     [[nodiscard]] static constexpr vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() noexcept;
 
-    vk::Result uploadFrom(std::span<std::byte> data);
+    vk::Result uploadFrom(std::span<const std::byte> data);
     vk::Result downloadTo(std::span<std::byte> data);
 
 private:

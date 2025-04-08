@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 class ShaderManager {
 public:
     ShaderManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const fs::path& path);
-    ShaderManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, std::span<std::byte> code);
+    ShaderManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, std::span<const std::byte> code);
     ~ShaderManager() noexcept;
 
     template <typename Self>

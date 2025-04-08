@@ -48,10 +48,10 @@ vk::WriteDescriptorSet UBOManager::draftWriteDescSet() const noexcept {
     return writeDescSet;
 }
 
-vk::Result UBOManager::uploadFrom(const std::span<std::byte> data) {
+vk::Result UBOManager::uploadFrom(const std::span<const std::byte> data) {
     return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
 }
 
-vk::Result UBOManager::downloadTo(std::span<std::byte> data) { return _hp::downloadTo(*pDeviceMgr_, memory_, data); }
+vk::Result UBOManager::downloadTo(const std::span<std::byte> data) { return _hp::downloadTo(*pDeviceMgr_, memory_, data); }
 
 }  // namespace vkc

@@ -20,9 +20,9 @@ void allocBufferMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager&
 void allocImageMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Image& image,
                       vk::MemoryPropertyFlags memProps, vk::DeviceMemory& bufferMemory);
 
-vk::Result uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory, std::span<std::byte> data);
+vk::Result uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory, std::span<const std::byte> data);
 
-vk::Result downloadTo(DeviceManager& deviceMgr, vk::DeviceMemory& memory, std::span<std::byte> data);
+vk::Result downloadTo(DeviceManager& deviceMgr, const vk::DeviceMemory& memory, std::span<std::byte> data);
 
 }  // namespace vkc::_hp
 

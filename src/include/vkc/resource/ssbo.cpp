@@ -47,10 +47,10 @@ vk::WriteDescriptorSet SSBOManager::draftWriteDescSet() const noexcept {
     return writeDescSet;
 }
 
-vk::Result SSBOManager::uploadFrom(const std::span<std::byte> data) {
+vk::Result SSBOManager::uploadFrom(const std::span<const std::byte> data) {
     return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
 }
 
-vk::Result SSBOManager::downloadTo(std::span<std::byte> data) { return _hp::downloadTo(*pDeviceMgr_, memory_, data); }
+vk::Result SSBOManager::downloadTo(const std::span<std::byte> data) { return _hp::downloadTo(*pDeviceMgr_, memory_, data); }
 
 }  // namespace vkc

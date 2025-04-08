@@ -29,7 +29,7 @@ ShaderManager::ShaderManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, c
     shader_ = device.createShaderModule(shaderInfo);
 }
 
-ShaderManager::ShaderManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const std::span<std::byte> code)
+ShaderManager::ShaderManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const std::span<const std::byte> code)
     : pDeviceMgr_(pDeviceMgr) {
     vk::ShaderModuleCreateInfo shaderInfo;
     shaderInfo.setPCode((uint32_t*)code.data());
