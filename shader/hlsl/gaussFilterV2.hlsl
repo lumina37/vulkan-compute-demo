@@ -1,6 +1,6 @@
 struct PushConstants {
     int kernelSize;
-    float sigma;
+    float sigma2;
 };
 [[vk::push_constant]] ConstantBuffer<PushConstants> pc;
 
@@ -24,7 +24,6 @@ static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
     dstImage.GetDimensions(dstSize.x, dstSize.y);
     const float2 invDstSize = 1.0 / float2(dstSize);
     const int halfKSize = pc.kernelSize / 2;
-    const float sigma2 = pc.sigma * pc.sigma * 2.0;
 
     const int srcStartX = groupID.x * GROUP_SIZE + groupTID.x - MAX_HALF_KSIZE;
     const int srcStartY = groupID.y;
@@ -36,12 +35,12 @@ static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
             // Gather from `[srcStartY-halfKSize, srcStartY+halfKSise]` rows
             const int2 iUv = int2(srcStartX + GROUP_SIZE * x, srcStartY - halfKSize);
             const float2 uv = (float2(iUv) + 0.5) * invDstSize;
-            float accWeight = exp(-float(halfKSize * halfKSize) / sigma2);
+            float accWeight = exp(-float(halfKSize * halfKSize) / pc.sigma2);
             float4 acc = srcTex.SampleLevel(srcSampler, uv, 0) * accWeight;
             for (int y = 1 - halfKSize; y <= halfKSize; y += 2) {
                 const int negY2 = -y * y;
-                const float weightUp = exp(float(negY2) / sigma2);
-                const float weightDown = exp(float(negY2 - (y << 1) - 1) / sigma2);
+                const float weightUp = exp(float(negY2) / pc.sigma2);
+                const float weightDown = exp(float(negY2 - (y << 1) - 1) / pc.sigma2);
                 const float weight = weightUp + weightDown;
                 const float yOffset = (float(y + halfKSize) + weightDown / weight) * invDstSize.y;
                 const float4 srcVal = srcTex.SampleLevel(srcSampler, float2(uv.x, uv.y + yOffset), 0);
@@ -63,7 +62,7 @@ static const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
     float4 acc = float4(0.0, 0.0, 0.0, 0.0);
     float accWeight = 0.0;
     for (int x = -halfKSize; x <= halfKSize; x++) {
-        const float weight = exp(-float(x * x) / sigma2);
+        const float weight = exp(-float(x * x) / pc.sigma2);
         const int smemX = MAX_HALF_KSIZE + groupTID.x + x;
         const float4 srcVal = gatheredY[smemX];
         acc = mad(srcVal, weight, acc);

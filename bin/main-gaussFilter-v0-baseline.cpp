@@ -23,7 +23,8 @@ int main() {
     vkc::SamplerManager samplerMgr{pDeviceMgr};
 
     constexpr int kernelSize = 49;
-    vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, 10.f}};
+    constexpr float sigma = 10.0f;
+    vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, sigma * sigma * 2.0f}};
 
     vkc::ImageManager srcImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Read};
     const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};

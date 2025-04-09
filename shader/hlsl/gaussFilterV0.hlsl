@@ -1,6 +1,6 @@
 struct PushConstants {
     int kernelSize;
-    float sigma;
+    float sigma2;
 };
 [[vk::push_constant]] ConstantBuffer<PushConstants> pc;
 
@@ -27,7 +27,7 @@ struct PushConstants {
             const int2 inCoord = dstIdx + int2(x, y);
             const float2 uv = (float2(inCoord) + 0.5) * invDstSize;
             const float4 srcVal = srcTex.SampleLevel(srcSampler, uv, 0);
-            const float weight = exp(-float(dot(offset, offset)) / (pc.sigma * pc.sigma * 2.0));
+            const float weight = exp(-float(dot(offset, offset)) / pc.sigma2);
             color = mad(srcVal, weight, color);
             weightSum += weight;
         }
