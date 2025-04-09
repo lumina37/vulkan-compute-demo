@@ -43,7 +43,7 @@ ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std:
     // Image
     vk::ImageCreateInfo imageInfo;
     imageInfo.setImageType(vk::ImageType::e2D);
-    imageInfo.setFormat(extent.formatUnorm());
+    imageInfo.setFormat(extent.format());
     imageInfo.setExtent(extent.extent3D());
     imageInfo.setMipLevels(1);
     imageInfo.setArrayLayers(1);
@@ -69,7 +69,7 @@ ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std:
     vk::ImageViewCreateInfo imageViewInfo;
     imageViewInfo.setImage(image_);
     imageViewInfo.setViewType(vk::ImageViewType::e2D);
-    imageViewInfo.setFormat(extent.formatUnorm());
+    imageViewInfo.setFormat(extent.format());
     imageViewInfo.setSubresourceRange(subresourceRange);
     imageView_ = device.createImageView(imageViewInfo);
 

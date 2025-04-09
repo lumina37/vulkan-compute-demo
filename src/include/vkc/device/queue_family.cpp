@@ -56,7 +56,7 @@ uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
     }
 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());
-    return maxScoreIt->index;
+    return (uint32_t)maxScoreIt->index;
 }
 
 }  // namespace vkc

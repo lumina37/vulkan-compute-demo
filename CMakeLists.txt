@@ -6,6 +6,9 @@ project(VulkanComputeDemo
         LANGUAGES CXX
 )
 
+# Options
+option(VKC_VERBOSE_WARNING "Show verbose compiler warnings" OFF)
+
 # Dependencies
 include(FetchContent)
 

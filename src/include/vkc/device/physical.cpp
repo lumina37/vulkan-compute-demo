@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <print>
 #include <ranges>
@@ -67,7 +68,7 @@ PhysicalDeviceManager::PhysicalDeviceManager(const InstanceManager& instMgr) {
     }
 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());
-    const uint32_t physicalDeviceIdx = maxScoreIt->index;
+    const uint32_t physicalDeviceIdx = (uint32_t)maxScoreIt->index;
 
     physicalDevice_ = physicalDevices[physicalDeviceIdx];
     limits_ = physicalDevice_.getProperties().limits;

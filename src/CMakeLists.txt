@@ -9,3 +9,11 @@ target_include_directories(vkc-lib PUBLIC
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_include_directories(vkc-lib PRIVATE ${stb_SOURCE_DIR})
+
+if (VKC_VERBOSE_WARNING)
+    if (MSVC)
+        target_compile_options(vkc-lib PUBLIC /W4)
+    else ()
+        target_compile_options(vkc-lib PUBLIC -Wall -Wextra)
+    endif ()
+endif ()

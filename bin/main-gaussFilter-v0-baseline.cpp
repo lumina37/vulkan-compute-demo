@@ -8,7 +8,7 @@
 #include "spirv/gaussFilter.hpp"
 #include "vkc.hpp"
 
-int main(int argc, char** argv) {
+int main() {
     vkc::StbImageManager srcImage{"in.png"};
     vkc::StbImageManager dstImage{srcImage.getExtent()};
 

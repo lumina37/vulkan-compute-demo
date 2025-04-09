@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -28,14 +29,15 @@ DescSetsManager::DescSetsManager(const std::shared_ptr<DeviceManager>& pDeviceMg
     vk::DescriptorSetAllocateInfo descSetAllocInfo;
     auto& descPool = descPoolMgr.getDescPool();
     descSetAllocInfo.setDescriptorPool(descPool);
-    descSetAllocInfo.setDescriptorSetCount(descSetLayoutMgrCRefs.size());
+    descSetAllocInfo.setDescriptorSetCount((uint32_t)descSetLayoutMgrCRefs.size());
     descSetAllocInfo.setSetLayouts(descSetLayouts);
 
     auto& device = pDeviceMgr->getDevice();
     descSets_ = device.allocateDescriptorSets(descSetAllocInfo);
 }
 
-void DescSetsManager::updateDescSets(std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs) {
+void DescSetsManager::updateDescSets(
+    std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs) {
     int writeDescSetCount = 0;
     for (const auto& writeDescSetTemplates : writeDescSetTemplatesRefs) {
         writeDescSetCount += (int)writeDescSetTemplates.size();

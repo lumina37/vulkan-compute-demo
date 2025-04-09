@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <memory>
 #include <span>
 
@@ -15,7 +16,7 @@ DescPoolManager::DescPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMg
                                  const std::span<const vk::DescriptorPoolSize> poolSizes)
     : pDeviceMgr_(pDeviceMgr) {
     vk::DescriptorPoolCreateInfo poolInfo;
-    poolInfo.setMaxSets(poolSizes.size());
+    poolInfo.setMaxSets((uint32_t)poolSizes.size());
     poolInfo.setPoolSizes(poolSizes);
 
     auto& device = pDeviceMgr->getDevice();

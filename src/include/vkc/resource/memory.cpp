@@ -23,7 +23,7 @@ uint32_t findMemoryTypeIdx(const PhysicalDeviceManager& phyDeviceMgr, const uint
         const bool isSupported = supportedMemType & (1 << idx);
         const bool isSufficient = (memType.propertyFlags & memProps) == memProps;
         if (isSupported && isSufficient) {
-            return idx;
+            return (uint32_t)idx;
         }
     }
 

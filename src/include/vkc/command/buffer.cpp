@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <ranges>
@@ -50,7 +51,7 @@ void CommandBufferManager::bindPipeline(PipelineManager& pipelineMgr) {
 void CommandBufferManager::bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr) {
     auto& descSets = descSetsMgr.getDescSets();
     commandBuffer_.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayoutMgr.getPipelineLayout(), 0,
-                                      descSets.size(), descSets.data(), 0, nullptr);
+                                      (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
 }
 
 void CommandBufferManager::begin() {
@@ -80,7 +81,7 @@ void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageM
                                     rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, uploadConvBarriers.size(),
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)uploadConvBarriers.size(),
                                    uploadConvBarriers.data());
 }
 
@@ -135,8 +136,8 @@ void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TIma
         rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, shaderCompatibleBarriers.size(),
-                                   shaderCompatibleBarriers.data());
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
+                                   (uint32_t)shaderCompatibleBarriers.size(), shaderCompatibleBarriers.data());
 }
 
 void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TImageMgrCRef> dstImageMgrRefs) {
@@ -164,8 +165,8 @@ void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TIm
         rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eComputeShader,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, shaderCompatibleBarriers.size(),
-                                   shaderCompatibleBarriers.data());
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
+                                   (uint32_t)shaderCompatibleBarriers.size(), shaderCompatibleBarriers.data());
 }
 
 void CommandBufferManager::recordDispatch(const Extent extent, const BlockSize blockSize) {
@@ -193,8 +194,8 @@ void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImage
                                       rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, downloadConvBarriers.size(),
-                                   downloadConvBarriers.data());
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
+                                   (uint32_t)downloadConvBarriers.size(), downloadConvBarriers.data());
 }
 
 void CommandBufferManager::recordDownloadToDst(std::span<const TImageMgrCRef> dstImageMgrRefs) {
@@ -231,7 +232,7 @@ void CommandBufferManager::recordWaitDownloadComplete(const std::span<const TIma
         rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost,
-                                   (vk::DependencyFlags)0, 0, nullptr, downloadCompleteBarriers.size(),
+                                   (vk::DependencyFlags)0, 0, nullptr, (uint32_t)downloadCompleteBarriers.size(),
                                    downloadCompleteBarriers.data(), 0, nullptr);
 }
 
