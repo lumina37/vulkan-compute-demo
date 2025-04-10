@@ -9,11 +9,11 @@
 
 namespace vkc {
 
-class SSBOManager {
+class StorageBufferManager {
 public:
-    SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                vk::DeviceSize size);
-    ~SSBOManager() noexcept;
+    StorageBufferManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
+                         vk::DeviceSize size);
+    ~StorageBufferManager() noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
 
@@ -45,7 +45,7 @@ private:
     vk::DescriptorBufferInfo descBufferInfo_;
 };
 
-constexpr vk::DescriptorSetLayoutBinding SSBOManager::draftDescSetLayoutBinding() noexcept {
+constexpr vk::DescriptorSetLayoutBinding StorageBufferManager::draftDescSetLayoutBinding() noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
     binding.setDescriptorType(getDescType());
@@ -56,5 +56,5 @@ constexpr vk::DescriptorSetLayoutBinding SSBOManager::draftDescSetLayoutBinding(
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/resource/image.cpp"
+#    include "vkc/resource/storage_buffer.cpp"
 #endif

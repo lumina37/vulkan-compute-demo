@@ -16,6 +16,9 @@ SamplerManager::SamplerManager(const std::shared_ptr<DeviceManager>& pDeviceMgr)
     vk::SamplerCreateInfo samplerInfo;
     samplerInfo.setMagFilter(vk::Filter::eLinear);
     samplerInfo.setMinFilter(vk::Filter::eLinear);
+    samplerInfo.setAddressModeU(vk::SamplerAddressMode::eMirroredRepeat);
+    samplerInfo.setAddressModeV(vk::SamplerAddressMode::eMirroredRepeat);
+    samplerInfo.setAddressModeW(vk::SamplerAddressMode::eMirroredRepeat);
 
     auto& device = pDeviceMgr->getDevice();
     sampler_ = device.createSampler(samplerInfo);

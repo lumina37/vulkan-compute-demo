@@ -4,5 +4,5 @@
 #include "vkc/resource/memory.hpp"
 #include "vkc/resource/push_constant.hpp"
 #include "vkc/resource/sampler.hpp"
-#include "vkc/resource/ssbo.hpp"
-#include "vkc/resource/ubo.hpp"
+#include "vkc/resource/storage_buffer.hpp"
+#include "vkc/resource/uniform_buffer.hpp"

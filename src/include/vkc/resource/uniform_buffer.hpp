@@ -59,5 +59,5 @@ constexpr vk::DescriptorSetLayoutBinding UBOManager::draftDescSetLayoutBinding()
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/resource/ubo.cpp"
+#    include "vkc/resource/uniform_buffer.cpp"
 #endif

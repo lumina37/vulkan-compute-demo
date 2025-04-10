@@ -9,7 +9,7 @@
 #include "vkc/resource/memory.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/resource/ubo.hpp"
+#    include "vkc/resource/uniform_buffer.hpp"
 #endif
 
 namespace vkc {

@@ -8,13 +8,13 @@
 #include "vkc/resource/memory.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/resource/ssbo.hpp"
+#    include "vkc/resource/storage_buffer.hpp"
 #endif
 
 namespace vkc {
 
-SSBOManager::SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                         const vk::DeviceSize size)
+StorageBufferManager::StorageBufferManager(const PhysicalDeviceManager& phyDeviceMgr,
+                                           const std::shared_ptr<DeviceManager>& pDeviceMgr, const vk::DeviceSize size)
     : pDeviceMgr_(pDeviceMgr), size_(size) {
     auto& device = pDeviceMgr->getDevice();
 
@@ -33,13 +33,13 @@ SSBOManager::SSBOManager(const PhysicalDeviceManager& phyDeviceMgr, const std::s
     descBufferInfo_.setRange(size);
 }
 
-SSBOManager::~SSBOManager() noexcept {
+StorageBufferManager::~StorageBufferManager() noexcept {
     auto& device = pDeviceMgr_->getDevice();
     device.destroyBuffer(buffer_);
     device.freeMemory(memory_);
 }
 
-vk::WriteDescriptorSet SSBOManager::draftWriteDescSet() const noexcept {
+vk::WriteDescriptorSet StorageBufferManager::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
     writeDescSet.setDescriptorType(getDescType());
@@ -47,10 +47,12 @@ vk::WriteDescriptorSet SSBOManager::draftWriteDescSet() const noexcept {
     return writeDescSet;
 }
 
-vk::Result SSBOManager::uploadFrom(const std::span<const std::byte> data) {
+vk::Result StorageBufferManager::uploadFrom(const std::span<const std::byte> data) {
     return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
 }
 
-vk::Result SSBOManager::downloadTo(const std::span<std::byte> data) { return _hp::downloadTo(*pDeviceMgr_, memory_, data); }
+vk::Result StorageBufferManager::downloadTo(const std::span<std::byte> data) {
+    return _hp::downloadTo(*pDeviceMgr_, memory_, data);
+}
 
 }  // namespace vkc

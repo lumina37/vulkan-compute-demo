@@ -4,7 +4,11 @@ set(_VKC_TEST_TARGETS)
 
 function(vkc_add_test name srcs)
     add_executable(${name} ${srcs})
-    target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain vkc-lib)
+    target_link_libraries(${name} PRIVATE
+            Catch2::Catch2WithMain
+            vkc-lib
+            vkc-shader
+    )
 
     catch_discover_tests(${name})
     list(APPEND _VKC_TEST_TARGETS ${name})
