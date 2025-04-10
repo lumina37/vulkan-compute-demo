@@ -17,6 +17,6 @@ function(vkc_add_test name srcs)
     vkc_copy_dlls_if_needed(${name})
 endfunction()
 
-vkc_add_test(test_gaussian_blur "test_gaussian_blur.cpp")
+vkc_add_test(test_gaussian_filter "test_gaussian_filter.cpp")
 
-add_custom_target(VKCvkc-tests DEPENDS ${_VKC_TEST_TARGETS})
+add_custom_target(vkc-tests DEPENDS ${_VKC_TEST_TARGETS})

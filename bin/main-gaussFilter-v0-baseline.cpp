@@ -30,6 +30,7 @@ int main() {
     const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
     vkc::ImageManager dstImageMgr{phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Write};
     const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
+    srcImageMgr.uploadFrom(srcImage.getImageSpan());
 
     const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr{pDeviceMgr, descPoolSizes};
@@ -43,19 +44,17 @@ int main() {
     const std::array gaussWriteDescSetss{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
     gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
 
-    // Pipeline
-    constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV0SpirvCode};
-    vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
-
     // Command Buffer
     auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(pDeviceMgr, computeQFamilyIdx);
     vkc::CommandBufferManager gaussCmdBufMgr{pDeviceMgr, pCommandPoolMgr};
     vkc::TimestampQueryPoolManager queryPoolMgr{pDeviceMgr, 2, phyDeviceMgr.getTimestampPeriod()};
 
-    // Gaussian Blur
-    srcImageMgr.uploadFrom(srcImage.getImageSpan());
+    // Pipeline
+    constexpr vkc::BlockSize blockSize{16, 16, 1};
+    vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV0SpirvCode};
+    vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
 
+    // Gaussian Blur
     for (int i = 0; i < 15; i++) {
         gaussCmdBufMgr.begin();
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
