@@ -22,7 +22,7 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
         if (x >= extent.width()) x = extent.width() * 2 - x - 1;
         if (y >= extent.height()) y = extent.height() * 2 - y - 1;
 
-        const size_t offset = y * extent.rowPitch() + x * extent.comps() + compIdx;
+        const size_t offset = y * extent.rowPitch() + x * extent.bpp() + compIdx;
         assert(offset < extent.size());
 
         return pBase + offset;
@@ -31,7 +31,7 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
     const int halfKSize = kernelSize / 2;
     const float sigma2 = sigma * sigma * 2.0f;
 
-    std::vector<float> colors(extent.comps());
+    std::vector<float> colors(extent.bpp());
     // For each pixel
     for (int row = 0; row < extent.height(); row++) {
         for (int col = 0; col < extent.width(); col++) {
@@ -42,7 +42,7 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
             for (int y = -halfKSize; y <= halfKSize; y++) {
                 for (int x = -halfKSize; x <= halfKSize; x++) {
                     const float weight = std::exp(-float(x * x + y * y) / sigma2);
-                    for (int compIdx = 0; compIdx < extent.comps(); compIdx++) {
+                    for (int compIdx = 0; compIdx < extent.bpp(); compIdx++) {
                         const uint8_t* pSrcVal = (uint8_t*)getPix(src.data(), col + x, row + y, compIdx);
                         colors[compIdx] += (float)(*pSrcVal) * weight;
                     }
@@ -55,7 +55,7 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
                 *pDstVal = (uint8_t)std::round(color / weightSum);
             }
             // Keep alpha
-            if (extent.comps() == 4) {
+            if (extent.bpp() == 4) {
                 uint8_t* pDstVal = (uint8_t*)getPix(dst.data(), col, row, 3);
                 *pDstVal = std::numeric_limits<uint8_t>::max();
             }
@@ -66,7 +66,7 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
 TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
     constexpr int kernelSize = 5;
     constexpr float sigma = 10.0f;
-    constexpr vkc::Extent extent{256, 256, 4, vk::Format::eR8G8B8A8Unorm};
+    constexpr vkc::Extent extent{256, 256, vk::Format::eR8G8B8A8Unorm};
 
     // Src data
     vkc::StbImageManager srcImage{extent};
