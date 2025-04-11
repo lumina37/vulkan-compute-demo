@@ -26,7 +26,7 @@ StbImageManager::StbImageManager(const fs::path& path) {
     int width, height, oriComps;
     constexpr int comps = 4;
     image_ = (std::byte*)stbi_load(path.string().c_str(), &width, &height, &oriComps, comps);
-    extent_ = {width, height, comps, vk::Format::eR8G8B8A8Unorm};
+    extent_ = {width, height, mapStbCompsToVkFormat(comps)};
 }
 
 StbImageManager::StbImageManager(const Extent& extent) : extent_(extent) {
@@ -36,7 +36,7 @@ StbImageManager::StbImageManager(const Extent& extent) : extent_(extent) {
 StbImageManager::~StbImageManager() noexcept { STBI_FREE(image_); }
 
 void StbImageManager::saveTo(const fs::path& path) const {
-    stbi_write_png(path.string().c_str(), (int)extent_.width(), (int)extent_.height(), (int)extent_.comps(), image_, 0);
+    stbi_write_png(path.string().c_str(), (int)extent_.width(), (int)extent_.height(), (int)extent_.bpp(), image_, 0);
 }
 
 }  // namespace vkc
