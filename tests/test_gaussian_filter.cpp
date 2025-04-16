@@ -17,8 +17,8 @@ namespace rgs = std::ranges;
 void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span<std::byte> dst,
                            const vkc::Extent extent, const int kernelSize, const float sigma) {
     const auto getPix = [&extent](auto* pBase, int x, int y, int compIdx) {
-        if (x < 0) x = std::abs(x);
-        if (y < 0) y = std::abs(y);
+        if (x < 0) x = std::abs(x) - 1;
+        if (y < 0) y = std::abs(y) - 1;
         if (x >= extent.width()) x = extent.width() * 2 - x - 1;
         if (y >= extent.height()) y = extent.height() * 2 - y - 1;
 
@@ -64,6 +64,9 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
 }
 
 TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
+    constexpr int maxValidDiff = 1;
+    constexpr float maxValidAvgDiff = 0.0001;
+
     constexpr int kernelSize = 5;
     constexpr float sigma = 10.0f;
     constexpr vkc::Extent extent{256, 256, vk::Format::eR8G8B8A8Unorm};
@@ -80,6 +83,7 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
     vkc::StbImageManager dstImageCpuRef{srcImage.getExtent()};
     gaussianFilterRefImpl(srcImage.getImageSpan(), dstImageCpuRef.getImageSpan(), srcImage.getExtent(), kernelSize,
                           sigma);
+    dstImageCpuRef.saveTo("ref.png");
 
     vkc::StbImageManager dstImageVk{srcImage.getExtent()};
 
@@ -138,14 +142,18 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
         gaussCmdBufMgr.waitFence();
 
         dstImageMgr.downloadTo(dstImageVk.getImageSpan());
+        dstImageVk.saveTo("v0.png");
 
-        int diff = 0;
+        int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {
-            diff += std::abs((int)lhs - (int)rhs);
+            int diff = std::abs((int)lhs - (int)rhs);
+            REQUIRE(diff <= maxValidDiff);
+            diffAcc += diff;
         }
-        float avgDiff = (float)diff / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
+        float avgDiff =
+            (float)diffAcc / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
 
-        REQUIRE(avgDiff < 0.01);
+        REQUIRE(avgDiff < maxValidAvgDiff);
     }
 
     SECTION("v1") {
@@ -171,14 +179,18 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
         gaussCmdBufMgr.waitFence();
 
         dstImageMgr.downloadTo(dstImageVk.getImageSpan());
+        dstImageVk.saveTo("v1.png");
 
-        int diff = 0;
+        int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {
-            diff += std::abs((int)lhs - (int)rhs);
+            int diff = std::abs((int)lhs - (int)rhs);
+            REQUIRE(diff <= maxValidDiff);
+            diffAcc += diff;
         }
-        float avgDiff = (float)diff / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
+        float avgDiff =
+            (float)diffAcc / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
 
-        REQUIRE(avgDiff < 0.01);
+        REQUIRE(avgDiff < maxValidAvgDiff);
     }
 
     SECTION("v2") {
@@ -204,13 +216,17 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
         gaussCmdBufMgr.waitFence();
 
         dstImageMgr.downloadTo(dstImageVk.getImageSpan());
+        dstImageVk.saveTo("v2.png");
 
-        int diff = 0;
+        int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {
-            diff += std::abs((int)lhs - (int)rhs);
+            int diff = std::abs((int)lhs - (int)rhs);
+            REQUIRE(diff <= maxValidDiff);
+            diffAcc += diff;
         }
-        float avgDiff = (float)diff / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
+        float avgDiff =
+            (float)diffAcc / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
 
-        REQUIRE(avgDiff < 0.01);
+        REQUIRE(avgDiff < maxValidAvgDiff);
     }
 }
