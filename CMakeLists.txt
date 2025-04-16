@@ -13,7 +13,7 @@ option(VKC_VERBOSE_WARNING "Show verbose compiler warnings" OFF)
 # Dependencies
 include(FetchContent)
 
-find_package(Vulkan REQUIRED COMPONENTS dxc)
+find_package(Vulkan)
 
 FetchContent_Declare(
         stb
