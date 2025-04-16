@@ -1,9 +1,9 @@
 set(_VKC_HLSL_SRCS
-        gaussFilterV1
         gaussFilterV2
 )
 set(_VKC_GLSL_SRCS
         gaussFilterV0
+        gaussFilterV1
 )
 set(_VKC_SPIRV_SHADERS)
 
