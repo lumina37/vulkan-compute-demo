@@ -14,7 +14,7 @@ namespace vkc {
 class PipelineManager {
 public:
     PipelineManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                    const ShaderManager& computeShaderMgr);
+                    const ShaderManager& computeShaderMgr, const vk::SpecializationInfo& specInfo);
     ~PipelineManager() noexcept;
 
     template <typename Self>

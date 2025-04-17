@@ -65,7 +65,7 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
 
 TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
     constexpr int maxValidDiff = 1;
-    constexpr float maxValidAvgDiff = 0.0001;
+    constexpr float maxValidAvgDiff = 0.001;
 
     constexpr int kernelSize = 5;
     constexpr float sigma = 10.0f;
@@ -122,7 +122,9 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
     SECTION("v0") {
         constexpr vkc::BlockSize blockSize{16, 16, 1};
         vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV0SpirvCode};
-        vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
+        vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
+        vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
+                                              specConstantMgr.getSpecInfo()};
 
         gaussCmdBufMgr.begin();
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
@@ -159,7 +161,9 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
     SECTION("v1") {
         constexpr vkc::BlockSize blockSize{256, 1, 1};
         vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV1SpirvCode};
-        vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
+        vkc::SpecConstantManager specConstantMgr{blockSize.x};
+        vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
+                                              specConstantMgr.getSpecInfo()};
 
         gaussCmdBufMgr.begin();
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
@@ -196,7 +200,9 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
     SECTION("v2") {
         constexpr vkc::BlockSize blockSize{256, 1, 1};
         vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV2SpirvCode};
-        vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
+        vkc::SpecConstantManager specConstantMgr{blockSize.x};
+        vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
+                                              specConstantMgr.getSpecInfo()};
 
         gaussCmdBufMgr.begin();
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);

@@ -22,7 +22,7 @@ int main() {
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{pDeviceMgr};
 
-    constexpr int kernelSize = 49;
+    constexpr int kernelSize = 3;
     constexpr float sigma = 10.0f;
     vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, sigma * sigma * 2.0f}};
 
@@ -52,7 +52,8 @@ int main() {
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
     vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV0SpirvCode};
-    vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
+    vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
+    vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()};
 
     // Gaussian Blur
     for (int i = 0; i < 15; i++) {

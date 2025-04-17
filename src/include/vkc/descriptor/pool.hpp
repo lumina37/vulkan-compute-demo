@@ -17,7 +17,7 @@ namespace vkc {
 namespace rgs = std::ranges;
 
 template <CSupportGetDescType... TManager>
-[[nodiscard]] static inline auto genPoolSizes(const TManager&... mgrs) {
+[[nodiscard]] static inline constexpr auto genPoolSizes(const TManager&... mgrs) {
     std::map<vk::DescriptorType, int> poolSizeMap;
 
     const auto appendPoolSize = [&](const auto& mgr) {
@@ -31,7 +31,7 @@ template <CSupportGetDescType... TManager>
 
     (appendPoolSize(mgrs), ...);
 
-    const auto transKV2PoolSize = [](const auto& pair) {
+    constexpr auto transKV2PoolSize = [](const auto& pair) {
         auto [descType, count] = pair;
         vk::DescriptorPoolSize poolSize;
         poolSize.setType(descType);
@@ -39,7 +39,7 @@ template <CSupportGetDescType... TManager>
         return poolSize;
     };
 
-    std::vector<vk::DescriptorPoolSize> poolSizes =
+    const std::vector<vk::DescriptorPoolSize> poolSizes =
         poolSizeMap | rgs::views::transform(transKV2PoolSize) | rgs::to<std::vector>();
 
     return poolSizes;

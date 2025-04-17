@@ -18,7 +18,7 @@ namespace vkc {
 
 template <CSupportDraftWriteDescSet... TManager>
 [[nodiscard]] static constexpr inline auto genWriteDescSets(const TManager&... mgrs) {
-    const auto genWriteDescSet = [](const auto& mgr, const size_t index) {
+    constexpr auto genWriteDescSet = [](const auto& mgr, const size_t index) {
         vk::WriteDescriptorSet writeDescSet = mgr.draftWriteDescSet();
         writeDescSet.setDstBinding((uint32_t)index);
         return writeDescSet;

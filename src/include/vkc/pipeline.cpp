@@ -16,7 +16,8 @@
 namespace vkc {
 
 PipelineManager::PipelineManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                                 const PipelineLayoutManager& pipelineLayoutMgr, const ShaderManager& computeShaderMgr)
+                                 const PipelineLayoutManager& pipelineLayoutMgr, const ShaderManager& computeShaderMgr,
+                                 const vk::SpecializationInfo& specInfo)
     : pDeviceMgr_(pDeviceMgr) {
     vk::ComputePipelineCreateInfo pipelineInfo;
 
@@ -25,6 +26,7 @@ PipelineManager::PipelineManager(const std::shared_ptr<DeviceManager>& pDeviceMg
     computeShaderStageInfo.setStage(vk::ShaderStageFlagBits::eCompute);
     computeShaderStageInfo.setModule(computeShaderMgr.getShaderModule());
     computeShaderStageInfo.setPName("main");
+    computeShaderStageInfo.setPSpecializationInfo(&specInfo);
     pipelineInfo.setStage(computeShaderStageInfo);
 
     // Pipeline Layout

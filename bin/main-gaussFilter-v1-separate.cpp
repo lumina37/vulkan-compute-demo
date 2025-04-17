@@ -52,7 +52,8 @@ int main() {
     // Pipeline
     constexpr vkc::BlockSize blockSize{256, 1, 1};
     vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV1SpirvCode};
-    vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr};
+    vkc::SpecConstantManager specConstantMgr{blockSize.x};
+    vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()};
 
     // Gaussian Blur
     for (int i = 0; i < 15; i++) {
