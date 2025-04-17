@@ -22,7 +22,7 @@ int main() {
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{pDeviceMgr};
 
-    constexpr int kernelSize = 3;
+    constexpr int kernelSize = 23;
     constexpr float sigma = 10.0f;
     vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, sigma * sigma * 2.0f}};
 
