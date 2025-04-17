@@ -42,9 +42,8 @@ void main() {
             float accWeight = exp(-float(halfKSize * halfKSize) / pc.sigma2);
             vec4 acc = texture(sampler2D(srcTex, srcSampler), uv) * accWeight;
             for (int y = 1 - halfKSize; y <= halfKSize; y += 2) {
-                const int negY2 = -y * y;
-                const float weightUp = exp(float(negY2) / pc.sigma2);
-                const float weightDown = exp(float(negY2 - (y << 1) - 1) / pc.sigma2);
+                const float weightUp = exp(-float(y * y) / pc.sigma2);
+                const float weightDown = exp(-float((y + 1) * (y + 1)) / pc.sigma2);
                 const float weight = weightUp + weightDown;
                 const float yOffset = (float(y + halfKSize) + weightDown / weight) * invDstSize.y;
                 const vec4 srcVal = texture(sampler2D(srcTex, srcSampler), vec2(uv.x, uv.y + yOffset));
