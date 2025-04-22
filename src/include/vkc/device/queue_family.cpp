@@ -33,7 +33,7 @@ uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
 
     const auto& queueFamilyProps = physicalDevice.getQueueFamilyProperties();
 
-    std::vector<ScoreWithIndex> scores;
+    std::vector<Score<size_t>> scores;
     scores.reserve(queueFamilyProps.size());
     for (const auto [idx, queueFamilyProp] : rgs::views::enumerate(queueFamilyProps)) {
         if (!isQueueFamilyOK(queueFamilyProp)) {
@@ -56,7 +56,7 @@ uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
     }
 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());
-    return (uint32_t)maxScoreIt->index;
+    return (uint32_t)maxScoreIt->attachment;
 }
 
 }  // namespace vkc

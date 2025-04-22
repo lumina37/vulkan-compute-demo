@@ -41,7 +41,7 @@ PhysicalDeviceManager::PhysicalDeviceManager(const InstanceManager& instMgr) {
 
     const auto& physicalDevices = instance.enumeratePhysicalDevices();
 
-    std::vector<ScoreWithIndex> scores;
+    std::vector<Score<size_t>> scores;
     scores.reserve(physicalDevices.size());
     for (const auto [idx, physicalDevice] : rgs::views::enumerate(physicalDevices)) {
         const auto& phyDeviceProp = physicalDevice.getProperties();
@@ -68,7 +68,7 @@ PhysicalDeviceManager::PhysicalDeviceManager(const InstanceManager& instMgr) {
     }
 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());
-    const uint32_t physicalDeviceIdx = (uint32_t)maxScoreIt->index;
+    const uint32_t physicalDeviceIdx = (uint32_t)maxScoreIt->attachment;
 
     physicalDevice_ = physicalDevices[physicalDeviceIdx];
     limits_ = physicalDevice_.getProperties().limits;

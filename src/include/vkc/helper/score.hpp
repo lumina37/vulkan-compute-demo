@@ -3,13 +3,17 @@
 #include <compare>
 #include <cstdint>
 
-class ScoreWithIndex {
+namespace vkc {
+
+template <typename TAttach>
+class Score {
 public:
     int64_t score;
-    uint64_t index;
+    TAttach attachment;
 
-    static friend constexpr std::weak_ordering operator<=>(const ScoreWithIndex& lhs,
-                                                           const ScoreWithIndex& rhs) noexcept {
+    static friend constexpr std::weak_ordering operator<=>(const Score& lhs, const Score& rhs) noexcept {
         return lhs.score <=> rhs.score;
     }
 };
+
+}  // namespace vkc
