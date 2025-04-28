@@ -28,7 +28,7 @@ SamplerManager::~SamplerManager() noexcept {
     auto& device = pDeviceMgr_->getDevice();
     device.destroySampler(sampler_);
     sampler_ = nullptr;
-    samplerInfo_ = vk::DescriptorImageInfo{};
+    samplerInfo_.setSampler(nullptr);
 }
 
 std::expected<SamplerManager, Error> SamplerManager::create(std::shared_ptr<DeviceManager> pDeviceMgr) noexcept {

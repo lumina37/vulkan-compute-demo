@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <expected>
 #include <memory>
 #include <span>
 #include <utility>
@@ -18,10 +19,18 @@ enum class ImageType {
 };
 
 class ImageManager {
+    ImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, ImageType imageType,
+                 vk::DescriptorType descType, vk::Image image, vk::ImageView imageView, vk::DeviceMemory imageMemory,
+                 vk::Buffer stagingBuffer, vk::DeviceMemory stagingMemory,
+                 vk::DescriptorImageInfo descImageInfo) noexcept;
+
 public:
-    ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                 const Extent& extent, ImageType imageType);
+    ImageManager(ImageManager&& rhs) noexcept;
     ~ImageManager() noexcept;
+
+    [[nodiscard]] static std::expected<ImageManager, Error> create(const PhysicalDeviceManager& phyDeviceMgr,
+                                                                   std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                                   const Extent& extent, ImageType imageType) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {

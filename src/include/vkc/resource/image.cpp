@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <expected>
 #include <memory>
 #include <span>
 #include <utility>
@@ -15,23 +16,76 @@
 
 namespace vkc {
 
-ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                           const Extent& extent, const ImageType imageType)
-    : pDeviceMgr_(pDeviceMgr), extent_(extent), imageType_(imageType) {
+ImageManager::ImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, ImageType imageType,
+                           vk::DescriptorType descType, vk::Image image, vk::ImageView imageView,
+                           vk::DeviceMemory imageMemory, vk::Buffer stagingBuffer, vk::DeviceMemory stagingMemory,
+                           vk::DescriptorImageInfo descImageInfo) noexcept
+    : pDeviceMgr_(std::move(pDeviceMgr)),
+      extent_(extent),
+      imageType_(imageType),
+      descType_(descType),
+      image_(image),
+      imageView_(imageView),
+      imageMemory_(imageMemory),
+      stagingBuffer_(stagingBuffer),
+      stagingMemory_(stagingMemory),
+      descImageInfo_(descImageInfo) {}
+
+ImageManager::ImageManager(ImageManager&& rhs) noexcept
+    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+      extent_(rhs.extent_),
+      imageType_(rhs.imageType_),
+      descType_(rhs.descType_),
+      image_(std::exchange(rhs.image_, nullptr)),
+      imageView_(std::exchange(rhs.imageView_, nullptr)),
+      imageMemory_(std::exchange(rhs.imageMemory_, nullptr)),
+      stagingBuffer_(std::exchange(rhs.stagingBuffer_, nullptr)),
+      stagingMemory_(std::exchange(rhs.stagingMemory_, nullptr)),
+      descImageInfo_(std::exchange(rhs.descImageInfo_, {})) {}
+
+ImageManager::~ImageManager() noexcept {
+    auto& device = pDeviceMgr_->getDevice();
+    if (stagingBuffer_ != nullptr) {
+        device.destroyBuffer(stagingBuffer_);
+        stagingBuffer_ = nullptr;
+    }
+    if (stagingMemory_ != nullptr) {
+        device.freeMemory(stagingMemory_);
+        stagingMemory_ = nullptr;
+    }
+    if (imageView_ != nullptr) {
+        device.destroyImageView(imageView_);
+        imageView_ = nullptr;
+    }
+    if (image_ != nullptr) {
+        device.destroyImage(image_);
+        image_ = nullptr;
+    }
+    if (imageMemory_ != nullptr) {
+        device.freeMemory(imageMemory_);
+        imageMemory_ = nullptr;
+    }
+    descImageInfo_.setImageView(nullptr);
+}
+
+std::expected<ImageManager, Error> ImageManager::create(const PhysicalDeviceManager& phyDeviceMgr,
+                                                        std::shared_ptr<DeviceManager> pDeviceMgr, const Extent& extent,
+                                                        ImageType imageType) noexcept {
     auto& device = pDeviceMgr->getDevice();
 
+    vk::DescriptorType descType;
     vk::ImageUsageFlags imageUsage;
     vk::BufferUsageFlags bufferUsage;
     vk::ImageLayout imageLayout;
     switch (imageType) {
         case ImageType::Read:
-            descType_ = vk::DescriptorType::eSampledImage;
+            descType = vk::DescriptorType::eSampledImage;
             imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
             bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
             imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
             break;
         case ImageType::Write:
-            descType_ = vk::DescriptorType::eStorageImage;
+            descType = vk::DescriptorType::eStorageImage;
             imageUsage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
             bufferUsage = vk::BufferUsageFlagBits::eTransferDst;
             imageLayout = vk::ImageLayout::eGeneral;
@@ -52,11 +106,12 @@ ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std:
     imageInfo.setUsage(imageUsage);
     imageInfo.setSharingMode(vk::SharingMode::eExclusive);
     imageInfo.setInitialLayout(vk::ImageLayout::eUndefined);
-    image_ = device.createImage(imageInfo);
+    vk::Image image = device.createImage(imageInfo);
 
     // Device Memory
-    _hp::allocImageMemory(phyDeviceMgr, *pDeviceMgr, image_, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory_);
-    device.bindImageMemory(image_, imageMemory_, 0);
+    vk::DeviceMemory imageMemory;
+    _hp::allocImageMemory(phyDeviceMgr, *pDeviceMgr, image, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory);
+    device.bindImageMemory(image, imageMemory, 0);
 
     // Image View
     vk::ImageSubresourceRange subresourceRange;
@@ -67,36 +122,32 @@ ImageManager::ImageManager(const PhysicalDeviceManager& phyDeviceMgr, const std:
     subresourceRange.setLayerCount(1);
 
     vk::ImageViewCreateInfo imageViewInfo;
-    imageViewInfo.setImage(image_);
+    imageViewInfo.setImage(image);
     imageViewInfo.setViewType(vk::ImageViewType::e2D);
     imageViewInfo.setFormat(extent.format());
     imageViewInfo.setSubresourceRange(subresourceRange);
-    imageView_ = device.createImageView(imageViewInfo);
+    vk::ImageView imageView = device.createImageView(imageViewInfo);
 
     // Staging Memory
     vk::BufferCreateInfo bufferInfo;
     bufferInfo.setSize(extent.size());
     bufferInfo.setUsage(bufferUsage);
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
-    stagingBuffer_ = device.createBuffer(bufferInfo);
+    vk::Buffer stagingBuffer = device.createBuffer(bufferInfo);
 
-    _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, stagingBuffer_,
+    vk::DeviceMemory stagingMemory;
+    _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, stagingBuffer,
                            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                           stagingMemory_);
-    device.bindBufferMemory(stagingBuffer_, stagingMemory_, 0);
+                           stagingMemory);
+    device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
 
     // Descriptor Image Info
-    descImageInfo_.setImageView(imageView_);
-    descImageInfo_.setImageLayout(imageLayout);
-}
+    vk::DescriptorImageInfo descImageInfo;
+    descImageInfo.setImageView(imageView);
+    descImageInfo.setImageLayout(imageLayout);
 
-ImageManager::~ImageManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
-    device.destroyBuffer(stagingBuffer_);
-    device.freeMemory(stagingMemory_);
-    device.destroyImageView(imageView_);
-    device.destroyImage(image_);
-    device.freeMemory(imageMemory_);
+    return ImageManager{std::move(pDeviceMgr), extent,        imageType,     descType,     image, imageView,
+                        imageMemory,           stagingBuffer, stagingMemory, descImageInfo};
 }
 
 vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {

@@ -12,7 +12,7 @@ class PushConstantManager {
 public:
     using TPc = TPc_;
 
-    constexpr PushConstantManager(TPc pushConstant);
+    constexpr PushConstantManager(TPc pushConstant) noexcept;
 
     template <typename Self>
     [[nodiscard]] constexpr auto&& getPushConstantRange(this Self&& self) noexcept {
@@ -28,7 +28,7 @@ private:
 
 template <typename TPc>
     requires std::is_trivially_copyable_v<TPc>
-constexpr PushConstantManager<TPc>::PushConstantManager(const TPc pushConstant) : pushConstant_(pushConstant) {
+constexpr PushConstantManager<TPc>::PushConstantManager(const TPc pushConstant) noexcept : pushConstant_(pushConstant) {
     pushConstantRange_.setStageFlags(vk::ShaderStageFlagBits::eCompute);
     pushConstantRange_.setSize(sizeof(TPc));
 }
