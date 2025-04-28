@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <cstdint>
-#include <iostream>
+#include <expected>
 #include <print>
 #include <ranges>
 
@@ -8,6 +8,7 @@
 
 #include "vkc/device/physical.hpp"
 #include "vkc/helper/defines.hpp"
+#include "vkc/helper/error.hpp"
 #include "vkc/helper/score.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
@@ -18,7 +19,7 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
+std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
     const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
 
     const auto isQueueFamilyOK = [](const vk::QueueFamilyProperties& queueFamilyProp) {
@@ -49,10 +50,7 @@ uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) {
     }
 
     if (scores.empty()) {
-        if constexpr (ENABLE_DEBUG) {
-            std::println(std::cerr, "No sufficient queue family found!");
-        }
-        return 0;
+        return std::unexpected{Error{-1, "no sufficient queue family"}};
     }
 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());

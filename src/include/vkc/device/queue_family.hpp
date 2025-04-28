@@ -1,12 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 
 #include "vkc/device/physical.hpp"
+#include "vkc/helper/error.hpp"
 
 namespace vkc {
 
-uint32_t defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr);
+std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr);
 
 }  // namespace vkc
 
