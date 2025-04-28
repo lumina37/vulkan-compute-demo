@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <memory>
 
 #include <vulkan/vulkan.hpp>
@@ -9,9 +10,15 @@
 namespace vkc {
 
 class SamplerManager {
+    SamplerManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Sampler sampler,
+                   vk::DescriptorImageInfo samplerInfo) noexcept;
+
 public:
-    SamplerManager(const std::shared_ptr<DeviceManager>& pDeviceMgr);
+    SamplerManager(SamplerManager&& rhs) noexcept;
     ~SamplerManager() noexcept;
+
+    [[nodiscard]] static std::expected<SamplerManager, Error> create(
+        std::shared_ptr<DeviceManager> pDeviceMgr) noexcept;
 
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept { return vk::DescriptorType::eSampler; }
     [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;

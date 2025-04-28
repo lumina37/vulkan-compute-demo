@@ -46,7 +46,7 @@ int main() {
     vkc::QueueManager queueMgr = vkc::QueueManager::create(*pDeviceMgr, computeQFamilyIdx) | unwrap;
 
     // Descriptor & Layouts
-    vkc::SamplerManager samplerMgr{pDeviceMgr};
+    vkc::SamplerManager samplerMgr = vkc::SamplerManager::create(pDeviceMgr) | unwrap;
 
     constexpr int kernelSize = 23;
     constexpr float sigma = 10.0f;
