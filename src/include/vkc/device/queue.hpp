@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
@@ -10,8 +11,11 @@
 namespace vkc {
 
 class QueueManager {
+    QueueManager(vk::Queue queue) noexcept;
+
 public:
-    QueueManager(DeviceManager& deviceMgr, uint32_t queueFamilyIdx);
+    [[nodiscard]] static std::expected<QueueManager, Error> create(DeviceManager& deviceMgr,
+                                                                   uint32_t queueFamilyIdx) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getComputeQueue(this Self&& self) noexcept {

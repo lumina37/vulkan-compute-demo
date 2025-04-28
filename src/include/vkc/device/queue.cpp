@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 
 #include <vulkan/vulkan.hpp>
 
@@ -12,9 +13,12 @@
 
 namespace vkc {
 
-QueueManager::QueueManager(DeviceManager& deviceMgr, const uint32_t queueFamilyIdx) {
+QueueManager::QueueManager(vk::Queue queue) noexcept : computeQueue_(queue) {}
+
+std::expected<QueueManager, Error> QueueManager::create(DeviceManager& deviceMgr, uint32_t queueFamilyIdx) noexcept {
     auto& device = deviceMgr.getDevice();
-    computeQueue_ = device.getQueue(queueFamilyIdx, 0);
+    const vk::Queue computeQueue = device.getQueue(queueFamilyIdx, 0);
+    return QueueManager{computeQueue};
 }
 
 }  // namespace vkc

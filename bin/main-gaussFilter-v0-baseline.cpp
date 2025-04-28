@@ -43,7 +43,7 @@ int main() {
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr) | unwrap;
     auto pDeviceMgr =
         std::make_shared<vkc::DeviceManager>(vkc::DeviceManager::create(phyDeviceMgr, computeQFamilyIdx) | unwrap);
-    vkc::QueueManager queueMgr{*pDeviceMgr, computeQFamilyIdx};
+    vkc::QueueManager queueMgr = vkc::QueueManager::create(*pDeviceMgr, computeQFamilyIdx) | unwrap;
 
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr{pDeviceMgr};
