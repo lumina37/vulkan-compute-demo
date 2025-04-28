@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/helper/defines.hpp"
+#include "vkc/helper/error.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/instance.hpp"

@@ -1,16 +1,22 @@
 #pragma once
 
+#include <expected>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/instance.hpp"
+#include "vkc/helper/error.hpp"
 
 namespace vkc {
 
 class PhysicalDeviceManager {
+    PhysicalDeviceManager(vk::PhysicalDevice&& physicalDevice, vk::PhysicalDeviceLimits&& limits) noexcept;
+
 public:
-    PhysicalDeviceManager(const InstanceManager& instMgr);
+    PhysicalDeviceManager(PhysicalDeviceManager&& rhs) noexcept;
+
+    [[nodiscard]] static std::expected<PhysicalDeviceManager, Error> create(const InstanceManager& instMgr) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getPhysicalDevice(this Self&& self) noexcept {

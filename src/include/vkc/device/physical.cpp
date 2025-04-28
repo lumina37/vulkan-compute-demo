@@ -1,13 +1,16 @@
 #include <algorithm>
 #include <cstdint>
+#include <expected>
 #include <iostream>
 #include <print>
 #include <ranges>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/instance.hpp"
 #include "vkc/helper/defines.hpp"
+#include "vkc/helper/error.hpp"
 #include "vkc/helper/score.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
@@ -18,7 +21,14 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-PhysicalDeviceManager::PhysicalDeviceManager(const InstanceManager& instMgr) {
+PhysicalDeviceManager::PhysicalDeviceManager(vk::PhysicalDevice&& physicalDevice,
+                                             vk::PhysicalDeviceLimits&& limits) noexcept
+    : physicalDevice_(std::move(physicalDevice)), limits_(std::move(limits)) {}
+
+PhysicalDeviceManager::PhysicalDeviceManager(PhysicalDeviceManager&& rhs) noexcept
+    : physicalDevice_(std::move(rhs.physicalDevice_)), limits_(std::move(rhs.limits_)) {}
+
+std::expected<PhysicalDeviceManager, Error> PhysicalDeviceManager::create(const InstanceManager& instMgr) noexcept {
     const auto& instance = instMgr.getInstance();
 
     const auto isPhysicalDeviceOK = [](const vk::PhysicalDeviceProperties& phyDeviceProp) {
@@ -64,14 +74,16 @@ PhysicalDeviceManager::PhysicalDeviceManager(const InstanceManager& instMgr) {
         if constexpr (ENABLE_DEBUG) {
             std::println(std::cerr, "No sufficient physical device found!");
         }
-        return;
+        return std::unexpected{Error{-1, "no avaliable physical device"}};
     }
 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());
     const uint32_t physicalDeviceIdx = (uint32_t)maxScoreIt->attachment;
 
-    physicalDevice_ = physicalDevices[physicalDeviceIdx];
-    limits_ = physicalDevice_.getProperties().limits;
+    vk::PhysicalDevice physicalDevice = physicalDevices[physicalDeviceIdx];
+    vk::PhysicalDeviceLimits limits = physicalDevice.getProperties().limits;
+
+    return PhysicalDeviceManager{std::move(physicalDevice), std::move(limits)};
 }
 
 }  // namespace vkc
