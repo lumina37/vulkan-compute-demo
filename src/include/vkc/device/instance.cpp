@@ -1,5 +1,8 @@
-#include <cstring>
+#include <array>
+#include <expected>
 #include <ranges>
+#include <string>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
@@ -13,9 +16,17 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-InstanceManager::InstanceManager() {
-    constexpr bool ENABLE_VALIDATION_LAYER = ENABLE_DEBUG;
+InstanceManager::InstanceManager(vk::Instance&& instance) noexcept : instance_(std::move(instance)) {}
 
+InstanceManager::InstanceManager(InstanceManager&& rhs) noexcept : instance_(std::exchange(rhs.instance_, nullptr)) {}
+
+InstanceManager::~InstanceManager() noexcept {
+    if (instance_ == nullptr) return;
+    instance_.destroy();
+    instance_ = nullptr;
+}
+
+std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
     vk::ApplicationInfo appInfo;
     appInfo.setPApplicationName("vk-compute-demo");
     appInfo.setApiVersion(VK_API_VERSION_1_0);
@@ -23,20 +34,20 @@ InstanceManager::InstanceManager() {
     vk::InstanceCreateInfo instInfo;
     instInfo.setPApplicationInfo(&appInfo);
 
-    if constexpr (ENABLE_VALIDATION_LAYER) {
+    if constexpr (ENABLE_DEBUG) {
         const auto hasValidationLayer = [](const auto& layerProp) {
-            return std::strcmp(VALIDATION_LAYER_NAME, layerProp.layerName) != 0;
+            return VALIDATION_LAYER_NAME == layerProp.layerName;
         };
 
         const bool hasValLayer = rgs::any_of(vk::enumerateInstanceLayerProperties(), hasValidationLayer);
         if (hasValLayer) {
-            instInfo.setPEnabledLayerNames({VALIDATION_LAYER_NAME});
+            const std::array enabledLayers{VALIDATION_LAYER_NAME.data()};
+            instInfo.setPEnabledLayerNames(enabledLayers);
         }
     }
 
-    instance_ = vk::createInstance(instInfo);
-};
-
-InstanceManager::~InstanceManager() noexcept { instance_.destroy(); }
+    vk::Instance instance = vk::createInstance(instInfo);
+    return InstanceManager{std::move(instance)};
+}
 
 }  // namespace vkc

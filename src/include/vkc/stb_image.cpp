@@ -43,7 +43,7 @@ std::expected<StbImageManager, Error> StbImageManager::createFromPath(const fs::
     constexpr int comps = 4;
 
     std::byte* image = (std::byte*)stbi_load(path.string().c_str(), &width, &height, &oriComps, comps);
-    if (image == nullptr) return std::unexpected{Error{1, "Failed to load image"}};
+    if (image == nullptr) return std::unexpected{Error{-1, "failed to load image"}};
 
     Extent extent{width, height, mapStbCompsToVkFormat(comps)};
     return StbImageManager{image, extent};
@@ -51,7 +51,7 @@ std::expected<StbImageManager, Error> StbImageManager::createFromPath(const fs::
 
 std::expected<StbImageManager, Error> StbImageManager::createWithExtent(const Extent extent) noexcept {
     std::byte* image = (std::byte*)STBI_MALLOC(extent.size());
-    if (image == nullptr) return std::unexpected{Error{1}};
+    if (image == nullptr) return std::unexpected{Error{-1}};
 
     return StbImageManager{image, extent};
 }
@@ -60,7 +60,7 @@ std::expected<void, Error> StbImageManager::saveTo(const fs::path& path) const n
     const int stbErr = stbi_write_png(path.string().c_str(), (int)extent_.width(), (int)extent_.height(),
                                       (int)extent_.bpp(), image_, 0);
 
-    if (stbErr == 0) return std::unexpected{1};
+    if (stbErr == 0) return std::unexpected{Error{-1, "failed to save image"}};
     return {};
 }
 

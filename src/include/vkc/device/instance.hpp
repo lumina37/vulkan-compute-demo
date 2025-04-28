@@ -1,19 +1,26 @@
 #pragma once
 
+#include <expected>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
+
+#include "vkc/helper/error.hpp"
 
 namespace vkc {
 
 namespace rgs = std::ranges;
 
-static const char* VALIDATION_LAYER_NAME = "VK_LAYER_KHRONOS_validation";
+static constexpr std::string_view VALIDATION_LAYER_NAME{"VK_LAYER_KHRONOS_validation"};
 
 class InstanceManager {
+    InstanceManager(vk::Instance&& instance) noexcept;
+
 public:
-    InstanceManager();
+    InstanceManager(InstanceManager&& rhs) noexcept;
     ~InstanceManager() noexcept;
+
+    [[nodiscard]] static std::expected<InstanceManager, Error> create() noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getInstance(this Self&& self) noexcept {

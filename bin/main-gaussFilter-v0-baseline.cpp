@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 class Unwrap {
 public:
     template <typename T>
-    static friend auto operator|(std::expected<T, vkc::Error>&& src, const Unwrap& _) {
+    static friend auto operator|(std::expected<T, vkc::Error>&& src, [[maybe_unused]] const Unwrap& _) {
         if (!src.has_value()) {
             const auto& err = src.error();
             const fs::path filePath{err.source.file_name()};
@@ -38,7 +38,7 @@ int main() {
     vkc::StbImageManager dstImage = vkc::StbImageManager::createWithExtent(srcImage.getExtent()) | unwrap;
 
     // Device
-    vkc::InstanceManager instMgr;
+    vkc::InstanceManager instMgr = vkc::InstanceManager::create() | unwrap;
     vkc::PhysicalDeviceManager phyDeviceMgr{instMgr};
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr);
     auto pDeviceMgr = std::make_shared<vkc::DeviceManager>(phyDeviceMgr, computeQFamilyIdx);
@@ -106,5 +106,5 @@ int main() {
     }
 
     dstImageMgr.downloadTo(dstImage.getImageSpan());
-    dstImage.saveTo("out.png");
+    dstImage.saveTo("out.png") | unwrap;
 }
