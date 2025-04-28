@@ -17,7 +17,7 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-InstanceManager::InstanceManager(vk::Instance&& instance) noexcept : instance_(std::move(instance)) {}
+InstanceManager::InstanceManager(vk::Instance instance) noexcept : instance_(instance) {}
 
 InstanceManager::InstanceManager(InstanceManager&& rhs) noexcept : instance_(std::exchange(rhs.instance_, nullptr)) {}
 
@@ -47,8 +47,9 @@ std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
         }
     }
 
-    vk::Instance instance = vk::createInstance(instInfo);
-    return InstanceManager{std::move(instance)};
+    const vk::Instance instance = vk::createInstance(instInfo);
+
+    return InstanceManager{instance};
 }
 
 }  // namespace vkc

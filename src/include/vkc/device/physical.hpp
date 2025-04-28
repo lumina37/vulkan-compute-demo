@@ -11,7 +11,7 @@
 namespace vkc {
 
 class PhysicalDeviceManager {
-    PhysicalDeviceManager(vk::PhysicalDevice&& physicalDevice, vk::PhysicalDeviceLimits&& limits) noexcept;
+    PhysicalDeviceManager(vk::PhysicalDevice physicalDevice, vk::PhysicalDeviceLimits limits) noexcept;
 
 public:
     PhysicalDeviceManager(PhysicalDeviceManager&& rhs) noexcept;

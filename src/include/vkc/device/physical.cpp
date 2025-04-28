@@ -21,9 +21,9 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-PhysicalDeviceManager::PhysicalDeviceManager(vk::PhysicalDevice&& physicalDevice,
-                                             vk::PhysicalDeviceLimits&& limits) noexcept
-    : physicalDevice_(std::move(physicalDevice)), limits_(std::move(limits)) {}
+PhysicalDeviceManager::PhysicalDeviceManager(vk::PhysicalDevice physicalDevice,
+                                             vk::PhysicalDeviceLimits limits) noexcept
+    : physicalDevice_(physicalDevice), limits_(limits) {}
 
 PhysicalDeviceManager::PhysicalDeviceManager(PhysicalDeviceManager&& rhs) noexcept
     : physicalDevice_(std::move(rhs.physicalDevice_)), limits_(std::move(rhs.limits_)) {}
@@ -80,10 +80,10 @@ std::expected<PhysicalDeviceManager, Error> PhysicalDeviceManager::create(const 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());
     const uint32_t physicalDeviceIdx = (uint32_t)maxScoreIt->attachment;
 
-    vk::PhysicalDevice physicalDevice = physicalDevices[physicalDeviceIdx];
-    vk::PhysicalDeviceLimits limits = physicalDevice.getProperties().limits;
+    const vk::PhysicalDevice physicalDevice = physicalDevices[physicalDeviceIdx];
+    const vk::PhysicalDeviceLimits limits = physicalDevice.getProperties().limits;
 
-    return PhysicalDeviceManager{std::move(physicalDevice), std::move(limits)};
+    return PhysicalDeviceManager{physicalDevice, limits};
 }
 
 }  // namespace vkc

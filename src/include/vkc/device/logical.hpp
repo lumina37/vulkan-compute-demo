@@ -11,7 +11,7 @@
 namespace vkc {
 
 class DeviceManager {
-    DeviceManager(vk::Device&& device) noexcept;
+    DeviceManager(vk::Device device) noexcept;
 
 public:
     DeviceManager(DeviceManager&& rhs) noexcept;

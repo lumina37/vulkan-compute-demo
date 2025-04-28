@@ -13,7 +13,7 @@
 
 namespace vkc {
 
-DeviceManager::DeviceManager(vk::Device&& device) noexcept : device_(device) {}
+DeviceManager::DeviceManager(vk::Device device) noexcept : device_(device) {}
 
 DeviceManager::DeviceManager(DeviceManager&& rhs) noexcept : device_(std::exchange(rhs.device_, nullptr)) {}
 
