@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
@@ -10,9 +11,14 @@
 namespace vkc {
 
 class DeviceManager {
+    DeviceManager(vk::Device&& device) noexcept;
+
 public:
-    DeviceManager(PhysicalDeviceManager& phyDeviceMgr, uint32_t queueFamilyIdx);
+    DeviceManager(DeviceManager&& rhs) noexcept;
     ~DeviceManager() noexcept;
+
+    [[nodiscard]] static std::expected<DeviceManager, Error> create(PhysicalDeviceManager& phyDeviceMgr,
+                                                                    uint32_t queueFamilyIdx) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getDevice(this Self&& self) noexcept {
