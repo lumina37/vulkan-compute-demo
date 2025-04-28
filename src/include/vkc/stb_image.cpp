@@ -1,5 +1,7 @@
 #include <cstddef>
+#include <expected>
 #include <filesystem>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
@@ -13,6 +15,7 @@
 #pragma pop_macro("STB_IMAGE_WRITE_IMPLEMENTATION")
 
 #include "vkc/extent.hpp"
+#include "vkc/helper/error.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/stb_image.hpp"
@@ -22,21 +25,58 @@ namespace vkc {
 
 namespace fs = std::filesystem;
 
-StbImageManager::StbImageManager(const fs::path& path) {
+StbImageManager::StbImageManager(std::byte* image, Extent extent) noexcept : image_(image), extent_(extent) {}
+
+StbImageManager::StbImageManager(StbImageManager&& rhs) noexcept {
+    image_ = std::exchange(rhs.image_, nullptr);
+    std::swap(extent_, rhs.extent_);
+}
+
+StbImageManager::~StbImageManager() noexcept {
+    if (image_ == nullptr) return;
+    STBI_FREE(image_);
+    image_ = nullptr;
+}
+
+std::expected<StbImageManager, Error> StbImageManager::createFromPath(const fs::path& path) noexcept {
     int width, height, oriComps;
     constexpr int comps = 4;
-    image_ = (std::byte*)stbi_load(path.string().c_str(), &width, &height, &oriComps, comps);
-    extent_ = {width, height, mapStbCompsToVkFormat(comps)};
+
+    std::byte* image = (std::byte*)stbi_load(path.string().c_str(), &width, &height, &oriComps, comps);
+    if (image == nullptr) return std::unexpected{Error{1, "Failed to load image"}};
+
+    Extent extent{width, height, mapStbCompsToVkFormat(comps)};
+    return StbImageManager{image, extent};
 }
 
-StbImageManager::StbImageManager(const Extent& extent) : extent_(extent) {
-    image_ = (std::byte*)STBI_MALLOC(extent.size());
+std::expected<StbImageManager, Error> StbImageManager::createWithExtent(const Extent extent) noexcept {
+    std::byte* image = (std::byte*)STBI_MALLOC(extent.size());
+    if (image == nullptr) return std::unexpected{Error{1}};
+
+    return StbImageManager{image, extent};
 }
 
-StbImageManager::~StbImageManager() noexcept { STBI_FREE(image_); }
+std::expected<void, Error> StbImageManager::saveTo(const fs::path& path) const noexcept {
+    const int stbErr = stbi_write_png(path.string().c_str(), (int)extent_.width(), (int)extent_.height(),
+                                      (int)extent_.bpp(), image_, 0);
 
-void StbImageManager::saveTo(const fs::path& path) const {
-    stbi_write_png(path.string().c_str(), (int)extent_.width(), (int)extent_.height(), (int)extent_.bpp(), image_, 0);
+    if (stbErr == 0) return std::unexpected{1};
+    return {};
+}
+
+constexpr vk::Format StbImageManager::mapStbCompsToVkFormat(const int comps) noexcept {
+    switch (comps) {
+        case 1:
+            return vk::Format::eR8Unorm;
+        case 2:
+            return vk::Format::eR8G8Unorm;
+        case 3:
+            return vk::Format::eR8G8B8Unorm;
+        case 4:
+            return vk::Format::eR8G8B8A8Unorm;
+        default:
+            std::unreachable();
+    }
 }
 
 }  // namespace vkc

@@ -1,21 +1,27 @@
 #pragma once
 
 #include <cstddef>
+#include <expected>
 #include <filesystem>
 #include <span>
 #include <utility>
 
 #include "vkc/extent.hpp"
+#include "vkc/helper/error.hpp"
 
 namespace vkc {
 
 namespace fs = std::filesystem;
 
 class StbImageManager {
+    StbImageManager(std::byte* image, Extent extent) noexcept;
+
 public:
-    StbImageManager(const fs::path& path);
-    StbImageManager(const Extent& extent);
+    StbImageManager(StbImageManager&& rhs) noexcept;
     ~StbImageManager() noexcept;
+
+    [[nodiscard]] static std::expected<StbImageManager, Error> createFromPath(const fs::path& path) noexcept;
+    [[nodiscard]] static std::expected<StbImageManager, Error> createWithExtent(Extent extent) noexcept;
 
     [[nodiscard]] std::span<std::byte> getImageSpan() const noexcept { return {image_, extent_.size()}; }
 
@@ -24,7 +30,7 @@ public:
         return std::forward_like<Self>(self).extent_;
     }
 
-    void saveTo(const fs::path& path) const;
+    [[nodiscard]] std::expected<void, Error> saveTo(const fs::path& path) const noexcept;
 
     static constexpr vk::Format mapStbCompsToVkFormat(int comps) noexcept;
 
@@ -32,21 +38,6 @@ private:
     std::byte* image_;
     Extent extent_;
 };
-
-constexpr vk::Format StbImageManager::mapStbCompsToVkFormat(const int comps) noexcept {
-    switch (comps) {
-        case 1:
-            return vk::Format::eR8Unorm;
-        case 2:
-            return vk::Format::eR8G8Unorm;
-        case 3:
-            return vk::Format::eR8G8B8Unorm;
-        case 4:
-            return vk::Format::eR8G8B8A8Unorm;
-        default:
-            std::unreachable();
-    }
-}
 
 }  // namespace vkc
 
