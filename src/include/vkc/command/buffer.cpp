@@ -1,7 +1,9 @@
 #include <cstdint>
+#include <expected>
 #include <limits>
 #include <memory>
 #include <ranges>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
@@ -10,6 +12,7 @@
 #include "vkc/device/logical.hpp"
 #include "vkc/device/queue.hpp"
 #include "vkc/extent.hpp"
+#include "vkc/helper/error.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
@@ -22,9 +25,35 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-CommandBufferManager::CommandBufferManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                                           const std::shared_ptr<CommandPoolManager>& pCommandPoolMgr)
-    : pDeviceMgr_(pDeviceMgr), pCommandPoolMgr_(pCommandPoolMgr) {
+CommandBufferManager::CommandBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
+                                           std::shared_ptr<CommandPoolManager>&& pCommandPoolMgr,
+                                           vk::CommandBuffer commandBuffer, vk::Fence completeFence) noexcept
+    : pDeviceMgr_(std::move(pDeviceMgr)),
+      pCommandPoolMgr_(std::move(pCommandPoolMgr)),
+      commandBuffer_(commandBuffer),
+      completeFence_(completeFence) {}
+
+CommandBufferManager::CommandBufferManager(CommandBufferManager&& rhs) noexcept
+    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+      pCommandPoolMgr_(std::move(rhs.pCommandPoolMgr_)),
+      commandBuffer_(std::exchange(rhs.commandBuffer_, nullptr)),
+      completeFence_(std::exchange(rhs.completeFence_, nullptr)) {}
+
+CommandBufferManager::~CommandBufferManager() noexcept {
+    auto& device = pDeviceMgr_->getDevice();
+    auto& commandPool = pCommandPoolMgr_->getCommandPool();
+    if (commandBuffer_ != nullptr) {
+        device.freeCommandBuffers(commandPool, commandBuffer_);
+        commandBuffer_ = nullptr;
+    }
+    if (completeFence_ != nullptr) {
+        device.destroyFence(completeFence_);
+        completeFence_ = nullptr;
+    }
+}
+
+std::expected<CommandBufferManager, Error> CommandBufferManager::create(
+    std::shared_ptr<DeviceManager> pDeviceMgr, std::shared_ptr<CommandPoolManager> pCommandPoolMgr) noexcept {
     auto& device = pDeviceMgr->getDevice();
     auto& commandPool = pCommandPoolMgr->getCommandPool();
 
@@ -33,15 +62,10 @@ CommandBufferManager::CommandBufferManager(const std::shared_ptr<DeviceManager>&
     allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
     allocInfo.setCommandBufferCount(1);
 
-    commandBuffer_ = device.allocateCommandBuffers(allocInfo)[0];
-    completeFence_ = device.createFence({});
-}
+    vk::CommandBuffer commandBuffer = device.allocateCommandBuffers(allocInfo)[0];
+    vk::Fence completeFence = device.createFence({});
 
-CommandBufferManager::~CommandBufferManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
-    auto& commandPool = pCommandPoolMgr_->getCommandPool();
-    device.freeCommandBuffers(commandPool, commandBuffer_);
-    device.destroyFence(completeFence_);
+    return CommandBufferManager{std::move(pDeviceMgr), std::move(pCommandPoolMgr), commandBuffer, completeFence};
 }
 
 void CommandBufferManager::bindPipeline(PipelineManager& pipelineMgr) {

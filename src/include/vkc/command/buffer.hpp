@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <expected>
 #include <memory>
 #include <utility>
 
@@ -11,6 +12,7 @@
 #include "vkc/device/logical.hpp"
 #include "vkc/device/queue.hpp"
 #include "vkc/extent.hpp"
+#include "vkc/helper/error.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
@@ -25,10 +27,16 @@ struct BlockSize {
 };
 
 class CommandBufferManager {
+    CommandBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
+                         std::shared_ptr<CommandPoolManager>&& pCommandPoolMgr, vk::CommandBuffer commandBuffer,
+                         vk::Fence completeFence) noexcept;
+
 public:
-    CommandBufferManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                         const std::shared_ptr<CommandPoolManager>& pCommandPoolMgr);
+    CommandBufferManager(CommandBufferManager&& rhs) noexcept;
     ~CommandBufferManager() noexcept;
+
+    [[nodiscard]] static std::expected<CommandBufferManager, Error> create(
+        std::shared_ptr<DeviceManager> pDeviceMgr, std::shared_ptr<CommandPoolManager> pCommandPoolMgr) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getCommandBuffer(this Self&& self) noexcept {
