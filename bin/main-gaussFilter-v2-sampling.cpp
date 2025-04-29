@@ -78,7 +78,8 @@ int main() {
     gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
 
     // Command Buffer
-    auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(pDeviceMgr, computeQFamilyIdx);
+    auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
+        vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferManager gaussCmdBufMgr{pDeviceMgr, pCommandPoolMgr};
     vkc::TimestampQueryPoolManager queryPoolMgr{pDeviceMgr, 2, phyDeviceMgr.getTimestampPeriod()};
 
