@@ -66,9 +66,11 @@ int main() {
     const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescSetLayoutManager gaussDLayoutMgr =
         vkc::DescSetLayoutManager::create(pDeviceMgr, gaussDLayoutBindings) | unwrap;
-    const std::array gaussDLayoutMgrs{std::cref(gaussDLayoutMgr)};
-    vkc::PipelineLayoutManager gaussPLayoutMgr{pDeviceMgr, gaussDLayoutMgrs, kernelSizePcMgr.getPushConstantRange()};
-    vkc::DescSetsManager gaussDescSetsMgr{pDeviceMgr, descPoolMgr, gaussDLayoutMgrs};
+    const std::array gaussDLayoutMgrCRefs{std::cref(gaussDLayoutMgr)};
+    vkc::PipelineLayoutManager gaussPLayoutMgr =
+        vkc::PipelineLayoutManager::createWithPushConstant(pDeviceMgr, gaussDLayoutMgrCRefs, kernelSizePcMgr.getPushConstantRange()) |
+        unwrap;
+    vkc::DescSetsManager gaussDescSetsMgr{pDeviceMgr, descPoolMgr, gaussDLayoutMgrCRefs};
     const std::array gaussWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr);
     const std::array gaussWriteDescSetss{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
     gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);

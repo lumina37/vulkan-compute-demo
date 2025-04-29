@@ -8,6 +8,7 @@
 
 #include "vkc/device.hpp"
 #include "vkc/extent.hpp"
+#include "vkc/helper/error.hpp"
 #include "vkc/resource/memory.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY

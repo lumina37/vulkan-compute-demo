@@ -10,6 +10,7 @@
 
 #include "vkc/device.hpp"
 #include "vkc/extent.hpp"
+#include "vkc/helper/error.hpp"
 
 namespace vkc {
 

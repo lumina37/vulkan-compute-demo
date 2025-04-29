@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
+#include "vkc/helper/error.hpp"
 
 namespace vkc {
 
