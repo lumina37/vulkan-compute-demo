@@ -1,12 +1,15 @@
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <ranges>
+#include <utility>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
+#include "vkc/helper/error.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/query_pool/timestamp.hpp"
@@ -16,20 +19,39 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-TimestampQueryPoolManager::TimestampQueryPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                                                     const int queryCount, const float timestampPeriod)
-    : pDeviceMgr_(pDeviceMgr), queryCount_(queryCount), queryIndex_(0), timestampPeriod_(timestampPeriod) {
+TimestampQueryPoolManager::TimestampQueryPoolManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
+                                                     vk::QueryPool queryPool, int queryCount,
+                                                     float timestampPeriod) noexcept
+    : pDeviceMgr_(std::move(pDeviceMgr)),
+      queryPool_(queryPool),
+      queryCount_(queryCount),
+      queryIndex_(0),
+      timestampPeriod_(timestampPeriod) {}
+
+TimestampQueryPoolManager::TimestampQueryPoolManager(TimestampQueryPoolManager&& rhs) noexcept
+    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+      queryPool_(std::exchange(rhs.queryPool_, nullptr)),
+      queryCount_(rhs.queryCount_),
+      queryIndex_(rhs.queryIndex_),
+      timestampPeriod_(rhs.timestampPeriod_) {}
+
+TimestampQueryPoolManager::~TimestampQueryPoolManager() noexcept {
+    if (queryPool_ == nullptr) return;
+    auto& device = pDeviceMgr_->getDevice();
+    device.destroyQueryPool(queryPool_);
+    queryPool_ = nullptr;
+}
+
+std::expected<TimestampQueryPoolManager, Error> TimestampQueryPoolManager::create(
+    std::shared_ptr<DeviceManager> pDeviceMgr, int queryCount, float timestampPeriod) noexcept {
     vk::QueryPoolCreateInfo queryPoolInfo;
     queryPoolInfo.setQueryType(vk::QueryType::eTimestamp);
     queryPoolInfo.setQueryCount(queryCount);
 
     auto& device = pDeviceMgr->getDevice();
-    queryPool_ = device.createQueryPool(queryPoolInfo);
-}
+    vk::QueryPool queryPool = device.createQueryPool(queryPoolInfo);
 
-TimestampQueryPoolManager::~TimestampQueryPoolManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
-    device.destroyQueryPool(queryPool_);
+    return TimestampQueryPoolManager{std::move(pDeviceMgr), queryPool, queryCount, timestampPeriod};
 }
 
 std::vector<float> TimestampQueryPoolManager::getElaspedTimes() const noexcept {

@@ -10,9 +10,15 @@
 namespace vkc {
 
 class TimestampQueryPoolManager {
+    TimestampQueryPoolManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::QueryPool queryPool, int queryCount,
+                              float timestampPeriod) noexcept;
+
 public:
-    TimestampQueryPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, int queryCount, float timestampPeriod);
+    TimestampQueryPoolManager(TimestampQueryPoolManager&& rhs) noexcept;
     ~TimestampQueryPoolManager() noexcept;
+
+    [[nodiscard]] static std::expected<TimestampQueryPoolManager, Error> create(
+        std::shared_ptr<DeviceManager> pDeviceMgr, int queryCount, float timestampPeriod) noexcept;
 
     int getQueryIndex() const noexcept { return queryIndex_; }
     void addQueryIndex() noexcept { queryIndex_++; }

@@ -81,7 +81,8 @@ int main() {
     auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
         vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
-    vkc::TimestampQueryPoolManager queryPoolMgr{pDeviceMgr, 2, phyDeviceMgr.getTimestampPeriod()};
+    vkc::TimestampQueryPoolManager queryPoolMgr =
+        vkc::TimestampQueryPoolManager::create(pDeviceMgr, 2, phyDeviceMgr.getTimestampPeriod()) | unwrap;
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{256, 1, 1};
