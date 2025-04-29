@@ -29,7 +29,7 @@ private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;
 
     vk::Sampler sampler_;
-    vk::DescriptorImageInfo samplerInfo_;
+    vk::DescriptorImageInfo descSamplerInfo_;
 };
 
 constexpr vk::DescriptorSetLayoutBinding SamplerManager::draftDescSetLayoutBinding() noexcept {

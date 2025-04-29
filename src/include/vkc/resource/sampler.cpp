@@ -17,19 +17,19 @@ namespace vkc {
 
 SamplerManager::SamplerManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Sampler sampler,
                                vk::DescriptorImageInfo samplerInfo) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), sampler_(sampler), samplerInfo_(samplerInfo) {}
+    : pDeviceMgr_(std::move(pDeviceMgr)), sampler_(sampler), descSamplerInfo_(samplerInfo) {}
 
 SamplerManager::SamplerManager(SamplerManager&& rhs) noexcept
     : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
       sampler_(std::exchange(rhs.sampler_, nullptr)),
-      samplerInfo_(std::exchange(rhs.samplerInfo_, {})) {}
+      descSamplerInfo_(std::exchange(rhs.descSamplerInfo_, {})) {}
 
 SamplerManager::~SamplerManager() noexcept {
     if (sampler_ == nullptr) return;
     auto& device = pDeviceMgr_->getDevice();
     device.destroySampler(sampler_);
     sampler_ = nullptr;
-    samplerInfo_.setSampler(nullptr);
+    descSamplerInfo_.setSampler(nullptr);
 }
 
 std::expected<SamplerManager, Error> SamplerManager::create(std::shared_ptr<DeviceManager> pDeviceMgr) noexcept {
@@ -54,7 +54,7 @@ vk::WriteDescriptorSet SamplerManager::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
     writeDescSet.setDescriptorType(vk::DescriptorType::eSampler);
-    writeDescSet.setImageInfo(samplerInfo_);
+    writeDescSet.setImageInfo(descSamplerInfo_);
     return writeDescSet;
 }
 
