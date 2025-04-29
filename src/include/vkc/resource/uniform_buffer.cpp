@@ -35,8 +35,14 @@ UniformBufferManager::UniformBufferManager(UniformBufferManager&& rhs) noexcept
 
 UniformBufferManager::~UniformBufferManager() noexcept {
     auto& device = pDeviceMgr_->getDevice();
-    device.destroyBuffer(buffer_);
-    device.freeMemory(memory_);
+    if (buffer_ != nullptr) {
+        device.destroyBuffer(buffer_);
+        buffer_ = nullptr;
+    }
+    if (memory_ != nullptr) {
+        device.freeMemory(memory_);
+        memory_ = nullptr;
+    }
 }
 
 std::expected<UniformBufferManager, Error> UniformBufferManager::create(PhysicalDeviceManager& phyDeviceMgr,

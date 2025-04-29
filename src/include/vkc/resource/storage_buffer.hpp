@@ -1,19 +1,30 @@
 #pragma once
 
+#include <cstddef>
+#include <expected>
 #include <memory>
+#include <span>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/device/physical.hpp"
+#include "vkc/helper/error.hpp"
 
 namespace vkc {
 
 class StorageBufferManager {
+    StorageBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceSize size, vk::DeviceMemory memory,
+                         vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
+
 public:
-    StorageBufferManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                         vk::DeviceSize size);
+    StorageBufferManager(StorageBufferManager&& rhs) noexcept;
     ~StorageBufferManager() noexcept;
+
+    [[nodiscard]] static std::expected<StorageBufferManager, Error> create(PhysicalDeviceManager& phyDeviceMgr,
+                                                                           std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                                           vk::DeviceSize size) noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
 
