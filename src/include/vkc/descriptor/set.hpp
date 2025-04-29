@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <span>
 #include <utility>
@@ -13,6 +14,7 @@
 #include "vkc/descriptor/layout.hpp"
 #include "vkc/descriptor/pool.hpp"
 #include "vkc/device/logical.hpp"
+#include "vkc/helper/error.hpp"
 
 namespace vkc {
 
@@ -32,10 +34,15 @@ template <CSupportDraftWriteDescSet... TManager>
 }
 
 class DescSetsManager {
+    DescSetsManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, std::vector<vk::DescriptorSet>&& descSets) noexcept;
+
 public:
     using TDescSetLayoutMgrCRef = std::reference_wrapper<const DescSetLayoutManager>;
-    DescSetsManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, DescPoolManager& descPoolMgr,
-                    std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs);
+    DescSetsManager(DescSetsManager&& rhs) noexcept = default;
+
+    [[nodiscard]] static std::expected<DescSetsManager, Error> create(
+        std::shared_ptr<DeviceManager> pDeviceMgr, DescPoolManager& descPoolMgr,
+        std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getDescSets(this Self&& self) noexcept {

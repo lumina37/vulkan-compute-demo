@@ -1,7 +1,9 @@
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <ranges>
 #include <span>
+#include <utility>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
@@ -9,6 +11,7 @@
 #include "vkc/descriptor/layout.hpp"
 #include "vkc/descriptor/pool.hpp"
 #include "vkc/device/logical.hpp"
+#include "vkc/helper/error.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/descriptor/set.hpp"
@@ -16,15 +19,21 @@
 
 namespace vkc {
 
-DescSetsManager::DescSetsManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, DescPoolManager& descPoolMgr,
-                                 std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs)
-    : pDeviceMgr_(pDeviceMgr) {
-    const auto descSetLayouts = descSetLayoutMgrCRefs | rgs::views::transform([](const TDescSetLayoutMgrCRef& mgrRef) {
-                                    const auto& descSetLayoutMgr = mgrRef.get();
-                                    const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
-                                    return descSetLayout;
-                                }) |
-                                rgs::to<std::vector>();
+DescSetsManager::DescSetsManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
+                                 std::vector<vk::DescriptorSet>&& descSets) noexcept
+    : pDeviceMgr_(std::move(pDeviceMgr)), descSets_(std::move(descSets)) {}
+
+std::expected<DescSetsManager, Error> DescSetsManager::create(
+    std::shared_ptr<DeviceManager> pDeviceMgr, DescPoolManager& descPoolMgr,
+    std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs) noexcept {
+    const auto genDescSetLayout = [](const TDescSetLayoutMgrCRef& mgrRef) {
+        const auto& descSetLayoutMgr = mgrRef.get();
+        const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
+        return descSetLayout;
+    };
+
+    const auto descSetLayouts =
+        descSetLayoutMgrCRefs | rgs::views::transform(genDescSetLayout) | rgs::to<std::vector>();
 
     vk::DescriptorSetAllocateInfo descSetAllocInfo;
     auto& descPool = descPoolMgr.getDescPool();
@@ -33,7 +42,9 @@ DescSetsManager::DescSetsManager(const std::shared_ptr<DeviceManager>& pDeviceMg
     descSetAllocInfo.setSetLayouts(descSetLayouts);
 
     auto& device = pDeviceMgr->getDevice();
-    descSets_ = device.allocateDescriptorSets(descSetAllocInfo);
+    std::vector<vk::DescriptorSet> descSets = device.allocateDescriptorSets(descSetAllocInfo);
+
+    return DescSetsManager{std::move(pDeviceMgr), std::move(descSets)};
 }
 
 void DescSetsManager::updateDescSets(
