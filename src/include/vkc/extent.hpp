@@ -2,10 +2,9 @@
 
 #include <cstddef>
 
-#include "vkc/helper/vulkan.hpp"
-
 #include "vkc/helper/format.hpp"
 #include "vkc/helper/math.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 

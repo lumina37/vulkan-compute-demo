@@ -46,38 +46,40 @@ public:
         return std::forward_like<Self>(self).completeFence_;
     }
 
-    void bindPipeline(PipelineManager& pipelineMgr);
-    void bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr);
+    void bindPipeline(PipelineManager& pipelineMgr) noexcept;
+    void bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr) noexcept;
 
     template <typename TPc>
-    void pushConstant(const PushConstantManager<TPc>& pushConstantMgr, const PipelineLayoutManager& pipelineLayoutMgr);
-    std::expected<void, Error> begin();
+    void pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
+                      const PipelineLayoutManager& pipelineLayoutMgr) noexcept;
+    std::expected<void, Error> begin() noexcept;
 
     using TImageMgrCRef = std::reference_wrapper<const ImageManager>;
-    void recordSrcPrepareTranfer(std::span<const TImageMgrCRef> srcImageMgrRefs);
-    void recordUploadToSrc(std::span<const TImageMgrCRef> srcImageMgrRefs);
+    void recordSrcPrepareTranfer(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
+    void recordUploadToSrc(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
 
     struct ImageManagerPair {
         const ImageManager& copyFrom;
         const ImageManager& copyTo;
     };
-    void recordImageCopy(std::span<const ImageManagerPair> imageMgrPairs);
-    void recordSrcPrepareShaderRead(std::span<const TImageMgrCRef> srcImageMgrRefs);
-    void recordDstPrepareShaderWrite(std::span<const TImageMgrCRef> dstImageMgrRefs);
-    void recordDispatch(Extent extent, BlockSize blockSize);
-    void recordDstPrepareTransfer(std::span<const TImageMgrCRef> dstImageMgrRefs);
-    void recordDownloadToDst(std::span<const TImageMgrCRef> dstImageMgrRefs);
-    void recordWaitDownloadComplete(std::span<const TImageMgrCRef> dstImageMgrRefs);
+    void recordImageCopy(std::span<const ImageManagerPair> imageMgrPairs) noexcept;
+    void recordSrcPrepareShaderRead(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
+    void recordDstPrepareShaderWrite(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
+    void recordDispatch(Extent extent, BlockSize blockSize) noexcept;
+    void recordDstPrepareTransfer(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
+    void recordDownloadToDst(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
+    void recordWaitDownloadComplete(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
 
     template <typename TQueryPoolManager>
         requires CQueryPoolManager<TQueryPoolManager>
-    void recordResetQueryPool(TQueryPoolManager& queryPoolMgr);
+    void recordResetQueryPool(TQueryPoolManager& queryPoolMgr) noexcept;
 
-    void recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage);
-    void recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage);
-    void end();
-    void submitTo(QueueManager& queueMgr);
-    vk::Result waitFence();
+    void recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage) noexcept;
+    void recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage) noexcept;
+
+    std::expected<void, Error> end();
+    std::expected<void, Error> submitTo(QueueManager& queueMgr);
+    std::expected<void, Error> waitFence();
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;
@@ -91,7 +93,7 @@ private:
 
 template <typename TPc>
 void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
-                                        const PipelineLayoutManager& pipelineLayoutMgr) {
+                                        const PipelineLayoutManager& pipelineLayoutMgr) noexcept {
     const auto& piplelineLayout = pipelineLayoutMgr.getPipelineLayout();
     commandBuffer_.pushConstants(piplelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(TPc),
                                  pushConstantMgr.getPPushConstant());
@@ -99,7 +101,7 @@ void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushCons
 
 template <typename TQueryPoolManager>
     requires CQueryPoolManager<TQueryPoolManager>
-void CommandBufferManager::recordResetQueryPool(TQueryPoolManager& queryPoolMgr) {
+void CommandBufferManager::recordResetQueryPool(TQueryPoolManager& queryPoolMgr) noexcept {
     auto& queryPool = queryPoolMgr.getQueryPool();
     queryPoolMgr.resetQueryIndex();
     commandBuffer_.resetQueryPool(queryPool, 0, queryPoolMgr.getQueryCount());

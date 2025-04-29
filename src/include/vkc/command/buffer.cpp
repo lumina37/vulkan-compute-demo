@@ -75,17 +75,18 @@ std::expected<CommandBufferManager, Error> CommandBufferManager::create(
     return CommandBufferManager{std::move(pDeviceMgr), std::move(pCommandPoolMgr), commandBuffer, completeFence};
 }
 
-void CommandBufferManager::bindPipeline(PipelineManager& pipelineMgr) {
+void CommandBufferManager::bindPipeline(PipelineManager& pipelineMgr) noexcept {
     commandBuffer_.bindPipeline(vk::PipelineBindPoint::eCompute, pipelineMgr.getPipeline());
 }
 
-void CommandBufferManager::bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr) {
+void CommandBufferManager::bindDescSets(DescSetsManager& descSetsMgr,
+                                        const PipelineLayoutManager& pipelineLayoutMgr) noexcept {
     auto& descSets = descSetsMgr.getDescSets();
     commandBuffer_.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayoutMgr.getPipelineLayout(), 0,
                                       (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
 }
 
-std::expected<void, Error> CommandBufferManager::begin() {
+std::expected<void, Error> CommandBufferManager::begin() noexcept {
     const vk::Result resetRes = commandBuffer_.reset();
     if (resetRes != vk::Result::eSuccess) {
         return std::unexpected{Error{resetRes}};
@@ -101,7 +102,7 @@ std::expected<void, Error> CommandBufferManager::begin() {
     return {};
 }
 
-void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageMgrCRef> srcImageMgrRefs) {
+void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier uploadConvBarrierTemplate;
     uploadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
     uploadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
@@ -124,7 +125,7 @@ void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageM
                                    uploadConvBarriers.data());
 }
 
-void CommandBufferManager::recordUploadToSrc(const std::span<const TImageMgrCRef> srcImageMgrRefs) {
+void CommandBufferManager::recordUploadToSrc(const std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -140,7 +141,7 @@ void CommandBufferManager::recordUploadToSrc(const std::span<const TImageMgrCRef
     }
 }
 
-void CommandBufferManager::recordImageCopy(const std::span<const ImageManagerPair> imageMgrPairs) {
+void CommandBufferManager::recordImageCopy(const std::span<const ImageManagerPair> imageMgrPairs) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -156,7 +157,7 @@ void CommandBufferManager::recordImageCopy(const std::span<const ImageManagerPai
     }
 }
 
-void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TImageMgrCRef> srcImageMgrRefs) {
+void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
     shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
@@ -179,7 +180,7 @@ void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TIma
                                    (uint32_t)shaderCompatibleBarriers.size(), shaderCompatibleBarriers.data());
 }
 
-void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TImageMgrCRef> dstImageMgrRefs) {
+void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
     vk::ImageSubresourceRange subresourceRange;
     subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceRange.setLevelCount(1);
@@ -208,13 +209,13 @@ void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TIm
                                    (uint32_t)shaderCompatibleBarriers.size(), shaderCompatibleBarriers.data());
 }
 
-void CommandBufferManager::recordDispatch(const Extent extent, const BlockSize blockSize) {
+void CommandBufferManager::recordDispatch(const Extent extent, const BlockSize blockSize) noexcept {
     uint32_t groupSizeX = (extent.width() + (blockSize.x - 1)) / blockSize.x;
     uint32_t groupSizeY = (extent.height() + (blockSize.y - 1)) / blockSize.y;
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);
 }
 
-void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImageMgrCRef> dstImageMgrRefs) {
+void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier downloadConvBarrierTemplate;
     downloadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite);
     downloadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
@@ -237,7 +238,7 @@ void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImage
                                    (uint32_t)downloadConvBarriers.size(), downloadConvBarriers.data());
 }
 
-void CommandBufferManager::recordDownloadToDst(std::span<const TImageMgrCRef> dstImageMgrRefs) {
+void CommandBufferManager::recordDownloadToDst(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -253,7 +254,7 @@ void CommandBufferManager::recordDownloadToDst(std::span<const TImageMgrCRef> ds
     }
 }
 
-void CommandBufferManager::recordWaitDownloadComplete(const std::span<const TImageMgrCRef> dstImageMgrRefs) {
+void CommandBufferManager::recordWaitDownloadComplete(const std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
     vk::BufferMemoryBarrier downloadCompleteBarrierTemplate;
     downloadCompleteBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     downloadCompleteBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eHostRead);
@@ -276,7 +277,7 @@ void CommandBufferManager::recordWaitDownloadComplete(const std::span<const TIma
 }
 
 void CommandBufferManager::recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr,
-                                                const vk::PipelineStageFlagBits pipelineStage) {
+                                                const vk::PipelineStageFlagBits pipelineStage) noexcept {
     auto& queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
     queryPoolMgr.addQueryIndex();
@@ -284,34 +285,48 @@ void CommandBufferManager::recordTimestampStart(TimestampQueryPoolManager& query
 }
 
 void CommandBufferManager::recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr,
-                                              const vk::PipelineStageFlagBits pipelineStage) {
+                                              const vk::PipelineStageFlagBits pipelineStage) noexcept {
     auto& queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
     queryPoolMgr.addQueryIndex();
     commandBuffer_.writeTimestamp(pipelineStage, queryPool, queryIndex);
 }
 
-void CommandBufferManager::end() { commandBuffer_.end(); }
+std::expected<void, Error> CommandBufferManager::end() {
+    const vk::Result endRes = commandBuffer_.end();
+    if (endRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{endRes}};
+    }
+    return {};
+}
 
-void CommandBufferManager::submitTo(QueueManager& queueMgr) {
+std::expected<void, Error> CommandBufferManager::submitTo(QueueManager& queueMgr) {
     vk::SubmitInfo submitInfo;
     submitInfo.setCommandBuffers(commandBuffer_);
 
     auto& computeQueue = queueMgr.getComputeQueue();
-    computeQueue.submit(submitInfo, completeFence_);
-}
-
-vk::Result CommandBufferManager::waitFence() {
-    auto& device = pDeviceMgr_->getDevice();
-
-    auto waitFenceResult = device.waitForFences(completeFence_, true, std::numeric_limits<uint64_t>::max());
-    if (waitFenceResult != vk::Result::eSuccess) {
-        return waitFenceResult;
+    const vk::Result submitRes = computeQueue.submit(submitInfo, completeFence_);
+    if (submitRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{submitRes}};
     }
 
-    device.resetFences(completeFence_);
+    return {};
+}
 
-    return vk::Result::eSuccess;
+std::expected<void, Error> CommandBufferManager::waitFence() {
+    auto& device = pDeviceMgr_->getDevice();
+
+    const auto waitFenceRes = device.waitForFences(completeFence_, true, std::numeric_limits<uint64_t>::max());
+    if (waitFenceRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{waitFenceRes}};
+    }
+
+    const auto resetFenceRes = device.resetFences(completeFence_);
+    if (resetFenceRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{resetFenceRes}};
+    }
+
+    return {};
 }
 
 }  // namespace vkc

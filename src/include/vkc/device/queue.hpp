@@ -4,10 +4,9 @@
 #include <expected>
 #include <utility>
 
-#include "vkc/helper/vulkan.hpp"
-
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 

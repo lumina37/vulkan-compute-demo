@@ -3,11 +3,10 @@
 #include <memory>
 #include <print>
 
-#include "vkc/helper/vulkan.hpp"
-
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/defines.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/shader.hpp"
 
