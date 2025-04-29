@@ -61,7 +61,7 @@ int main() {
     srcImageMgr.uploadFrom(srcImage.getImageSpan());
 
     const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
-    vkc::DescPoolManager descPoolMgr{pDeviceMgr, descPoolSizes};
+    vkc::DescPoolManager descPoolMgr = vkc::DescPoolManager::create(pDeviceMgr, descPoolSizes) | unwrap;
 
     const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescSetLayoutManager gaussDLayoutMgr{pDeviceMgr, gaussDLayoutBindings};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <map>
 #include <memory>
 #include <ranges>
@@ -17,7 +18,7 @@ namespace vkc {
 namespace rgs = std::ranges;
 
 template <CSupportGetDescType... TManager>
-[[nodiscard]] static inline constexpr auto genPoolSizes(const TManager&... mgrs) {
+[[nodiscard]] static constexpr auto genPoolSizes(const TManager&... mgrs) noexcept {
     std::map<vk::DescriptorType, int> poolSizeMap;
 
     const auto appendPoolSize = [&](const auto& mgr) {
@@ -46,10 +47,14 @@ template <CSupportGetDescType... TManager>
 }
 
 class DescPoolManager {
+    DescPoolManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DescriptorPool descPool) noexcept;
+
 public:
-    DescPoolManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                    std::span<const vk::DescriptorPoolSize> poolSizes);
+    DescPoolManager(DescPoolManager&& rhs) noexcept;
     ~DescPoolManager() noexcept;
+
+    [[nodiscard]] static std::expected<DescPoolManager, Error> create(
+        std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorPoolSize> poolSizes) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getDescPool(this Self&& self) noexcept {
