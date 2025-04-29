@@ -1,3 +1,4 @@
+#include <expected>
 #include <iostream>
 #include <memory>
 #include <print>
@@ -6,6 +7,7 @@
 
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/defines.hpp"
+#include "vkc/helper/error.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/shader.hpp"
 
@@ -15,10 +17,23 @@
 
 namespace vkc {
 
-PipelineManager::PipelineManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                                 const PipelineLayoutManager& pipelineLayoutMgr, const ShaderManager& computeShaderMgr,
-                                 const vk::SpecializationInfo& specInfo)
-    : pDeviceMgr_(pDeviceMgr) {
+PipelineManager::PipelineManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Pipeline pipeline) noexcept
+    : pDeviceMgr_(std::move(pDeviceMgr)), pipeline_(pipeline) {}
+
+PipelineManager::PipelineManager(PipelineManager&& rhs) noexcept
+    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)), pipeline_(std::exchange(rhs.pipeline_, nullptr)) {}
+
+PipelineManager::~PipelineManager() noexcept {
+    if (pipeline_ == nullptr) return;
+    auto& device = pDeviceMgr_->getDevice();
+    device.destroyPipeline(pipeline_);
+    pipeline_ = nullptr;
+}
+
+std::expected<PipelineManager, Error> PipelineManager::create(std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                              const PipelineLayoutManager& pipelineLayoutMgr,
+                                                              const ShaderManager& computeShaderMgr,
+                                                              const vk::SpecializationInfo& specInfo) noexcept {
     vk::ComputePipelineCreateInfo pipelineInfo;
 
     // Shaders
@@ -41,12 +56,9 @@ PipelineManager::PipelineManager(const std::shared_ptr<DeviceManager>& pDeviceMg
             std::println(std::cerr, "Failed to create graphics pipeline. err: {}", (int)pipelineResult.result);
         }
     }
-    pipeline_ = pipelineResult.value;
-}
+    vk::Pipeline pipeline = pipelineResult.value;
 
-PipelineManager::~PipelineManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
-    device.destroyPipeline(pipeline_);
+    return PipelineManager{std::move(pDeviceMgr), pipeline};
 }
 
 }  // namespace vkc

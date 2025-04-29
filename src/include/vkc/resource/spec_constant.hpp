@@ -13,7 +13,7 @@ template <typename... TSc>
     requires(std::is_trivially_copyable_v<TSc> && ...)
 class SpecConstantManager {
 public:
-    constexpr SpecConstantManager(TSc... specConstants);
+    constexpr SpecConstantManager(TSc... specConstants) noexcept;
 
     template <typename Self>
     [[nodiscard]] constexpr auto&& getSpecInfo(this Self&& self) noexcept {
@@ -28,7 +28,8 @@ private:
 };
 template <typename... TSc>
     requires(std::is_trivially_copyable_v<TSc> && ...)
-constexpr SpecConstantManager<TSc...>::SpecConstantManager(TSc... specConstants) : specConstants_(specConstants...) {
+constexpr SpecConstantManager<TSc...>::SpecConstantManager(TSc... specConstants) noexcept
+    : specConstants_(specConstants...) {
     const auto genSpecMapEntry = [&]<size_t index>() {
         const auto& specConstant = std::get<index>(specConstants_);
         const size_t offset = (size_t)&specConstant - (size_t)&specConstants_;

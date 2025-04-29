@@ -1,21 +1,29 @@
 #pragma once
 
+#include <expected>
 #include <memory>
 #include <utility>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
+#include "vkc/helper/error.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/shader.hpp"
 
 namespace vkc {
 
 class PipelineManager {
+    PipelineManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Pipeline pipeline) noexcept;
+
 public:
-    PipelineManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                    const ShaderManager& computeShaderMgr, const vk::SpecializationInfo& specInfo);
+    PipelineManager(PipelineManager&& rhs) noexcept;
     ~PipelineManager() noexcept;
+
+    [[nodiscard]] static std::expected<PipelineManager, Error> create(std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                                      const PipelineLayoutManager& pipelineLayoutMgr,
+                                                                      const ShaderManager& computeShaderMgr,
+                                                                      const vk::SpecializationInfo& specInfo) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getPipeline(this Self&& self) noexcept {
