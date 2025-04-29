@@ -1,11 +1,14 @@
 #include <cstddef>
+#include <expected>
 #include <memory>
 #include <span>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/device/physical.hpp"
+#include "vkc/helper/error.hpp"
 #include "vkc/resource/memory.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
@@ -14,9 +17,31 @@
 
 namespace vkc {
 
-UBOManager::UBOManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                       const vk::DeviceSize size)
-    : pDeviceMgr_(pDeviceMgr), size_(size) {
+UniformBufferManager::UniformBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceSize size,
+                                           vk::DeviceMemory memory, vk::Buffer buffer,
+                                           vk::DescriptorBufferInfo descBufferInfo) noexcept
+    : pDeviceMgr_(std::move(pDeviceMgr)),
+      size_(size),
+      memory_(memory),
+      buffer_(buffer),
+      descBufferInfo_(descBufferInfo) {}
+
+UniformBufferManager::UniformBufferManager(UniformBufferManager&& rhs) noexcept
+    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+      size_(rhs.size_),
+      memory_(std::exchange(rhs.memory_, nullptr)),
+      buffer_(std::exchange(rhs.buffer_, nullptr)),
+      descBufferInfo_(std::exchange(rhs.descBufferInfo_, {})) {}
+
+UniformBufferManager::~UniformBufferManager() noexcept {
+    auto& device = pDeviceMgr_->getDevice();
+    device.destroyBuffer(buffer_);
+    device.freeMemory(memory_);
+}
+
+std::expected<UniformBufferManager, Error> UniformBufferManager::create(PhysicalDeviceManager& phyDeviceMgr,
+                                                                        std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                                        vk::DeviceSize size) noexcept {
     auto& device = pDeviceMgr->getDevice();
 
     // Buffer
@@ -24,23 +49,21 @@ UBOManager::UBOManager(const PhysicalDeviceManager& phyDeviceMgr, const std::sha
     bufferInfo.setSize(size);
     bufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
-    buffer_ = device.createBuffer(bufferInfo);
+    vk::Buffer buffer = device.createBuffer(bufferInfo);
 
-    _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, buffer_, vk::MemoryPropertyFlagBits::eHostVisible, memory_);
-    device.bindBufferMemory(buffer_, memory_, 0);
+    vk::DeviceMemory memory;
+    _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, buffer, vk::MemoryPropertyFlagBits::eHostVisible, memory);
+    device.bindBufferMemory(buffer, memory, 0);
 
     // Descriptor Buffer Info
-    descBufferInfo_.setBuffer(buffer_);
-    descBufferInfo_.setRange(size);
+    vk::DescriptorBufferInfo descBufferInfo;
+    descBufferInfo.setBuffer(buffer);
+    descBufferInfo.setRange(size);
+
+    return UniformBufferManager{std::move(pDeviceMgr), size, memory, buffer, descBufferInfo};
 }
 
-UBOManager::~UBOManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
-    device.destroyBuffer(buffer_);
-    device.freeMemory(memory_);
-}
-
-vk::WriteDescriptorSet UBOManager::draftWriteDescSet() const noexcept {
+vk::WriteDescriptorSet UniformBufferManager::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
     writeDescSet.setDescriptorType(getDescType());
@@ -48,10 +71,12 @@ vk::WriteDescriptorSet UBOManager::draftWriteDescSet() const noexcept {
     return writeDescSet;
 }
 
-vk::Result UBOManager::uploadFrom(const std::span<const std::byte> data) {
+vk::Result UniformBufferManager::uploadFrom(const std::span<const std::byte> data) {
     return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
 }
 
-vk::Result UBOManager::downloadTo(const std::span<std::byte> data) { return _hp::downloadTo(*pDeviceMgr_, memory_, data); }
+vk::Result UniformBufferManager::downloadTo(const std::span<std::byte> data) {
+    return _hp::downloadTo(*pDeviceMgr_, memory_, data);
+}
 
 }  // namespace vkc

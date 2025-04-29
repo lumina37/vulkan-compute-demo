@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <expected>
 #include <memory>
 #include <span>
 #include <utility>
@@ -9,14 +10,21 @@
 
 #include "vkc/device/logical.hpp"
 #include "vkc/device/physical.hpp"
+#include "vkc/helper/error.hpp"
 
 namespace vkc {
 
-class UBOManager {
+class UniformBufferManager {
+    UniformBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceSize size, vk::DeviceMemory memory,
+                         vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
+
 public:
-    UBOManager(const PhysicalDeviceManager& phyDeviceMgr, const std::shared_ptr<DeviceManager>& pDeviceMgr,
-               vk::DeviceSize size);
-    ~UBOManager() noexcept;
+    UniformBufferManager(UniformBufferManager&& rhs) noexcept;
+    ~UniformBufferManager() noexcept;
+
+    [[nodiscard]] static std::expected<UniformBufferManager, Error> create(PhysicalDeviceManager& phyDeviceMgr,
+                                                                           std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                                           vk::DeviceSize size) noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
 
@@ -48,7 +56,7 @@ private:
     vk::DescriptorBufferInfo descBufferInfo_;
 };
 
-constexpr vk::DescriptorSetLayoutBinding UBOManager::draftDescSetLayoutBinding() noexcept {
+constexpr vk::DescriptorSetLayoutBinding UniformBufferManager::draftDescSetLayoutBinding() noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
     binding.setDescriptorType(getDescType());
