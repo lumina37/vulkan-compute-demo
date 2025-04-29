@@ -9,7 +9,7 @@ namespace vkc {
 
 namespace fs = std::filesystem;
 
-std::expected<std::vector<std::byte>, Error> readFile(const fs::path& path) noexcept;
+[[nodiscard]] std::expected<std::vector<std::byte>, Error> readFile(const fs::path& path) noexcept;
 
 }  // namespace vkc
 

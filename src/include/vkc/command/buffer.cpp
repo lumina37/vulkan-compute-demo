@@ -292,7 +292,7 @@ void CommandBufferManager::recordTimestampEnd(TimestampQueryPoolManager& queryPo
     commandBuffer_.writeTimestamp(pipelineStage, queryPool, queryIndex);
 }
 
-std::expected<void, Error> CommandBufferManager::end() {
+std::expected<void, Error> CommandBufferManager::end() noexcept {
     const vk::Result endRes = commandBuffer_.end();
     if (endRes != vk::Result::eSuccess) {
         return std::unexpected{Error{endRes}};
@@ -300,7 +300,7 @@ std::expected<void, Error> CommandBufferManager::end() {
     return {};
 }
 
-std::expected<void, Error> CommandBufferManager::submitTo(QueueManager& queueMgr) {
+std::expected<void, Error> CommandBufferManager::submitTo(QueueManager& queueMgr) noexcept {
     vk::SubmitInfo submitInfo;
     submitInfo.setCommandBuffers(commandBuffer_);
 
@@ -313,7 +313,7 @@ std::expected<void, Error> CommandBufferManager::submitTo(QueueManager& queueMgr
     return {};
 }
 
-std::expected<void, Error> CommandBufferManager::waitFence() {
+std::expected<void, Error> CommandBufferManager::waitFence() noexcept {
     auto& device = pDeviceMgr_->getDevice();
 
     const auto waitFenceRes = device.waitForFences(completeFence_, true, std::numeric_limits<uint64_t>::max());

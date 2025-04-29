@@ -52,7 +52,7 @@ public:
     template <typename TPc>
     void pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
                       const PipelineLayoutManager& pipelineLayoutMgr) noexcept;
-    std::expected<void, Error> begin() noexcept;
+    [[nodiscard]] std::expected<void, Error> begin() noexcept;
 
     using TImageMgrCRef = std::reference_wrapper<const ImageManager>;
     void recordSrcPrepareTranfer(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
@@ -74,12 +74,13 @@ public:
         requires CQueryPoolManager<TQueryPoolManager>
     void recordResetQueryPool(TQueryPoolManager& queryPoolMgr) noexcept;
 
-    void recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage) noexcept;
+    void recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr,
+                              vk::PipelineStageFlagBits pipelineStage) noexcept;
     void recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage) noexcept;
 
-    std::expected<void, Error> end();
-    std::expected<void, Error> submitTo(QueueManager& queueMgr);
-    std::expected<void, Error> waitFence();
+    [[nodiscard]] std::expected<void, Error> end() noexcept;
+    [[nodiscard]] std::expected<void, Error> submitTo(QueueManager& queueMgr) noexcept;
+    [[nodiscard]] std::expected<void, Error> waitFence() noexcept;
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;

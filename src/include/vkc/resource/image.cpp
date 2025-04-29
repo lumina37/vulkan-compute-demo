@@ -113,7 +113,10 @@ std::expected<ImageManager, Error> ImageManager::create(const PhysicalDeviceMana
 
     // Device Memory
     vk::DeviceMemory imageMemory;
-    _hp::allocImageMemory(phyDeviceMgr, *pDeviceMgr, image, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory);
+    auto allocRes =
+        _hp::allocImageMemory(phyDeviceMgr, *pDeviceMgr, image, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory);
+    if (!allocRes) return std::unexpected{std::move(allocRes.error())};
+
     const vk::Result bindRes = device.bindImageMemory(image, imageMemory, 0);
     if (bindRes != vk::Result::eSuccess) {
         return std::unexpected{Error{bindRes}};
@@ -148,9 +151,11 @@ std::expected<ImageManager, Error> ImageManager::create(const PhysicalDeviceMana
     }
 
     vk::DeviceMemory stagingMemory;
-    _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, stagingBuffer,
-                           vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                           stagingMemory);
+    auto allocStagingRes = _hp::allocBufferMemory(
+        phyDeviceMgr, *pDeviceMgr, stagingBuffer,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingMemory);
+    if (!allocStagingRes) return std::unexpected{std::move(allocStagingRes.error())};
+
     const vk::Result bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
     if (bindStagingRes != vk::Result::eSuccess) {
         return std::unexpected{Error{bindStagingRes}};

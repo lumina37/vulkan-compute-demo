@@ -8,7 +8,8 @@
 
 namespace vkc {
 
-std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) noexcept;
+[[nodiscard]] std::expected<uint32_t, Error> defaultComputeQFamilyIndex(
+    const PhysicalDeviceManager& phyDeviceMgr) noexcept;
 
 }  // namespace vkc
 

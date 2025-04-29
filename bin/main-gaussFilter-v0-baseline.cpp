@@ -58,7 +58,7 @@ int main() {
     vkc::ImageManager dstImageMgr =
         vkc::ImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Write) | unwrap;
     const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
-    srcImageMgr.uploadFrom(srcImage.getImageSpan());
+    srcImageMgr.uploadFrom(srcImage.getImageSpan()) | unwrap;
 
     const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr = vkc::DescPoolManager::create(pDeviceMgr, descPoolSizes) | unwrap;
@@ -94,7 +94,7 @@ int main() {
 
     // Gaussian Blur
     for (int i = 0; i < 15; i++) {
-        gaussCmdBufMgr.begin();
+        gaussCmdBufMgr.begin() | unwrap;
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
@@ -109,15 +109,15 @@ int main() {
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
         gaussCmdBufMgr.recordDownloadToDst(dstImageMgrCRefs);
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
-        gaussCmdBufMgr.end();
+        gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submitTo(queueMgr);
-        gaussCmdBufMgr.waitFence();
+        gaussCmdBufMgr.submitTo(queueMgr) | unwrap;
+        gaussCmdBufMgr.waitFence() | unwrap;
 
         auto elapsedTime = queryPoolMgr.getElaspedTimes() | unwrap;
         std::println("Gaussian blur timecost: {} ms", elapsedTime[0]);
     }
 
-    dstImageMgr.downloadTo(dstImage.getImageSpan());
+    dstImageMgr.downloadTo(dstImage.getImageSpan()) | unwrap;
     dstImage.saveTo("out.png") | unwrap;
 }
