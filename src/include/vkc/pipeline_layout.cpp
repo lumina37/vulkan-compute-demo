@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #include "vkc/descriptor/layout.hpp"
 #include "vkc/device/logical.hpp"
@@ -47,7 +47,10 @@ std::expected<PipelineLayoutManager, Error> PipelineLayoutManager::create(
     pipelineLayoutInfo.setSetLayouts(descSetLayouts);
 
     auto& device = pDeviceMgr->getDevice();
-    vk::PipelineLayout pipelineLayout = device.createPipelineLayout(pipelineLayoutInfo);
+    const auto [pipelineLayoutRes, pipelineLayout] = device.createPipelineLayout(pipelineLayoutInfo);
+    if (pipelineLayoutRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{pipelineLayoutRes}};
+    }
 
     return PipelineLayoutManager{std::move(pDeviceMgr), pipelineLayout};
 }
@@ -69,7 +72,10 @@ std::expected<PipelineLayoutManager, Error> PipelineLayoutManager::createWithPus
     pipelineLayoutInfo.setPushConstantRanges(pushConstantRange);
 
     auto& device = pDeviceMgr->getDevice();
-    vk::PipelineLayout pipelineLayout = device.createPipelineLayout(pipelineLayoutInfo);
+    const auto [pipelineLayoutRes, pipelineLayout] = device.createPipelineLayout(pipelineLayoutInfo);
+    if (pipelineLayoutRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{pipelineLayoutRes}};
+    }
 
     return PipelineLayoutManager{std::move(pDeviceMgr), pipelineLayout};
 }

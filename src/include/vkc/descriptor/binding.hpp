@@ -4,9 +4,8 @@
 #include <cstdint>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/descriptor/concepts.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 

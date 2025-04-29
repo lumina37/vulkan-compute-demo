@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #include "vkc/helper/format.hpp"
 #include "vkc/helper/math.hpp"

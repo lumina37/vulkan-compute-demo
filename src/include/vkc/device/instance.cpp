@@ -4,10 +4,9 @@
 #include <string>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/helper/defines.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/instance.hpp"
@@ -40,14 +39,22 @@ std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
             return VALIDATION_LAYER_NAME == layerProp.layerName;
         };
 
-        const bool hasValLayer = rgs::any_of(vk::enumerateInstanceLayerProperties(), hasValidationLayer);
+        const auto [layerPropsRes, layerProps] = vk::enumerateInstanceLayerProperties();
+        if (layerPropsRes != vk::Result::eSuccess) {
+            return std::unexpected{Error{layerPropsRes}};
+        }
+
+        const bool hasValLayer = rgs::any_of(layerProps, hasValidationLayer);
         if (hasValLayer) {
             const std::array enabledLayers{VALIDATION_LAYER_NAME.data()};
             instInfo.setPEnabledLayerNames(enabledLayers);
         }
     }
 
-    const vk::Instance instance = vk::createInstance(instInfo);
+    const auto [instanceRes, instance] = vk::createInstance(instInfo);
+    if (instanceRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{instanceRes}};
+    }
 
     return InstanceManager{instance};
 }

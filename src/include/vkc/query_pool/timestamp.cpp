@@ -6,10 +6,9 @@
 #include <utility>
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/query_pool/timestamp.hpp"
@@ -49,12 +48,15 @@ std::expected<TimestampQueryPoolManager, Error> TimestampQueryPoolManager::creat
     queryPoolInfo.setQueryCount(queryCount);
 
     auto& device = pDeviceMgr->getDevice();
-    vk::QueryPool queryPool = device.createQueryPool(queryPoolInfo);
+    const auto [queryPoolRes, queryPool] = device.createQueryPool(queryPoolInfo);
+    if (queryPoolRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{queryPoolRes}};
+    }
 
     return TimestampQueryPoolManager{std::move(pDeviceMgr), queryPool, queryCount, timestampPeriod};
 }
 
-std::vector<float> TimestampQueryPoolManager::getElaspedTimes() const noexcept {
+std::expected<std::vector<float>, Error> TimestampQueryPoolManager::getElaspedTimes() const noexcept {
     std::vector<uint64_t> timestamps(queryIndex_);
     std::vector<float> elapsedTimes(queryIndex_ / 2);
     constexpr size_t valueSize = sizeof(decltype(timestamps)::value_type);
@@ -63,6 +65,9 @@ std::vector<float> TimestampQueryPoolManager::getElaspedTimes() const noexcept {
     vk::Result queryResult =
         device.getQueryPoolResults(queryPool_, 0, queryIndex_, timestamps.size() * valueSize, (void*)timestamps.data(),
                                    valueSize, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
+    if (queryResult != vk::Result::eSuccess) {
+        return std::unexpected{Error{queryResult}};
+    }
 
     for (const auto [idx, pair] : rgs::views::enumerate(timestamps | rgs::views::chunk(2))) {
         constexpr float ns2ms = 1e6;

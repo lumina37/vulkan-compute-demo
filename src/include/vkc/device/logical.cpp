@@ -2,10 +2,9 @@
 #include <expected>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/device/physical.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/logical.hpp"
@@ -35,9 +34,12 @@ std::expected<DeviceManager, Error> DeviceManager::create(PhysicalDeviceManager&
     deviceInfo.setQueueCreateInfos(computeQueueInfo);
 
     auto& phyDevice = phyDeviceMgr.getPhysicalDevice();
-    vk::Device device = phyDevice.createDevice(deviceInfo);
+    const auto [deviceRes, device] = phyDevice.createDevice(deviceInfo);
+    if (deviceRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{deviceRes}};
+    }
 
-    return DeviceManager{std::move(device)};
+    return DeviceManager{device};
 }
 
 }  // namespace vkc

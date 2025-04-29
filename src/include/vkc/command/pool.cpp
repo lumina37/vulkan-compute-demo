@@ -3,10 +3,9 @@
 #include <memory>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/command/pool.hpp"
@@ -37,7 +36,10 @@ std::expected<CommandPoolManager, Error> CommandPoolManager::create(std::shared_
     commandPoolInfo.setQueueFamilyIndex(queueFamilyIdx);
 
     auto& device = pDeviceMgr->getDevice();
-    vk::CommandPool commandPool = device.createCommandPool(commandPoolInfo);
+    const auto [commandPoolRes, commandPool] = device.createCommandPool(commandPoolInfo);
+    if (commandPoolRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{commandPoolRes}};
+    }
 
     return CommandPoolManager{std::move(pDeviceMgr), commandPool, queueFamilyIdx};
 }

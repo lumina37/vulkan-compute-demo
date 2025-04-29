@@ -8,13 +8,12 @@
 #include <span>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/descriptor/concepts.hpp"
 #include "vkc/descriptor/layout.hpp"
 #include "vkc/descriptor/pool.hpp"
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 

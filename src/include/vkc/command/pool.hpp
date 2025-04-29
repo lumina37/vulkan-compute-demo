@@ -5,10 +5,9 @@
 #include <memory>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 

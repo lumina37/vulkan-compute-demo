@@ -1,17 +1,15 @@
 #include <algorithm>
 #include <cstdint>
 #include <expected>
-#include <iostream>
 #include <print>
 #include <ranges>
 #include <utility>
-
-#include <vulkan/vulkan.hpp>
 
 #include "vkc/device/instance.hpp"
 #include "vkc/helper/defines.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/score.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/physical.hpp"
@@ -26,7 +24,7 @@ PhysicalDeviceManager::PhysicalDeviceManager(vk::PhysicalDevice physicalDevice,
     : physicalDevice_(physicalDevice), limits_(limits) {}
 
 PhysicalDeviceManager::PhysicalDeviceManager(PhysicalDeviceManager&& rhs) noexcept
-    : physicalDevice_(std::move(rhs.physicalDevice_)), limits_(std::move(rhs.limits_)) {}
+    : physicalDevice_(rhs.physicalDevice_), limits_(rhs.limits_) {}
 
 std::expected<PhysicalDeviceManager, Error> PhysicalDeviceManager::create(const InstanceManager& instMgr) noexcept {
     const auto& instance = instMgr.getInstance();
@@ -49,7 +47,10 @@ std::expected<PhysicalDeviceManager, Error> PhysicalDeviceManager::create(const 
         return score;
     };
 
-    const auto& physicalDevices = instance.enumeratePhysicalDevices();
+    const auto [physicalDevicesRes, physicalDevices] = instance.enumeratePhysicalDevices();
+    if (physicalDevicesRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{physicalDevicesRes}};
+    }
 
     std::vector<Score<size_t>> scores;
     scores.reserve(physicalDevices.size());
@@ -71,10 +72,7 @@ std::expected<PhysicalDeviceManager, Error> PhysicalDeviceManager::create(const 
     }
 
     if (scores.empty()) {
-        if constexpr (ENABLE_DEBUG) {
-            std::println(std::cerr, "No sufficient physical device found!");
-        }
-        return std::unexpected{Error{-1, "no avaliable physical device"}};
+        return std::unexpected{Error{-1, "no sufficient physical device"}};
     }
 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());

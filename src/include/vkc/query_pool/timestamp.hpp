@@ -4,10 +4,9 @@
 #include <memory>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 
@@ -33,7 +32,7 @@ public:
         return std::forward_like<Self>(self).queryPool_;
     }
 
-    [[nodiscard]] std::vector<float> getElaspedTimes() const noexcept;
+    [[nodiscard]] std::expected<std::vector<float>, Error> getElaspedTimes() const noexcept;
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;

@@ -4,7 +4,7 @@
 #include <span>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #include "vkc/device.hpp"
 #include "vkc/extent.hpp"
@@ -107,12 +107,18 @@ std::expected<ImageManager, Error> ImageManager::create(const PhysicalDeviceMana
     imageInfo.setUsage(imageUsage);
     imageInfo.setSharingMode(vk::SharingMode::eExclusive);
     imageInfo.setInitialLayout(vk::ImageLayout::eUndefined);
-    vk::Image image = device.createImage(imageInfo);
+    auto [imageRes, image] = device.createImage(imageInfo);
+    if (imageRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{imageRes}};
+    }
 
     // Device Memory
     vk::DeviceMemory imageMemory;
     _hp::allocImageMemory(phyDeviceMgr, *pDeviceMgr, image, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory);
-    device.bindImageMemory(image, imageMemory, 0);
+    const vk::Result bindRes = device.bindImageMemory(image, imageMemory, 0);
+    if (bindRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{bindRes}};
+    }
 
     // Image View
     vk::ImageSubresourceRange subresourceRange;
@@ -127,20 +133,29 @@ std::expected<ImageManager, Error> ImageManager::create(const PhysicalDeviceMana
     imageViewInfo.setViewType(vk::ImageViewType::e2D);
     imageViewInfo.setFormat(extent.format());
     imageViewInfo.setSubresourceRange(subresourceRange);
-    vk::ImageView imageView = device.createImageView(imageViewInfo);
+    const auto [imageViewRes, imageView] = device.createImageView(imageViewInfo);
+    if (imageViewRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{imageViewRes}};
+    }
 
     // Staging Memory
     vk::BufferCreateInfo bufferInfo;
     bufferInfo.setSize(extent.size());
     bufferInfo.setUsage(bufferUsage);
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
-    vk::Buffer stagingBuffer = device.createBuffer(bufferInfo);
+    auto [stagingBufferRes, stagingBuffer] = device.createBuffer(bufferInfo);
+    if (stagingBufferRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{stagingBufferRes}};
+    }
 
     vk::DeviceMemory stagingMemory;
     _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, stagingBuffer,
                            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                            stagingMemory);
-    device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
+    const vk::Result bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
+    if (bindStagingRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{bindStagingRes}};
+    }
 
     // Descriptor Image Info
     vk::DescriptorImageInfo descImageInfo;

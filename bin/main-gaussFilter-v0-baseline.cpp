@@ -114,7 +114,8 @@ int main() {
         gaussCmdBufMgr.submitTo(queueMgr);
         gaussCmdBufMgr.waitFence();
 
-        std::println("Gaussian blur timecost: {} ms", queryPoolMgr.getElaspedTimes()[0]);
+        auto elapsedTime = queryPoolMgr.getElaspedTimes() | unwrap;
+        std::println("Gaussian blur timecost: {} ms", elapsedTime[0]);
     }
 
     dstImageMgr.downloadTo(dstImage.getImageSpan());

@@ -4,9 +4,8 @@
 #include <span>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/device/logical.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/descriptor/pool.hpp"
@@ -34,7 +33,10 @@ std::expected<DescPoolManager, Error> DescPoolManager::create(
     poolInfo.setPoolSizes(poolSizes);
 
     auto& device = pDeviceMgr->getDevice();
-    vk::DescriptorPool descPool = device.createDescriptorPool(poolInfo);
+    const auto [descPoolRes, descPool] = device.createDescriptorPool(poolInfo);
+    if (descPoolRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{descPoolRes}};
+    }
 
     return DescPoolManager{std::move(pDeviceMgr), descPool};
 }

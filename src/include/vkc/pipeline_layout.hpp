@@ -4,7 +4,7 @@
 #include <memory>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #include "vkc/descriptor/layout.hpp"
 #include "vkc/device/logical.hpp"

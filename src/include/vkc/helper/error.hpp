@@ -3,6 +3,8 @@
 #include <source_location>
 #include <string>
 
+#include "vkc/helper/vulkan.hpp"
+
 namespace vkc {
 
 class Error {
@@ -11,6 +13,7 @@ public:
     std::source_location source;
     std::string msg;
 
+    explicit Error(vk::Result code, const std::source_location& source = std::source_location::current());
     explicit Error(int code, const std::source_location& source = std::source_location::current());
     Error(int code, const std::string& msg, const std::source_location& source = std::source_location::current());
     Error(int code, std::string&& msg, const std::source_location& source = std::source_location::current());

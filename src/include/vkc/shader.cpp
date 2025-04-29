@@ -6,7 +6,7 @@
 #include <span>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
@@ -40,7 +40,10 @@ std::expected<ShaderManager, Error> ShaderManager::create(std::shared_ptr<Device
     shaderInfo.setCodeSize(code.size());
 
     auto& device = pDeviceMgr->getDevice();
-    vk::ShaderModule shader = device.createShaderModule(shaderInfo);
+    const auto [shaderRes, shader] = device.createShaderModule(shaderInfo);
+    if (shaderRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{shaderRes}};
+    }
 
     return ShaderManager{std::move(pDeviceMgr), shader};
 }
@@ -54,7 +57,10 @@ std::expected<ShaderManager, Error> ShaderManager::createFromPath(std::shared_pt
     shaderInfo.setCodeSize(code.size());
 
     auto& device = pDeviceMgr->getDevice();
-    vk::ShaderModule shader = device.createShaderModule(shaderInfo);
+    const auto [shaderRes, shader] = device.createShaderModule(shaderInfo);
+    if (shaderRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{shaderRes}};
+    }
 
     return ShaderManager{std::move(pDeviceMgr), shader};
 }

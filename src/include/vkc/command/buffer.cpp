@@ -5,14 +5,13 @@
 #include <ranges>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/command/pool.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device/logical.hpp"
 #include "vkc/device/queue.hpp"
 #include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
@@ -62,8 +61,16 @@ std::expected<CommandBufferManager, Error> CommandBufferManager::create(
     allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
     allocInfo.setCommandBufferCount(1);
 
-    vk::CommandBuffer commandBuffer = device.allocateCommandBuffers(allocInfo)[0];
-    vk::Fence completeFence = device.createFence({});
+    const auto [commandBuffersRes, commandBuffers] = device.allocateCommandBuffers(allocInfo);
+    if (commandBuffersRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{commandBuffersRes}};
+    }
+    vk::CommandBuffer commandBuffer = commandBuffers[0];
+
+    const auto [completeFenceRes, completeFence] = device.createFence({});
+    if (completeFenceRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{completeFenceRes}};
+    }
 
     return CommandBufferManager{std::move(pDeviceMgr), std::move(pCommandPoolMgr), commandBuffer, completeFence};
 }
@@ -78,12 +85,20 @@ void CommandBufferManager::bindDescSets(DescSetsManager& descSetsMgr, const Pipe
                                       (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
 }
 
-void CommandBufferManager::begin() {
-    commandBuffer_.reset();
+std::expected<void, Error> CommandBufferManager::begin() {
+    const vk::Result resetRes = commandBuffer_.reset();
+    if (resetRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{resetRes}};
+    }
 
     vk::CommandBufferBeginInfo cmdBufBeginInfo;
     cmdBufBeginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-    commandBuffer_.begin(cmdBufBeginInfo);
+    const vk::Result beginRes = commandBuffer_.begin(cmdBufBeginInfo);
+    if (beginRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{beginRes}};
+    }
+
+    return {};
 }
 
 void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageMgrCRef> srcImageMgrRefs) {

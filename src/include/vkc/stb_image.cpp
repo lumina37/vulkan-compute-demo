@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #pragma push_macro("STB_IMAGE_IMPLEMENTATION")
 #pragma push_macro("STB_IMAGE_WRITE_IMPLEMENTATION")
@@ -11,8 +11,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image.h>
 #include <stb_image_write.h>
-#pragma pop_macro("STB_IMAGE_IMPLEMENTATION")
 #pragma pop_macro("STB_IMAGE_WRITE_IMPLEMENTATION")
+#pragma pop_macro("STB_IMAGE_IMPLEMENTATION")
 
 #include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"

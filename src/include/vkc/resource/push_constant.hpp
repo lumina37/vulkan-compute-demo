@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 

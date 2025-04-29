@@ -8,6 +8,8 @@
 
 namespace vkc {
 
+Error::Error(const vk::Result code, const std::source_location& source) : code((int)code), source(source) {}
+
 Error::Error(const int code, const std::source_location& source) : code(code), source(source) {}
 
 Error::Error(const int code, const std::string& msg, const std::source_location& source)

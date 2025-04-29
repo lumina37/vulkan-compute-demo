@@ -6,7 +6,7 @@
 #include <span>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #include "vkc/device/logical.hpp"
 #include "vkc/device/physical.hpp"

@@ -1,10 +1,12 @@
 #include <cstdint>
+#include <expected>
 #include <ranges>
+#include <tuple>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #include "vkc/device/logical.hpp"
-#include "vkc/device/physical.hpp"
+#include "vkc/helper/error.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/resource/memory.hpp"
@@ -14,8 +16,9 @@ namespace vkc::_hp {
 
 namespace rgs = std::ranges;
 
-uint32_t findMemoryTypeIdx(const PhysicalDeviceManager& phyDeviceMgr, const uint32_t supportedMemType,
-                           const vk::MemoryPropertyFlags memProps) {
+std::expected<uint32_t, Error> findMemoryTypeIdx(const PhysicalDeviceManager& phyDeviceMgr,
+                                                 const uint32_t supportedMemType,
+                                                 const vk::MemoryPropertyFlags memProps) {
     const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
     const vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
 
@@ -27,29 +30,49 @@ uint32_t findMemoryTypeIdx(const PhysicalDeviceManager& phyDeviceMgr, const uint
         }
     }
 
-    return 0;
+    return std::unexpected{Error{-1, "no sufficient memory type"}};
 }
 
-void allocBufferMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Buffer& buffer,
-                       vk::MemoryPropertyFlags memProps, vk::DeviceMemory& bufferMemory) {
+std::expected<void, Error> allocBufferMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
+                                             vk::Buffer& buffer, vk::MemoryPropertyFlags memProps,
+                                             vk::DeviceMemory& bufferMemory) {
     auto& device = deviceMgr.getDevice();
 
     vk::MemoryAllocateInfo allocInfo;
     const vk::MemoryRequirements memRequirements = device.getBufferMemoryRequirements(buffer);
     allocInfo.setAllocationSize(memRequirements.size);
-    allocInfo.memoryTypeIndex = findMemoryTypeIdx(phyDeviceMgr, memRequirements.memoryTypeBits, memProps);
-    bufferMemory = device.allocateMemory(allocInfo);
+    auto memoryTypeIndexRes = findMemoryTypeIdx(phyDeviceMgr, memRequirements.memoryTypeBits, memProps);
+    if (!memoryTypeIndexRes) return std::unexpected{std::move(memoryTypeIndexRes.error())};
+    allocInfo.memoryTypeIndex = memoryTypeIndexRes.value();
+
+    vk::Result bufferMemoryRes;
+    std::tie(bufferMemoryRes, bufferMemory) = device.allocateMemory(allocInfo);
+    if (bufferMemoryRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{bufferMemoryRes}};
+    }
+
+    return {};
 }
 
-void allocImageMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr, vk::Image& image,
-                      vk::MemoryPropertyFlags memProps, vk::DeviceMemory& bufferMemory) {
+std::expected<void, Error> allocImageMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
+                                            vk::Image& image, vk::MemoryPropertyFlags memProps,
+                                            vk::DeviceMemory& bufferMemory) {
     auto& device = deviceMgr.getDevice();
 
     vk::MemoryAllocateInfo allocInfo;
     const vk::MemoryRequirements memRequirements = device.getImageMemoryRequirements(image);
     allocInfo.setAllocationSize(memRequirements.size);
-    allocInfo.memoryTypeIndex = findMemoryTypeIdx(phyDeviceMgr, memRequirements.memoryTypeBits, memProps);
-    bufferMemory = device.allocateMemory(allocInfo);
+    auto memoryTypeIndexRes = findMemoryTypeIdx(phyDeviceMgr, memRequirements.memoryTypeBits, memProps);
+    if (!memoryTypeIndexRes) return std::unexpected{std::move(memoryTypeIndexRes.error())};
+    allocInfo.memoryTypeIndex = memoryTypeIndexRes.value();
+
+    vk::Result bufferMemoryRes;
+    std::tie(bufferMemoryRes, bufferMemory) = device.allocateMemory(allocInfo);
+    if (bufferMemoryRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{bufferMemoryRes}};
+    }
+
+    return {};
 }
 
 vk::Result uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory, const std::span<const std::byte> data) {

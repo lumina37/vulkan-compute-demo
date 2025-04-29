@@ -4,7 +4,7 @@
 #include <memory>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
@@ -41,7 +41,10 @@ std::expected<SamplerManager, Error> SamplerManager::create(std::shared_ptr<Devi
     samplerCreateInfo.setAddressModeW(vk::SamplerAddressMode::eMirroredRepeat);
 
     auto& device = pDeviceMgr->getDevice();
-    const vk::Sampler sampler = device.createSampler(samplerCreateInfo);
+    const auto [samplerRes, sampler] = device.createSampler(samplerCreateInfo);
+    if (samplerRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{samplerRes}};
+    }
 
     // Image Info
     vk::DescriptorImageInfo samplerInfo;

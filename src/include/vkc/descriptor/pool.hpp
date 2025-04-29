@@ -8,11 +8,10 @@
 #include <utility>
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
-
 #include "vkc/descriptor/concepts.hpp"
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 

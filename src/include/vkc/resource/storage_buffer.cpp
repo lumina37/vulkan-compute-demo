@@ -4,7 +4,7 @@
 #include <span>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
+#include "vkc/helper/vulkan.hpp"
 
 #include "vkc/device/logical.hpp"
 #include "vkc/device/physical.hpp"
@@ -55,11 +55,17 @@ std::expected<StorageBufferManager, Error> StorageBufferManager::create(Physical
     bufferInfo.setSize(size);
     bufferInfo.setUsage(vk::BufferUsageFlagBits::eStorageBuffer);
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
-    vk::Buffer buffer = device.createBuffer(bufferInfo);
+    auto [bufferRes, buffer] = device.createBuffer(bufferInfo);
+    if (bufferRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{bufferRes}};
+    }
 
     vk::DeviceMemory memory;
     _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, buffer, vk::MemoryPropertyFlagBits::eHostVisible, memory);
-    device.bindBufferMemory(buffer, memory, 0);
+    const vk::Result bindRes = device.bindBufferMemory(buffer, memory, 0);
+    if (bindRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{bindRes}};
+    }
 
     // Descriptor Buffer Info
     vk::DescriptorBufferInfo descBufferInfo;
