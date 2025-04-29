@@ -17,7 +17,7 @@ namespace rgs = std::ranges;
 
 std::expected<uint32_t, Error> findMemoryTypeIdx(const PhysicalDeviceManager& phyDeviceMgr,
                                                  const uint32_t supportedMemType,
-                                                 const vk::MemoryPropertyFlags memProps) {
+                                                 const vk::MemoryPropertyFlags memProps) noexcept {
     const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
     const vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
 
@@ -34,7 +34,7 @@ std::expected<uint32_t, Error> findMemoryTypeIdx(const PhysicalDeviceManager& ph
 
 std::expected<void, Error> allocBufferMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
                                              vk::Buffer& buffer, vk::MemoryPropertyFlags memProps,
-                                             vk::DeviceMemory& bufferMemory) {
+                                             vk::DeviceMemory& bufferMemory) noexcept {
     auto& device = deviceMgr.getDevice();
 
     vk::MemoryAllocateInfo allocInfo;
@@ -55,7 +55,7 @@ std::expected<void, Error> allocBufferMemory(const PhysicalDeviceManager& phyDev
 
 std::expected<void, Error> allocImageMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
                                             vk::Image& image, vk::MemoryPropertyFlags memProps,
-                                            vk::DeviceMemory& bufferMemory) {
+                                            vk::DeviceMemory& bufferMemory) noexcept {
     auto& device = deviceMgr.getDevice();
 
     vk::MemoryAllocateInfo allocInfo;
@@ -74,34 +74,37 @@ std::expected<void, Error> allocImageMemory(const PhysicalDeviceManager& phyDevi
     return {};
 }
 
-vk::Result uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory, const std::span<const std::byte> data) {
+std::expected<void, Error> uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory,
+                                      const std::span<const std::byte> data) noexcept {
     auto& device = deviceMgr.getDevice();
 
     // Upload to Buffer
     void* mapPtr;
-    auto uploadMapResult = device.mapMemory(memory, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
-    if (uploadMapResult != vk::Result::eSuccess) {
-        return uploadMapResult;
+    auto uploadMapRes = device.mapMemory(memory, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
+    if (uploadMapRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{uploadMapRes}};
     }
+
     std::memcpy(mapPtr, data.data(), data.size());
     device.unmapMemory(memory);
 
-    return vk::Result::eSuccess;
+    return {};
 }
 
-vk::Result downloadTo(DeviceManager& deviceMgr, const vk::DeviceMemory& memory, const std::span<std::byte> data) {
+std::expected<void, Error> downloadTo(DeviceManager& deviceMgr, const vk::DeviceMemory& memory,
+                                      const std::span<std::byte> data) noexcept {
     auto& device = deviceMgr.getDevice();
 
     // Download from Buffer
     void* mapPtr;
-    auto downloadMapResult = device.mapMemory(memory, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
-    if (downloadMapResult != vk::Result::eSuccess) {
-        return downloadMapResult;
+    auto downloadMapRes = device.mapMemory(memory, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
+    if (downloadMapRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{downloadMapRes}};
     }
     std::memcpy(data.data(), mapPtr, data.size());
     device.unmapMemory(memory);
 
-    return vk::Result::eSuccess;
+    return {};
 }
 
 }  // namespace vkc::_hp

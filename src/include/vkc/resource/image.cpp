@@ -181,11 +181,11 @@ vk::DescriptorSetLayoutBinding ImageManager::draftDescSetLayoutBinding() const n
     return binding;
 }
 
-vk::Result ImageManager::uploadFrom(const std::span<const std::byte> data) {
+std::expected<void, Error> ImageManager::uploadFrom(const std::span<const std::byte> data) noexcept {
     return _hp::uploadFrom(*pDeviceMgr_, stagingMemory_, data);
 }
 
-vk::Result ImageManager::downloadTo(const std::span<std::byte> data) {
+std::expected<void, Error> ImageManager::downloadTo(const std::span<std::byte> data) noexcept {
     return _hp::downloadTo(*pDeviceMgr_, stagingMemory_, data);
 }
 

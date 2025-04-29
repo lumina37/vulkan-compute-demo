@@ -50,7 +50,7 @@ std::expected<DescSetsManager, Error> DescSetsManager::create(
 }
 
 void DescSetsManager::updateDescSets(
-    std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs) {
+    std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs) noexcept {
     int writeDescSetCount = 0;
     for (const auto& writeDescSetTemplates : writeDescSetTemplatesRefs) {
         writeDescSetCount += (int)writeDescSetTemplates.size();

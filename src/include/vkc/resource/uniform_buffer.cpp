@@ -82,11 +82,11 @@ vk::WriteDescriptorSet UniformBufferManager::draftWriteDescSet() const noexcept 
     return writeDescSet;
 }
 
-vk::Result UniformBufferManager::uploadFrom(const std::span<const std::byte> data) {
+std::expected<void, Error> UniformBufferManager::uploadFrom(const std::span<const std::byte> data) noexcept {
     return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
 }
 
-vk::Result UniformBufferManager::downloadTo(const std::span<std::byte> data) {
+std::expected<void, Error> UniformBufferManager::downloadTo(const std::span<std::byte> data) noexcept {
     return _hp::downloadTo(*pDeviceMgr_, memory_, data);
 }
 

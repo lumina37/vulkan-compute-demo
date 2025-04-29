@@ -53,7 +53,7 @@ public:
         return std::forward_like<Self>(self).descSets_[index];
     }
 
-    void updateDescSets(std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs);
+    void updateDescSets(std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs) noexcept;
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;

@@ -82,11 +82,11 @@ vk::WriteDescriptorSet StorageBufferManager::draftWriteDescSet() const noexcept 
     return writeDescSet;
 }
 
-vk::Result StorageBufferManager::uploadFrom(const std::span<const std::byte> data) {
+std::expected<void, Error> StorageBufferManager::uploadFrom(const std::span<const std::byte> data) noexcept {
     return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
 }
 
-vk::Result StorageBufferManager::downloadTo(const std::span<std::byte> data) {
+std::expected<void, Error> StorageBufferManager::downloadTo(const std::span<std::byte> data) noexcept {
     return _hp::downloadTo(*pDeviceMgr_, memory_, data);
 }
 
