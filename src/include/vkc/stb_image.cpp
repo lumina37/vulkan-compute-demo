@@ -46,6 +46,7 @@ std::expected<StbImageManager, Error> StbImageManager::createFromPath(const fs::
     if (image == nullptr) return std::unexpected{Error{-1, "failed to load image"}};
 
     Extent extent{width, height, mapStbCompsToVkFormat(comps)};
+
     return StbImageManager{image, extent};
 }
 

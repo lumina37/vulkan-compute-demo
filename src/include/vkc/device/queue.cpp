@@ -18,6 +18,7 @@ QueueManager::QueueManager(vk::Queue queue) noexcept : computeQueue_(queue) {}
 std::expected<QueueManager, Error> QueueManager::create(DeviceManager& deviceMgr, uint32_t queueFamilyIdx) noexcept {
     auto& device = deviceMgr.getDevice();
     const vk::Queue computeQueue = device.getQueue(queueFamilyIdx, 0);
+
     return QueueManager{computeQueue};
 }
 

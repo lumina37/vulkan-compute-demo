@@ -1,5 +1,7 @@
+#include <expected>
 #include <memory>
 #include <span>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
@@ -11,19 +13,29 @@
 
 namespace vkc {
 
-DescSetLayoutManager::DescSetLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                                           const std::span<const vk::DescriptorSetLayoutBinding> bindings)
-    : pDdeviceMgr_(pDeviceMgr) {
+DescSetLayoutManager::DescSetLayoutManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
+                                           vk::DescriptorSetLayout descSetlayout) noexcept
+    : pDdeviceMgr_(std::move(pDeviceMgr)), descSetlayout_(descSetlayout) {}
+
+DescSetLayoutManager::DescSetLayoutManager(DescSetLayoutManager&& rhs) noexcept
+    : pDdeviceMgr_(std::move(rhs.pDdeviceMgr_)), descSetlayout_(std::exchange(rhs.descSetlayout_, nullptr)) {}
+
+DescSetLayoutManager::~DescSetLayoutManager() noexcept {
+    if (descSetlayout_ == nullptr) return;
+    auto& device = pDdeviceMgr_->getDevice();
+    device.destroyDescriptorSetLayout(descSetlayout_);
+    descSetlayout_ = nullptr;
+}
+
+std::expected<DescSetLayoutManager, Error> DescSetLayoutManager::create(
+    std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorSetLayoutBinding> bindings) noexcept {
     vk::DescriptorSetLayoutCreateInfo layoutInfo;
     layoutInfo.setBindings(bindings);
 
     auto& device = pDeviceMgr->getDevice();
-    descSetlayout_ = device.createDescriptorSetLayout(layoutInfo);
-}
+    vk::DescriptorSetLayout descSetlayout = device.createDescriptorSetLayout(layoutInfo);
 
-DescSetLayoutManager::~DescSetLayoutManager() noexcept {
-    auto& device = pDdeviceMgr_->getDevice();
-    device.destroyDescriptorSetLayout(descSetlayout_);
+    return DescSetLayoutManager{std::move(pDeviceMgr), descSetlayout};
 }
 
 }  // namespace vkc

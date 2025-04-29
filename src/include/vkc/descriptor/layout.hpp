@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <memory>
 #include <span>
 #include <utility>
@@ -11,10 +12,14 @@
 namespace vkc {
 
 class DescSetLayoutManager {
+    DescSetLayoutManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DescriptorSetLayout descSetlayout) noexcept;
+
 public:
-    DescSetLayoutManager(const std::shared_ptr<DeviceManager>& pDeviceMgr,
-                         std::span<const vk::DescriptorSetLayoutBinding> bindings);
+    DescSetLayoutManager(DescSetLayoutManager&& rhs) noexcept;
     ~DescSetLayoutManager() noexcept;
+
+    [[nodiscard]] static std::expected<DescSetLayoutManager, Error> create(
+        std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorSetLayoutBinding> bindings) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getDescSetLayout(this Self&& self) noexcept {
