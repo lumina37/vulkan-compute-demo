@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <expected>
 #include <filesystem>
 #include <vector>
 
@@ -8,7 +9,7 @@ namespace vkc {
 
 namespace fs = std::filesystem;
 
-std::vector<std::byte> readFile(const fs::path& path);
+std::expected<std::vector<std::byte>, Error> readFile(const fs::path& path) noexcept;
 
 }  // namespace vkc
 

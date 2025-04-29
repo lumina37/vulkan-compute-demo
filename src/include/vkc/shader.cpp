@@ -49,7 +49,9 @@ std::expected<ShaderManager, Error> ShaderManager::create(std::shared_ptr<Device
 
 std::expected<ShaderManager, Error> ShaderManager::createFromPath(std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                   const fs::path& path) noexcept {
-    const auto& code = readFile(path);
+    auto codeRes = readFile(path);
+    if (!codeRes) return std::unexpected{std::move(codeRes.error())};
+    const auto& code = codeRes.value();
 
     vk::ShaderModuleCreateInfo shaderInfo;
     shaderInfo.setPCode((uint32_t*)code.data());

@@ -1,12 +1,13 @@
 #include <cstddef>
+#include <expected>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <ios>
-#include <iostream>
-#include <print>
+#include <utility>
 #include <vector>
 
-#include "vkc/helper/defines.hpp"
+#include "vkc/helper/error.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/helper/readfile.hpp"
@@ -16,20 +17,18 @@ namespace vkc {
 
 namespace fs = std::filesystem;
 
-std::vector<std::byte> readFile(const fs::path& path) {
-    std::ifstream file{path, std::ios::ate | std::ios::binary};
-
-    if constexpr (ENABLE_DEBUG) {
-        if (!file.is_open()) {
-            std::println(std::cerr, "Cannot open file: {}", path.string());
-        }
+std::expected<std::vector<std::byte>, Error> readFile(const fs::path& path) noexcept {
+    std::ifstream ifs{path, std::ios::ate | std::ios::binary};
+    if (!ifs.good()) {
+        auto errMsg = std::format("cannot open file: {}", path.string());
+        return std::unexpected{Error{-1, std::move(errMsg)}};
     }
 
-    std::streamsize fileSize = file.tellg();
+    const std::streamsize fileSize = ifs.tellg();
     std::vector<std::byte> buffer(fileSize);
 
-    file.seekg(0);
-    file.read((char*)buffer.data(), fileSize);
+    ifs.seekg(0);
+    ifs.read((char*)buffer.data(), fileSize);
 
     return buffer;
 }
