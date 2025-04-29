@@ -1,12 +1,15 @@
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <memory>
 #include <span>
+#include <utility>
 
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/device/logical.hpp"
+#include "vkc/helper/error.hpp"
 #include "vkc/helper/readfile.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
@@ -17,8 +20,33 @@ namespace vkc {
 
 namespace fs = std::filesystem;
 
-ShaderManager::ShaderManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const fs::path& path)
-    : pDeviceMgr_(pDeviceMgr) {
+ShaderManager::ShaderManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::ShaderModule shader) noexcept
+    : pDeviceMgr_(std::move(pDeviceMgr)), shader_(shader) {}
+
+ShaderManager::ShaderManager(ShaderManager&& rhs) noexcept
+    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)), shader_(std::exchange(rhs.shader_, nullptr)) {}
+
+ShaderManager::~ShaderManager() noexcept {
+    if (shader_ == nullptr) return;
+    auto& device = pDeviceMgr_->getDevice();
+    device.destroyShaderModule(shader_);
+    shader_ = nullptr;
+}
+
+std::expected<ShaderManager, Error> ShaderManager::create(std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                          std::span<const std::byte> code) noexcept {
+    vk::ShaderModuleCreateInfo shaderInfo;
+    shaderInfo.setPCode((uint32_t*)code.data());
+    shaderInfo.setCodeSize(code.size());
+
+    auto& device = pDeviceMgr->getDevice();
+    vk::ShaderModule shader = device.createShaderModule(shaderInfo);
+
+    return ShaderManager{std::move(pDeviceMgr), shader};
+}
+
+std::expected<ShaderManager, Error> ShaderManager::createFromPath(std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                                  const fs::path& path) noexcept {
     const auto& code = readFile(path);
 
     vk::ShaderModuleCreateInfo shaderInfo;
@@ -26,22 +54,9 @@ ShaderManager::ShaderManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, c
     shaderInfo.setCodeSize(code.size());
 
     auto& device = pDeviceMgr->getDevice();
-    shader_ = device.createShaderModule(shaderInfo);
-}
+    vk::ShaderModule shader = device.createShaderModule(shaderInfo);
 
-ShaderManager::ShaderManager(const std::shared_ptr<DeviceManager>& pDeviceMgr, const std::span<const std::byte> code)
-    : pDeviceMgr_(pDeviceMgr) {
-    vk::ShaderModuleCreateInfo shaderInfo;
-    shaderInfo.setPCode((uint32_t*)code.data());
-    shaderInfo.setCodeSize(code.size());
-
-    auto& device = pDeviceMgr->getDevice();
-    shader_ = device.createShaderModule(shaderInfo);
-}
-
-ShaderManager::~ShaderManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
-    device.destroyShaderModule(shader_);
+    return ShaderManager{std::move(pDeviceMgr), shader};
 }
 
 }  // namespace vkc

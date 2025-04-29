@@ -86,7 +86,7 @@ int main() {
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{256, 1, 1};
-    vkc::ShaderManager gaussShaderMgr{pDeviceMgr, shader::gaussFilterV2SpirvCode};
+    vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilterV2SpirvCode) | unwrap;
     constexpr int maxHalfKSize = 128;
     vkc::SpecConstantManager specConstantMgr{blockSize.x, maxHalfKSize};
     vkc::PipelineManager gaussPipelineMgr{pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()};
