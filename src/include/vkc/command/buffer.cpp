@@ -1,6 +1,4 @@
-#include <cstdint>
 #include <expected>
-#include <limits>
 #include <memory>
 #include <ranges>
 #include <utility>
@@ -10,6 +8,7 @@
 #include "vkc/device/logical.hpp"
 #include "vkc/device/queue.hpp"
 #include "vkc/extent.hpp"
+#include "vkc/fence.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 #include "vkc/pipeline.hpp"
@@ -26,17 +25,13 @@ namespace rgs = std::ranges;
 
 CommandBufferManager::CommandBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
                                            std::shared_ptr<CommandPoolManager>&& pCommandPoolMgr,
-                                           vk::CommandBuffer commandBuffer, vk::Fence completeFence) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)),
-      pCommandPoolMgr_(std::move(pCommandPoolMgr)),
-      commandBuffer_(commandBuffer),
-      completeFence_(completeFence) {}
+                                           vk::CommandBuffer commandBuffer) noexcept
+    : pDeviceMgr_(std::move(pDeviceMgr)), pCommandPoolMgr_(std::move(pCommandPoolMgr)), commandBuffer_(commandBuffer) {}
 
 CommandBufferManager::CommandBufferManager(CommandBufferManager&& rhs) noexcept
     : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
       pCommandPoolMgr_(std::move(rhs.pCommandPoolMgr_)),
-      commandBuffer_(std::exchange(rhs.commandBuffer_, nullptr)),
-      completeFence_(std::exchange(rhs.completeFence_, nullptr)) {}
+      commandBuffer_(std::exchange(rhs.commandBuffer_, nullptr)) {}
 
 CommandBufferManager::~CommandBufferManager() noexcept {
     auto& device = pDeviceMgr_->getDevice();
@@ -44,10 +39,6 @@ CommandBufferManager::~CommandBufferManager() noexcept {
     if (commandBuffer_ != nullptr) {
         device.freeCommandBuffers(commandPool, commandBuffer_);
         commandBuffer_ = nullptr;
-    }
-    if (completeFence_ != nullptr) {
-        device.destroyFence(completeFence_);
-        completeFence_ = nullptr;
     }
 }
 
@@ -67,12 +58,7 @@ std::expected<CommandBufferManager, Error> CommandBufferManager::create(
     }
     vk::CommandBuffer commandBuffer = commandBuffers[0];
 
-    const auto [completeFenceRes, completeFence] = device.createFence({});
-    if (completeFenceRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{completeFenceRes}};
-    }
-
-    return CommandBufferManager{std::move(pDeviceMgr), std::move(pCommandPoolMgr), commandBuffer, completeFence};
+    return CommandBufferManager{std::move(pDeviceMgr), std::move(pCommandPoolMgr), commandBuffer};
 }
 
 void CommandBufferManager::bindPipeline(PipelineManager& pipelineMgr) noexcept {
@@ -300,30 +286,14 @@ std::expected<void, Error> CommandBufferManager::end() noexcept {
     return {};
 }
 
-std::expected<void, Error> CommandBufferManager::submitTo(QueueManager& queueMgr) noexcept {
+std::expected<void, Error> CommandBufferManager::submitTo(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept {
     vk::SubmitInfo submitInfo;
     submitInfo.setCommandBuffers(commandBuffer_);
 
     auto& computeQueue = queueMgr.getComputeQueue();
-    const vk::Result submitRes = computeQueue.submit(submitInfo, completeFence_);
+    const vk::Result submitRes = computeQueue.submit(submitInfo, fenceMgr.getFence());
     if (submitRes != vk::Result::eSuccess) {
         return std::unexpected{Error{submitRes}};
-    }
-
-    return {};
-}
-
-std::expected<void, Error> CommandBufferManager::waitFence() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
-
-    const auto waitFenceRes = device.waitForFences(completeFence_, true, std::numeric_limits<uint64_t>::max());
-    if (waitFenceRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{waitFenceRes}};
-    }
-
-    const auto resetFenceRes = device.resetFences(completeFence_);
-    if (resetFenceRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{resetFenceRes}};
     }
 
     return {};

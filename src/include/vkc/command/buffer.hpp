@@ -9,6 +9,7 @@
 #include "vkc/device/logical.hpp"
 #include "vkc/device/queue.hpp"
 #include "vkc/extent.hpp"
+#include "vkc/fence.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 #include "vkc/pipeline.hpp"
@@ -26,8 +27,8 @@ struct BlockSize {
 
 class CommandBufferManager {
     CommandBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
-                         std::shared_ptr<CommandPoolManager>&& pCommandPoolMgr, vk::CommandBuffer commandBuffer,
-                         vk::Fence completeFence) noexcept;
+                         std::shared_ptr<CommandPoolManager>&& pCommandPoolMgr,
+                         vk::CommandBuffer commandBuffer) noexcept;
 
 public:
     CommandBufferManager(CommandBufferManager&& rhs) noexcept;
@@ -39,11 +40,6 @@ public:
     template <typename Self>
     [[nodiscard]] auto&& getCommandBuffer(this Self&& self) noexcept {
         return std::forward_like<Self>(self).commandBuffer_;
-    }
-
-    template <typename Self>
-    [[nodiscard]] auto&& getCompleteFence(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).completeFence_;
     }
 
     void bindPipeline(PipelineManager& pipelineMgr) noexcept;
@@ -79,15 +75,13 @@ public:
     void recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage) noexcept;
 
     [[nodiscard]] std::expected<void, Error> end() noexcept;
-    [[nodiscard]] std::expected<void, Error> submitTo(QueueManager& queueMgr) noexcept;
-    [[nodiscard]] std::expected<void, Error> waitFence() noexcept;
+    [[nodiscard]] std::expected<void, Error> submitTo(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept;
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;
     std::shared_ptr<CommandPoolManager> pCommandPoolMgr_;
 
     vk::CommandBuffer commandBuffer_;
-    vk::Fence completeFence_;
 
     static constexpr vk::ImageSubresourceRange SUBRESOURCE_RANGE{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1};
 };

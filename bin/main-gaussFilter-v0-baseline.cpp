@@ -78,6 +78,7 @@ int main() {
     gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
 
     // Command Buffer
+    vkc::FenceManager fenceMgr = vkc::FenceManager::create(pDeviceMgr) | unwrap;
     auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
         vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
@@ -111,8 +112,9 @@ int main() {
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submitTo(queueMgr) | unwrap;
-        gaussCmdBufMgr.waitFence() | unwrap;
+        gaussCmdBufMgr.submitTo(queueMgr, fenceMgr) | unwrap;
+        fenceMgr.wait() | unwrap;
+        fenceMgr.reset() | unwrap;
 
         auto elapsedTime = queryPoolMgr.getElaspedTimes() | unwrap;
         std::println("Gaussian blur timecost: {} ms", elapsedTime[0]);

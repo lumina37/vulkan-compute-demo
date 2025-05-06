@@ -147,6 +147,7 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
     gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
 
     // Command Buffer
+    vkc::FenceManager fenceMgr = vkc::FenceManager::create(pDeviceMgr) | unwrap;
     auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
         vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
@@ -160,7 +161,7 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
             vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
             unwrap;
 
-        gaussCmdBufMgr.begin();
+        gaussCmdBufMgr.begin() | unwrap;
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
@@ -172,13 +173,14 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
         gaussCmdBufMgr.recordDownloadToDst(dstImageMgrCRefs);
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
-        gaussCmdBufMgr.end();
+        gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submitTo(queueMgr);
-        gaussCmdBufMgr.waitFence();
+        gaussCmdBufMgr.submitTo(queueMgr, fenceMgr) | unwrap;
+        fenceMgr.wait() | unwrap;
+        fenceMgr.reset() | unwrap;
 
-        dstImageMgr.downloadTo(dstImageVk.getImageSpan());
-        dstImageVk.saveTo("v0.png");
+        dstImageMgr.downloadTo(dstImageVk.getImageSpan()) | unwrap;
+        dstImageVk.saveTo("v0.png") | unwrap;
 
         int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {
@@ -201,7 +203,7 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
             vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
             unwrap;
 
-        gaussCmdBufMgr.begin();
+        gaussCmdBufMgr.begin() | unwrap;
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
@@ -213,13 +215,14 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
         gaussCmdBufMgr.recordDownloadToDst(dstImageMgrCRefs);
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
-        gaussCmdBufMgr.end();
+        gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submitTo(queueMgr);
-        gaussCmdBufMgr.waitFence();
+        gaussCmdBufMgr.submitTo(queueMgr, fenceMgr) | unwrap;
+        fenceMgr.wait() | unwrap;
+        fenceMgr.reset() | unwrap;
 
-        dstImageMgr.downloadTo(dstImageVk.getImageSpan());
-        dstImageVk.saveTo("v2.png");
+        dstImageMgr.downloadTo(dstImageVk.getImageSpan()) | unwrap;
+        dstImageVk.saveTo("v2.png") | unwrap;
 
         int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {
