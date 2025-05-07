@@ -17,17 +17,14 @@ std::expected<PhyDeviceProps, Error> PhyDeviceProps::create(const PhyDeviceManag
     PhyDeviceProps props;
     const auto phyDevice = phyDeviceMgr.getPhyDevice();
 
-    vk::StructureChain<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceSubgroupProperties> propsChain;
-    phyDevice.getProperties2(&propsChain.get<vk::PhysicalDeviceProperties2>());
+    vk::StructureChain<vk::PhysicalDeviceProperties2> propsChain;
+    phyDevice.getProperties2(&propsChain.get());
 
     const auto& deviceProps = propsChain.get<vk::PhysicalDeviceProperties2>().properties;
     props.deviceType = deviceProps.deviceType;
     props.maxSharedMemSize = deviceProps.limits.maxComputeSharedMemorySize;
     props.timestampPeriod = deviceProps.limits.timestampPeriod;
     props.supportTimeQueryForAllQueue = (bool)deviceProps.limits.timestampComputeAndGraphics;
-
-    const auto& subgroupProperties = propsChain.get<vk::PhysicalDeviceSubgroupProperties>();
-    props.subgroupSize = subgroupProperties.subgroupSize;
 
     return props;
 }
