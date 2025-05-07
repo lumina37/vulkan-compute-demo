@@ -85,7 +85,7 @@ int main() {
         vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
     vkc::TimestampQueryPoolManager queryPoolMgr =
-        vkc::TimestampQueryPoolManager::create(pDeviceMgr, 2, 52) | unwrap;  // TODO: no literal
+        vkc::TimestampQueryPoolManager::create(pDeviceMgr, 2, phyDeviceWithProps.getProps().timestampPeriod) | unwrap;
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};

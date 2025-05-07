@@ -9,9 +9,9 @@
 namespace vkc {
 
 template <typename Self>
-concept CPhyDeviceProps = std::is_move_constructible_v<Self> && requires(vk::PhysicalDevice device) {
+concept CPhyDeviceProps = std::is_move_constructible_v<Self> && requires(const PhyDeviceManager& phyDeviceMgr) {
     // Init from
-    { Self::create(device) } noexcept -> std::same_as<std::expected<Self, Error>>;
+    { Self::create(phyDeviceMgr) } noexcept -> std::same_as<std::expected<Self, Error>>;
 };
 
 }  // namespace vkc

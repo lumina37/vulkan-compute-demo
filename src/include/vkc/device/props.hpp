@@ -22,7 +22,10 @@ public:
 
     // Members
     vk::PhysicalDeviceType deviceType;
+    uint32_t maxSharedMemSize;
     uint32_t subgroupSize;
+    float timestampPeriod;
+    bool supportTimeQueryForAllQueue;
 };
 
 template <CPhyDeviceProps TProps_>

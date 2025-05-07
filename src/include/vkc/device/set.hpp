@@ -57,7 +57,7 @@ std::expected<DeviceSet_<TProps>, Error> DeviceSet_<TProps>::create(const Instan
         if (!phyDeviceMgrRes) return std::unexpected{std::move(phyDeviceMgrRes.error())};
         auto& phyDeviceMgr = phyDeviceMgrRes.value();
 
-        auto phyDevicePropsRes = TProps::create(physicalDevice);
+        auto phyDevicePropsRes = TProps::create(phyDeviceMgr);
         if (!phyDevicePropsRes) return std::unexpected{std::move(phyDevicePropsRes.error())};
         auto& phyDeviceProps = phyDevicePropsRes.value();
 
@@ -80,7 +80,7 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> Device
             return str.substr(0, lastCh + 1);
         };
 
-        const auto phyDevice = deviceWithProps.getPhyDeviceMgr().getPhysicalDevice();
+        const auto phyDevice = deviceWithProps.getPhyDeviceMgr().getPhyDevice();
         const auto& phyDeviceProp = phyDevice.getProperties();
 
         std::println("Candidate physical device: {}. Vk API version: {}.{}.{}. Score: {}",

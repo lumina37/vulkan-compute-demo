@@ -88,7 +88,7 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
 
 TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
     constexpr int maxValidDiff = 1;
-    constexpr float maxValidAvgDiff = 0.001;
+    constexpr float maxValidAvgDiff = 0.001f;
 
     constexpr int kernelSize = 5;
     constexpr float sigma = 10.0f;
@@ -112,7 +112,9 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
 
     // Device
     vkc::InstanceManager instMgr = vkc::InstanceManager::create() | unwrap;
-    vkc::PhyDeviceManager phyDeviceMgr = vkc::PhyDeviceManager::create(instMgr) | unwrap;
+    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instMgr) | unwrap;
+    vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.pickDefault() | unwrap).get();
+    vkc::PhyDeviceManager& phyDeviceMgr = phyDeviceWithProps.getPhyDeviceMgr();
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr) | unwrap;
     auto pDeviceMgr =
         std::make_shared<vkc::DeviceManager>(vkc::DeviceManager::create(phyDeviceMgr, computeQFamilyIdx) | unwrap);

@@ -20,8 +20,11 @@ std::expected<PhyDeviceProps, Error> PhyDeviceProps::create(const PhyDeviceManag
     vk::StructureChain<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceSubgroupProperties> propsChain;
     phyDevice.getProperties2(&propsChain.get<vk::PhysicalDeviceProperties2>());
 
-    const auto& deviceProps = propsChain.get<vk::PhysicalDeviceProperties2>();
-    props.deviceType = deviceProps.properties.deviceType;
+    const auto& deviceProps = propsChain.get<vk::PhysicalDeviceProperties2>().properties;
+    props.deviceType = deviceProps.deviceType;
+    props.maxSharedMemSize = deviceProps.limits.maxComputeSharedMemorySize;
+    props.timestampPeriod = deviceProps.limits.timestampPeriod;
+    props.supportTimeQueryForAllQueue = (bool)deviceProps.limits.timestampComputeAndGraphics;
 
     const auto& subgroupProperties = propsChain.get<vk::PhysicalDeviceSubgroupProperties>();
     props.subgroupSize = subgroupProperties.subgroupSize;
