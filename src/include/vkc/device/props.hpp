@@ -21,9 +21,11 @@ public:
         const PhyDeviceManager& phyDeviceMgr) noexcept;
 
     // Members
+    uint32_t apiVersion;
     vk::PhysicalDeviceType deviceType;
     uint32_t maxSharedMemSize;
     float timestampPeriod;
+    bool supportFp16;
     bool supportTimeQueryForAllQueue;
 };
 

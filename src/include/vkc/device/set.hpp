@@ -82,11 +82,11 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> Device
 
         const auto phyDevice = deviceWithProps.getPhyDeviceMgr().getPhyDevice();
         const auto& phyDeviceProp = phyDevice.getProperties();
+        const uint32_t apiVersion = deviceWithProps.getProps().apiVersion;
 
         std::println("Candidate physical device: {}. Vk API version: {}.{}.{}. Score: {}",
-                     phyDeviceProp.deviceName.data(), VK_API_VERSION_MAJOR(phyDeviceProp.apiVersion),
-                     VK_API_VERSION_MINOR(phyDeviceProp.apiVersion), VK_API_VERSION_PATCH(phyDeviceProp.apiVersion),
-                     score);
+                     phyDeviceProp.deviceName.data(), VK_API_VERSION_MAJOR(apiVersion),
+                     VK_API_VERSION_MINOR(apiVersion), VK_API_VERSION_PATCH(apiVersion), score);
 
         return {};
     };

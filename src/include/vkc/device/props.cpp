@@ -20,11 +20,18 @@ std::expected<PhyDeviceProps, Error> PhyDeviceProps::create(const PhyDeviceManag
     vk::StructureChain<vk::PhysicalDeviceProperties2> propsChain;
     phyDevice.getProperties2(&propsChain.get());
 
-    const auto& deviceProps = propsChain.get<vk::PhysicalDeviceProperties2>().properties;
-    props.deviceType = deviceProps.deviceType;
-    props.maxSharedMemSize = deviceProps.limits.maxComputeSharedMemorySize;
-    props.timestampPeriod = deviceProps.limits.timestampPeriod;
-    props.supportTimeQueryForAllQueue = (bool)deviceProps.limits.timestampComputeAndGraphics;
+    const auto& phyDeviceProps = propsChain.get<vk::PhysicalDeviceProperties2>().properties;
+    props.apiVersion = phyDeviceProps.apiVersion;
+    props.deviceType = phyDeviceProps.deviceType;
+    props.maxSharedMemSize = phyDeviceProps.limits.maxComputeSharedMemorySize;
+    props.timestampPeriod = phyDeviceProps.limits.timestampPeriod;
+    props.supportTimeQueryForAllQueue = (bool)phyDeviceProps.limits.timestampComputeAndGraphics;
+
+    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceShaderFloat16Int8Features> featureChain;
+    phyDevice.getFeatures2(&featureChain.get());
+
+    const auto& shaderFp16Int8Features = featureChain.get<vk::PhysicalDeviceShaderFloat16Int8Features>();
+    props.supportFp16 = (bool)shaderFp16Int8Features.shaderFloat16;
 
     return props;
 }
