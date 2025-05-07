@@ -22,7 +22,7 @@ DeviceManager::~DeviceManager() noexcept {
     device_ = nullptr;
 }
 
-std::expected<DeviceManager, Error> DeviceManager::create(PhysicalDeviceManager& phyDeviceMgr,
+std::expected<DeviceManager, Error> DeviceManager::create(PhyDeviceManager& phyDeviceMgr,
                                                           uint32_t queueFamilyIdx) noexcept {
     constexpr float priority = 1.0f;
     vk::DeviceQueueCreateInfo computeQueueInfo;
@@ -33,7 +33,7 @@ std::expected<DeviceManager, Error> DeviceManager::create(PhysicalDeviceManager&
     vk::DeviceCreateInfo deviceInfo;
     deviceInfo.setQueueCreateInfos(computeQueueInfo);
 
-    auto& phyDevice = phyDeviceMgr.getPhysicalDevice();
+    auto& phyDevice = phyDeviceMgr.getPhyDevice();
     const auto [deviceRes, device] = phyDevice.createDevice(deviceInfo);
     if (deviceRes != vk::Result::eSuccess) {
         return std::unexpected{Error{deviceRes}};

@@ -44,7 +44,7 @@ StorageBufferManager::~StorageBufferManager() noexcept {
     }
 }
 
-std::expected<StorageBufferManager, Error> StorageBufferManager::create(PhysicalDeviceManager& phyDeviceMgr,
+std::expected<StorageBufferManager, Error> StorageBufferManager::create(PhyDeviceManager& phyDeviceMgr,
                                                                         std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                         vk::DeviceSize size) noexcept {
     auto& device = pDeviceMgr->getDevice();

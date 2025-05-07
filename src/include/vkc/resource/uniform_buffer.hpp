@@ -21,7 +21,7 @@ public:
     UniformBufferManager(UniformBufferManager&& rhs) noexcept;
     ~UniformBufferManager() noexcept;
 
-    [[nodiscard]] static std::expected<UniformBufferManager, Error> create(PhysicalDeviceManager& phyDeviceMgr,
+    [[nodiscard]] static std::expected<UniformBufferManager, Error> create(PhyDeviceManager& phyDeviceMgr,
                                                                            std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                            vk::DeviceSize size) noexcept;
 

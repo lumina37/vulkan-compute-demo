@@ -28,7 +28,7 @@ public:
     ImageManager(ImageManager&& rhs) noexcept;
     ~ImageManager() noexcept;
 
-    [[nodiscard]] static std::expected<ImageManager, Error> create(const PhysicalDeviceManager& phyDeviceMgr,
+    [[nodiscard]] static std::expected<ImageManager, Error> create(const PhyDeviceManager& phyDeviceMgr,
                                                                    std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                    const Extent& extent, ImageType imageType) noexcept;
 

@@ -17,7 +17,7 @@ public:
     DeviceManager(DeviceManager&& rhs) noexcept;
     ~DeviceManager() noexcept;
 
-    [[nodiscard]] static std::expected<DeviceManager, Error> create(PhysicalDeviceManager& phyDeviceMgr,
+    [[nodiscard]] static std::expected<DeviceManager, Error> create(PhyDeviceManager& phyDeviceMgr,
                                                                     uint32_t queueFamilyIdx) noexcept;
 
     template <typename Self>

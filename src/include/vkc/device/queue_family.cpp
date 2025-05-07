@@ -5,9 +5,9 @@
 #include <ranges>
 
 #include "vkc/device/physical.hpp"
+#include "vkc/device/score.hpp"
 #include "vkc/helper/defines.hpp"
 #include "vkc/helper/error.hpp"
-#include "vkc/helper/score.hpp"
 #include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
@@ -18,8 +18,8 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhysicalDeviceManager& phyDeviceMgr) noexcept {
-    const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
+std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhyDeviceManager& phyDeviceMgr) noexcept {
+    const auto& physicalDevice = phyDeviceMgr.getPhyDevice();
 
     const auto isQueueFamilyOK = [](const vk::QueueFamilyProperties& queueFamilyProp) {
         if (!(queueFamilyProp.queueFlags & vk::QueueFlagBits::eCompute)) return false;

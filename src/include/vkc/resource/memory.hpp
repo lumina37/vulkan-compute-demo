@@ -11,16 +11,16 @@
 
 namespace vkc::_hp {
 
-[[nodiscard]] std::expected<uint32_t, Error> findMemoryTypeIdx(const PhysicalDeviceManager& phyDeviceMgr,
+[[nodiscard]] std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceManager& phyDeviceMgr,
                                                                uint32_t supportedMemType,
                                                                vk::MemoryPropertyFlags memProps) noexcept;
 
-[[nodiscard]] std::expected<void, Error> allocBufferMemory(const PhysicalDeviceManager& phyDeviceMgr,
+[[nodiscard]] std::expected<void, Error> allocBufferMemory(const PhyDeviceManager& phyDeviceMgr,
                                                            DeviceManager& deviceMgr, vk::Buffer& buffer,
                                                            vk::MemoryPropertyFlags memProps,
                                                            vk::DeviceMemory& bufferMemory) noexcept;
 
-[[nodiscard]] std::expected<void, Error> allocImageMemory(const PhysicalDeviceManager& phyDeviceMgr,
+[[nodiscard]] std::expected<void, Error> allocImageMemory(const PhyDeviceManager& phyDeviceMgr,
                                                           DeviceManager& deviceMgr, vk::Image& image,
                                                           vk::MemoryPropertyFlags memProps,
                                                           vk::DeviceMemory& bufferMemory) noexcept;

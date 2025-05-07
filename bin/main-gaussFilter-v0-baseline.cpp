@@ -39,7 +39,9 @@ int main() {
 
     // Device
     vkc::InstanceManager instMgr = vkc::InstanceManager::create() | unwrap;
-    vkc::PhysicalDeviceManager phyDeviceMgr = vkc::PhysicalDeviceManager::create(instMgr) | unwrap;
+    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instMgr) | unwrap;
+    vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.pickDefault() | unwrap).get();
+    vkc::PhyDeviceManager& phyDeviceMgr = phyDeviceWithProps.getPhyDeviceMgr();
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr) | unwrap;
     auto pDeviceMgr =
         std::make_shared<vkc::DeviceManager>(vkc::DeviceManager::create(phyDeviceMgr, computeQFamilyIdx) | unwrap);
@@ -83,7 +85,7 @@ int main() {
         vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
     vkc::TimestampQueryPoolManager queryPoolMgr =
-        vkc::TimestampQueryPoolManager::create(pDeviceMgr, 2, phyDeviceMgr.getTimestampPeriod()) | unwrap;
+        vkc::TimestampQueryPoolManager::create(pDeviceMgr, 2, 52) | unwrap;  // TODO: no literal
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};

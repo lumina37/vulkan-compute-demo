@@ -68,7 +68,7 @@ ImageManager::~ImageManager() noexcept {
     descImageInfo_.setImageView(nullptr);
 }
 
-std::expected<ImageManager, Error> ImageManager::create(const PhysicalDeviceManager& phyDeviceMgr,
+std::expected<ImageManager, Error> ImageManager::create(const PhyDeviceManager& phyDeviceMgr,
                                                         std::shared_ptr<DeviceManager> pDeviceMgr, const Extent& extent,
                                                         ImageType imageType) noexcept {
     auto& device = pDeviceMgr->getDevice();

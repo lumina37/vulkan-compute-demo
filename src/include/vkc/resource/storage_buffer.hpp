@@ -21,7 +21,7 @@ public:
     StorageBufferManager(StorageBufferManager&& rhs) noexcept;
     ~StorageBufferManager() noexcept;
 
-    [[nodiscard]] static std::expected<StorageBufferManager, Error> create(PhysicalDeviceManager& phyDeviceMgr,
+    [[nodiscard]] static std::expected<StorageBufferManager, Error> create(PhyDeviceManager& phyDeviceMgr,
                                                                            std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                            vk::DeviceSize size) noexcept;
 

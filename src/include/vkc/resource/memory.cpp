@@ -15,10 +15,9 @@ namespace vkc::_hp {
 
 namespace rgs = std::ranges;
 
-std::expected<uint32_t, Error> findMemoryTypeIdx(const PhysicalDeviceManager& phyDeviceMgr,
-                                                 const uint32_t supportedMemType,
+std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceManager& phyDeviceMgr, const uint32_t supportedMemType,
                                                  const vk::MemoryPropertyFlags memProps) noexcept {
-    const auto& physicalDevice = phyDeviceMgr.getPhysicalDevice();
+    const auto& physicalDevice = phyDeviceMgr.getPhyDevice();
     const vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
 
     for (const auto [idx, memType] : rgs::views::enumerate(memProperties.memoryTypes)) {
@@ -32,7 +31,7 @@ std::expected<uint32_t, Error> findMemoryTypeIdx(const PhysicalDeviceManager& ph
     return std::unexpected{Error{-1, "no sufficient memory type"}};
 }
 
-std::expected<void, Error> allocBufferMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
+std::expected<void, Error> allocBufferMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
                                              vk::Buffer& buffer, vk::MemoryPropertyFlags memProps,
                                              vk::DeviceMemory& bufferMemory) noexcept {
     auto& device = deviceMgr.getDevice();
@@ -53,7 +52,7 @@ std::expected<void, Error> allocBufferMemory(const PhysicalDeviceManager& phyDev
     return {};
 }
 
-std::expected<void, Error> allocImageMemory(const PhysicalDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
+std::expected<void, Error> allocImageMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
                                             vk::Image& image, vk::MemoryPropertyFlags memProps,
                                             vk::DeviceMemory& bufferMemory) noexcept {
     auto& device = deviceMgr.getDevice();

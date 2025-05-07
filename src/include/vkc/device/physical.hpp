@@ -3,30 +3,26 @@
 #include <expected>
 #include <utility>
 
-#include "vkc/device/instance.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 
-class PhysicalDeviceManager {
-    PhysicalDeviceManager(vk::PhysicalDevice physicalDevice, vk::PhysicalDeviceLimits limits) noexcept;
+class PhyDeviceManager {
+    PhyDeviceManager(vk::PhysicalDevice phyDevice) noexcept;
 
 public:
-    PhysicalDeviceManager(PhysicalDeviceManager&& rhs) noexcept;
+    PhyDeviceManager(PhyDeviceManager&& rhs) noexcept = default;
 
-    [[nodiscard]] static std::expected<PhysicalDeviceManager, Error> create(const InstanceManager& instMgr) noexcept;
+    [[nodiscard]] static std::expected<PhyDeviceManager, Error> create(vk::PhysicalDevice phyDevice) noexcept;
 
     template <typename Self>
-    [[nodiscard]] auto&& getPhysicalDevice(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).physicalDevice_;
+    [[nodiscard]] auto&& getPhyDevice(this Self&& self) noexcept {
+        return std::forward_like<Self>(self).phyDevice_;
     }
 
-    [[nodiscard]] float getTimestampPeriod() const noexcept { return limits_.timestampPeriod; }
-
 private:
-    vk::PhysicalDevice physicalDevice_;
-    vk::PhysicalDeviceLimits limits_;
+    vk::PhysicalDevice phyDevice_;
 };
 
 }  // namespace vkc

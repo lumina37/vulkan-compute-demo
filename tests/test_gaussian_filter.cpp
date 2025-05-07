@@ -112,7 +112,7 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
 
     // Device
     vkc::InstanceManager instMgr = vkc::InstanceManager::create() | unwrap;
-    vkc::PhysicalDeviceManager phyDeviceMgr = vkc::PhysicalDeviceManager::create(instMgr) | unwrap;
+    vkc::PhyDeviceManager phyDeviceMgr = vkc::PhyDeviceManager::create(instMgr) | unwrap;
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr) | unwrap;
     auto pDeviceMgr =
         std::make_shared<vkc::DeviceManager>(vkc::DeviceManager::create(phyDeviceMgr, computeQFamilyIdx) | unwrap);

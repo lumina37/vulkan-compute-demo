@@ -29,7 +29,7 @@ InstanceManager::~InstanceManager() noexcept {
 std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
     vk::ApplicationInfo appInfo;
     appInfo.setPApplicationName("vk-compute-demo");
-    appInfo.setApiVersion(VK_API_VERSION_1_0);
+    appInfo.setApiVersion(VK_API_VERSION_1_3);
 
     vk::InstanceCreateInfo instInfo;
     instInfo.setPApplicationInfo(&appInfo);

@@ -44,7 +44,7 @@ UniformBufferManager::~UniformBufferManager() noexcept {
     }
 }
 
-std::expected<UniformBufferManager, Error> UniformBufferManager::create(PhysicalDeviceManager& phyDeviceMgr,
+std::expected<UniformBufferManager, Error> UniformBufferManager::create(PhyDeviceManager& phyDeviceMgr,
                                                                         std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                         vk::DeviceSize size) noexcept {
     auto& device = pDeviceMgr->getDevice();
