@@ -40,7 +40,7 @@ std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhyDeviceManager
             continue;
         }
 
-        const int score = -(int)idx;
+        const float score = -(float)idx;
         scores.emplace_back(score, idx);
 
         if constexpr (ENABLE_DEBUG) {

@@ -46,8 +46,7 @@ std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
         auto layerEntries = std::move(layerEntriesRes.value());
 
         constexpr std::string_view VALIDATION_LAYER_NAME{"VK_LAYER_KHRONOS_validation"};
-        const bool hasValLayer = layerEntries.has(VALIDATION_LAYER_NAME);
-        if (hasValLayer) {
+        if (layerEntries.has(VALIDATION_LAYER_NAME)) {
             const std::array enabledLayers{VALIDATION_LAYER_NAME.data()};
             instInfo.setPEnabledLayerNames(enabledLayers);
         }

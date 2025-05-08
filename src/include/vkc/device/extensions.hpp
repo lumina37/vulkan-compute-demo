@@ -32,7 +32,7 @@ private:
     ExtEntry_(std::string_view key, std::reference_wrapper<const TExt> extRef) noexcept;
 
 public:
-    [[nodiscard]] static ExtEntry_ fromExt(const TExt& ext) noexcept;
+    [[nodiscard]] static ExtEntry_ createWithoutErr(const TExt& ext) noexcept;
 
     friend constexpr auto operator<=>(const ExtEntry_& lhs, const ExtEntry_& rhs) noexcept {
         return lhs.getKey() <=> rhs.getKey();
@@ -45,6 +45,8 @@ public:
     [[nodiscard]] auto&& getKey(this Self&& self) noexcept {
         return std::forward_like<Self>(self).key_;
     }
+
+    [[nodiscard]] static std::string_view exposeKey(const ExtEntry_& entry) noexcept { return entry.getKey(); }
 
 private:
     std::string_view key_;
@@ -77,7 +79,7 @@ ExtEntry_<TExt_>::ExtEntry_(std::string_view key, std::reference_wrapper<const T
     : key_(key), extRef_(extRef) {}
 
 template <CExt TExt_>
-ExtEntry_<TExt_> ExtEntry_<TExt_>::fromExt(const TExt& ext) noexcept {
+ExtEntry_<TExt_> ExtEntry_<TExt_>::createWithoutErr(const TExt& ext) noexcept {
     const std::string_view key = extractName(ext);
     return ExtEntry_{key, std::cref(ext)};
 }
@@ -88,14 +90,14 @@ ExtEntries_<TExt_>::ExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& 
 
 template <CExt TExt_>
 std::expected<ExtEntries_<TExt_>, Error> ExtEntries_<TExt_>::create(std::vector<TExt>&& exts) noexcept {
-    auto extEntries = exts | rgs::views::transform(TEntry::fromExt) | rgs::to<std::vector>();
+    auto extEntries = exts | rgs::views::transform(TEntry::createWithoutErr) | rgs::to<std::vector>();
     rgs::sort(extEntries);
     return ExtEntries_{std::move(exts), std::move(extEntries)};
 }
 
 template <CExt TExt>
 bool ExtEntries_<TExt>::has(std::string_view key) const noexcept {
-    return rgs::binary_search(extEntries_, key, std::less{}, [](const TEntry& entry) { return entry.getKey(); });
+    return rgs::binary_search(extEntries_, key, std::less{}, TEntry::exposeKey);
 }
 
 }  // namespace vkc

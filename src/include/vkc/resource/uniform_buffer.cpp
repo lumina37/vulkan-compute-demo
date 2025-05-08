@@ -60,7 +60,12 @@ std::expected<UniformBufferManager, Error> UniformBufferManager::create(PhyDevic
     }
 
     vk::DeviceMemory memory;
-    _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, buffer, vk::MemoryPropertyFlagBits::eHostVisible, memory);
+    auto allocRes =
+        _hp::allocBufferMemory(phyDeviceMgr, *pDeviceMgr, buffer, vk::MemoryPropertyFlagBits::eHostVisible, memory);
+    if (!allocRes) {
+        return std::unexpected{Error{std::move(allocRes.error())}};
+    }
+
     const vk::Result bindRes = device.bindBufferMemory(buffer, memory, 0);
     if (bindRes != vk::Result::eSuccess) {
         return std::unexpected{Error{bindRes}};
