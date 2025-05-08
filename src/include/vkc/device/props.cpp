@@ -13,8 +13,9 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-std::expected<PhyDeviceProps, Error> PhyDeviceProps::create(const PhyDeviceManager& phyDeviceMgr) noexcept {
-    PhyDeviceProps retProps;
+std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(
+    const PhyDeviceManager& phyDeviceMgr) noexcept {
+    DefaultPhyDeviceProps retProps;
     const auto phyDevice = phyDeviceMgr.getPhyDevice();
 
     vk::StructureChain<vk::PhysicalDeviceProperties2> propsChain;
@@ -36,6 +37,6 @@ std::expected<PhyDeviceProps, Error> PhyDeviceProps::create(const PhyDeviceManag
     return retProps;
 }
 
-template class PhyDeviceWithProps_<PhyDeviceProps>;
+template class PhyDeviceWithProps_<DefaultPhyDeviceProps>;
 
 }  // namespace vkc

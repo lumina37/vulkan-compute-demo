@@ -11,13 +11,14 @@
 
 namespace vkc {
 
-class PhyDeviceProps {
+class DefaultPhyDeviceProps {
 public:
-    PhyDeviceProps() noexcept = default;
-    PhyDeviceProps(const PhyDeviceProps&) = delete;
-    PhyDeviceProps(PhyDeviceProps&&) noexcept = default;
+    DefaultPhyDeviceProps() noexcept = default;
+    DefaultPhyDeviceProps(const DefaultPhyDeviceProps&) = delete;
+    DefaultPhyDeviceProps(DefaultPhyDeviceProps&&) noexcept = default;
 
-    [[nodiscard]] static std::expected<PhyDeviceProps, Error> create(const PhyDeviceManager& phyDeviceMgr) noexcept;
+    [[nodiscard]] static std::expected<DefaultPhyDeviceProps, Error> create(
+        const PhyDeviceManager& phyDeviceMgr) noexcept;
 
     // Members
     uint32_t apiVersion;

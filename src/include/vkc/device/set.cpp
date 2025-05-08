@@ -9,8 +9,9 @@
 
 namespace vkc {
 
-std::expected<float, Error> defaultJudge(const PhyDeviceWithProps_<PhyDeviceProps>& phyDeviceWithProps) noexcept {
-    const PhyDeviceProps& props = phyDeviceWithProps.getPhyDeviceProps();
+std::expected<float, Error> defaultJudge(
+    const PhyDeviceWithProps_<DefaultPhyDeviceProps>& phyDeviceWithProps) noexcept {
+    const DefaultPhyDeviceProps& props = phyDeviceWithProps.getPhyDeviceProps();
 
     float score = (float)props.maxSharedMemSize;
 
@@ -20,6 +21,6 @@ std::expected<float, Error> defaultJudge(const PhyDeviceWithProps_<PhyDeviceProp
     return score;
 }
 
-template class PhyDeviceSet_<PhyDeviceProps>;
+template class PhyDeviceSet_<DefaultPhyDeviceProps>;
 
 }  // namespace vkc

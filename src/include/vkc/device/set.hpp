@@ -15,7 +15,7 @@
 
 namespace vkc {
 
-std::expected<float, Error> defaultJudge(const PhyDeviceWithProps_<PhyDeviceProps>& phyDeviceWithProps) noexcept;
+std::expected<float, Error> defaultJudge(const PhyDeviceWithProps_<DefaultPhyDeviceProps>& phyDeviceWithProps) noexcept;
 
 template <CPhyDeviceProps TProps_>
 class PhyDeviceSet_ {

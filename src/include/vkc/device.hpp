@@ -12,7 +12,7 @@
 
 namespace vkc {
 
-using PhyDeviceWithProps = PhyDeviceWithProps_<PhyDeviceProps>;
-using PhyDeviceSet = PhyDeviceSet_<PhyDeviceProps>;
+using PhyDeviceWithProps = PhyDeviceWithProps_<DefaultPhyDeviceProps>;
+using PhyDeviceSet = PhyDeviceSet_<DefaultPhyDeviceProps>;
 
 }  // namespace vkc
