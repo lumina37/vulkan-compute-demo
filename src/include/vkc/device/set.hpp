@@ -81,8 +81,8 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDev
         const uint32_t apiVersion = deviceWithProps.getPhyDeviceProps().apiVersion;
 
         std::println("Candidate physical device: {}. Vk API version: {}.{}.{}. Score: {}",
-                     phyDeviceProp.deviceName.data(), VK_API_VERSION_MAJOR(apiVersion),
-                     VK_API_VERSION_MINOR(apiVersion), VK_API_VERSION_PATCH(apiVersion), score);
+                     phyDeviceProp.deviceName.data(), vk::apiVersionMajor(apiVersion), vk::apiVersionMinor(apiVersion),
+                     vk::apiVersionPatch(apiVersion), score);
 
         return {};
     };
