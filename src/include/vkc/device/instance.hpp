@@ -10,8 +10,6 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-static constexpr std::string_view VALIDATION_LAYER_NAME{"VK_LAYER_KHRONOS_validation"};
-
 class InstanceManager {
     InstanceManager(vk::Instance instance) noexcept;
 

@@ -28,8 +28,11 @@ class ExtEntry_ {
 public:
     using TExt = TExt_;
 
+private:
+    ExtEntry_(std::string_view key, std::reference_wrapper<const TExt> extRef) noexcept;
+
 public:
-    ExtEntry_(std::reference_wrapper<const TExt> extRef) noexcept;
+    [[nodiscard]] static ExtEntry_ fromExt(const TExt& ext) noexcept;
 
     friend constexpr auto operator<=>(const ExtEntry_& lhs, const ExtEntry_& rhs) noexcept {
         return lhs.getKey() <=> rhs.getKey();
@@ -70,8 +73,14 @@ private:
 namespace rgs = std::ranges;
 
 template <CExt TExt_>
-ExtEntry_<TExt_>::ExtEntry_(std::reference_wrapper<const TExt> extRef) noexcept
-    : key_(extractName(extRef.get())), extRef_(extRef) {}
+ExtEntry_<TExt_>::ExtEntry_(std::string_view key, std::reference_wrapper<const TExt> extRef) noexcept
+    : key_(key), extRef_(extRef) {}
+
+template <CExt TExt_>
+ExtEntry_<TExt_> ExtEntry_<TExt_>::fromExt(const TExt& ext) noexcept {
+    const std::string_view key = extractName(ext);
+    return ExtEntry_{key, std::cref(ext)};
+}
 
 template <CExt TExt_>
 OrderedExtEntries_<TExt_>::OrderedExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& extEntries) noexcept
@@ -79,11 +88,8 @@ OrderedExtEntries_<TExt_>::OrderedExtEntries_(std::vector<TExt>&& exts, std::vec
 
 template <CExt TExt_>
 std::expected<OrderedExtEntries_<TExt_>, Error> OrderedExtEntries_<TExt_>::create(std::vector<TExt>&& exts) noexcept {
-    const auto toEntry = [](const TExt& ext) { return TEntry{std::cref(ext)}; };
-
-    auto extEntries = exts | rgs::views::transform(toEntry) | rgs::to<std::vector>();
+    auto extEntries = exts | rgs::views::transform(TEntry::fromExt) | rgs::to<std::vector>();
     rgs::sort(extEntries);
-
     return OrderedExtEntries_{std::move(exts), std::move(extEntries)};
 }
 

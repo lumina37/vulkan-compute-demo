@@ -98,13 +98,13 @@ void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageM
     uploadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     uploadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto uploadConvBarriers = srcImageMgrRefs |
-                                    rgs::views::transform([&uploadConvBarrierTemplate](const TImageMgrCRef mgrRef) {
-                                        vk::ImageMemoryBarrier uploadConvBarrier = uploadConvBarrierTemplate;
-                                        uploadConvBarrier.setImage(mgrRef.get().getImage());
-                                        return uploadConvBarrier;
-                                    }) |
-                                    rgs::to<std::vector>();
+    const auto fillout = [&uploadConvBarrierTemplate](const TImageMgrCRef mgrRef) {
+        vk::ImageMemoryBarrier uploadConvBarrier = uploadConvBarrierTemplate;
+        uploadConvBarrier.setImage(mgrRef.get().getImage());
+        return uploadConvBarrier;
+    };
+
+    const auto uploadConvBarriers = srcImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)uploadConvBarriers.size(),
@@ -153,13 +153,13 @@ void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TIma
     shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     shaderCompatibleBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto shaderCompatibleBarriers =
-        srcImageMgrRefs | rgs::views::transform([&shaderCompatibleBarrierTemplate](const TImageMgrCRef mgrRef) {
-            vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
-            shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
-            return shaderCompatibleBarrier;
-        }) |
-        rgs::to<std::vector>();
+    const auto fillout = [&shaderCompatibleBarrierTemplate](const TImageMgrCRef mgrRef) {
+        vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
+        shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
+        return shaderCompatibleBarrier;
+    };
+
+    const auto shaderCompatibleBarriers = srcImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
@@ -182,13 +182,13 @@ void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TIm
     shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     shaderCompatibleBarrierTemplate.setSubresourceRange(subresourceRange);
 
-    const auto shaderCompatibleBarriers =
-        dstImageMgrRefs | rgs::views::transform([&shaderCompatibleBarrierTemplate](const TImageMgrCRef mgrRef) {
-            vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
-            shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
-            return shaderCompatibleBarrier;
-        }) |
-        rgs::to<std::vector>();
+    const auto fillout = [&shaderCompatibleBarrierTemplate](const TImageMgrCRef mgrRef) {
+        vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
+        shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
+        return shaderCompatibleBarrier;
+    };
+
+    const auto shaderCompatibleBarriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eComputeShader,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
@@ -211,13 +211,13 @@ void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImage
     downloadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     downloadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto downloadConvBarriers = dstImageMgrRefs |
-                                      rgs::views::transform([&downloadConvBarrierTemplate](const TImageMgrCRef mgrRef) {
-                                          vk::ImageMemoryBarrier downloadConvBarrier = downloadConvBarrierTemplate;
-                                          downloadConvBarrier.setImage(mgrRef.get().getImage());
-                                          return downloadConvBarrier;
-                                      }) |
-                                      rgs::to<std::vector>();
+    const auto fillout = [&downloadConvBarrierTemplate](const TImageMgrCRef mgrRef) {
+        vk::ImageMemoryBarrier downloadConvBarrier = downloadConvBarrierTemplate;
+        downloadConvBarrier.setImage(mgrRef.get().getImage());
+        return downloadConvBarrier;
+    };
+
+    const auto downloadConvBarriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
@@ -247,15 +247,15 @@ void CommandBufferManager::recordWaitDownloadComplete(const std::span<const TIma
     downloadCompleteBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     downloadCompleteBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
 
-    const auto downloadCompleteBarriers =
-        dstImageMgrRefs | rgs::views::transform([&downloadCompleteBarrierTemplate](const TImageMgrCRef mgrRef) {
-            const auto& mgr = mgrRef.get();
-            vk::BufferMemoryBarrier downloadCompleteBarrier = downloadCompleteBarrierTemplate;
-            downloadCompleteBarrier.setBuffer(mgr.getStagingBuffer());
-            downloadCompleteBarrier.setSize(mgr.getExtent().size());
-            return downloadCompleteBarrier;
-        }) |
-        rgs::to<std::vector>();
+    const auto fillout = [&downloadCompleteBarrierTemplate](const TImageMgrCRef mgrRef) {
+        const auto& mgr = mgrRef.get();
+        vk::BufferMemoryBarrier downloadCompleteBarrier = downloadCompleteBarrierTemplate;
+        downloadCompleteBarrier.setBuffer(mgr.getStagingBuffer());
+        downloadCompleteBarrier.setSize(mgr.getExtent().size());
+        return downloadCompleteBarrier;
+    };
+
+    const auto downloadCompleteBarriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost,
                                    (vk::DependencyFlags)0, 0, nullptr, (uint32_t)downloadCompleteBarriers.size(),
