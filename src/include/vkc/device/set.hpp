@@ -78,7 +78,7 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDev
                                     const float score) -> std::expected<void, Error> {
         const auto phyDevice = deviceWithProps.getPhyDeviceMgr().getPhyDevice();
         const auto& phyDeviceProp = phyDevice.getProperties();
-        const uint32_t apiVersion = deviceWithProps.getProps().apiVersion;
+        const uint32_t apiVersion = deviceWithProps.getPhyDeviceProps().apiVersion;
 
         std::println("Candidate physical device: {}. Vk API version: {}.{}.{}. Score: {}",
                      phyDeviceProp.deviceName.data(), VK_API_VERSION_MAJOR(apiVersion),

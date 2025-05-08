@@ -14,26 +14,26 @@ namespace vkc {
 namespace rgs = std::ranges;
 
 std::expected<PhyDeviceProps, Error> PhyDeviceProps::create(const PhyDeviceManager& phyDeviceMgr) noexcept {
-    PhyDeviceProps props;
+    PhyDeviceProps retProps;
     const auto phyDevice = phyDeviceMgr.getPhyDevice();
 
     vk::StructureChain<vk::PhysicalDeviceProperties2> propsChain;
     phyDevice.getProperties2(&propsChain.get());
 
-    const auto& phyDeviceProps = propsChain.get<vk::PhysicalDeviceProperties2>().properties;
-    props.apiVersion = phyDeviceProps.apiVersion;
-    props.deviceType = phyDeviceProps.deviceType;
-    props.maxSharedMemSize = phyDeviceProps.limits.maxComputeSharedMemorySize;
-    props.timestampPeriod = phyDeviceProps.limits.timestampPeriod;
-    props.supportTimeQueryForAllQueue = (bool)phyDeviceProps.limits.timestampComputeAndGraphics;
+    const auto& phyDeviceProps2 = propsChain.get<vk::PhysicalDeviceProperties2>().properties;
+    retProps.apiVersion = phyDeviceProps2.apiVersion;
+    retProps.deviceType = phyDeviceProps2.deviceType;
+    retProps.maxSharedMemSize = phyDeviceProps2.limits.maxComputeSharedMemorySize;
+    retProps.timestampPeriod = phyDeviceProps2.limits.timestampPeriod;
+    retProps.supportTimeQueryForAllQueue = (bool)phyDeviceProps2.limits.timestampComputeAndGraphics;
 
     vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceShaderFloat16Int8Features> featureChain;
     phyDevice.getFeatures2(&featureChain.get());
 
     const auto& shaderFp16Int8Features = featureChain.get<vk::PhysicalDeviceShaderFloat16Int8Features>();
-    props.supportFp16 = (bool)shaderFp16Int8Features.shaderFloat16;
+    retProps.supportFp16 = (bool)shaderFp16Int8Features.shaderFloat16;
 
-    return props;
+    return retProps;
 }
 
 template class PhyDeviceWithProps_<PhyDeviceProps>;

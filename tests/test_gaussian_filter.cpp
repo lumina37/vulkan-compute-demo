@@ -182,7 +182,7 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
         fenceMgr.reset() | unwrap;
 
         dstImageMgr.downloadTo(dstImageVk.getImageSpan()) | unwrap;
-        dstImageVk.saveTo("v0.png") | unwrap;
+        // dstImageVk.saveTo("v0.png") | unwrap;
 
         int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {
@@ -224,7 +224,7 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
         fenceMgr.reset() | unwrap;
 
         dstImageMgr.downloadTo(dstImageVk.getImageSpan()) | unwrap;
-        dstImageVk.saveTo("v2.png") | unwrap;
+        // dstImageVk.saveTo("v2.png") | unwrap;
 
         int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {

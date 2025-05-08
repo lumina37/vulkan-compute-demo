@@ -10,7 +10,7 @@
 namespace vkc {
 
 std::expected<float, Error> defaultJudge(const PhyDeviceWithProps_<PhyDeviceProps>& phyDeviceWithProps) noexcept {
-    const PhyDeviceProps& props = phyDeviceWithProps.getProps();
+    const PhyDeviceProps& props = phyDeviceWithProps.getPhyDeviceProps();
 
     float score = (float)props.maxSharedMemSize;
 

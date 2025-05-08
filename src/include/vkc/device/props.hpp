@@ -17,8 +17,7 @@ public:
     PhyDeviceProps(const PhyDeviceProps&) = delete;
     PhyDeviceProps(PhyDeviceProps&&) noexcept = default;
 
-    [[nodiscard]] static std::expected<PhyDeviceProps, Error> create(
-        const PhyDeviceManager& phyDeviceMgr) noexcept;
+    [[nodiscard]] static std::expected<PhyDeviceProps, Error> create(const PhyDeviceManager& phyDeviceMgr) noexcept;
 
     // Members
     uint32_t apiVersion;
@@ -29,27 +28,27 @@ public:
     bool supportTimeQueryForAllQueue;
 };
 
-template <CPhyDeviceProps TProps_>
+template <CPhyDeviceProps TDProps_>
 class PhyDeviceWithProps_ {
 public:
-    using TProps = TProps_;
+    using TDProps = TDProps_;
 
-    PhyDeviceWithProps_(PhyDeviceManager&& phyDeviceMgr, TProps&& props) noexcept;
+    PhyDeviceWithProps_(PhyDeviceManager&& phyDeviceMgr, TDProps&& phyDeviceProps) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getPhyDeviceMgr(this Self&& self) noexcept {
         return std::forward_like<Self>(self).phyDeviceMgr_;
     }
-    [[nodiscard]] const TProps& getProps() const noexcept { return props_; }
+    [[nodiscard]] const TDProps& getPhyDeviceProps() const noexcept { return phyDeviceProps_; }
 
 private:
     PhyDeviceManager phyDeviceMgr_;
-    TProps props_;
+    TDProps phyDeviceProps_;
 };
 
-template <CPhyDeviceProps TProps>
-PhyDeviceWithProps_<TProps>::PhyDeviceWithProps_(PhyDeviceManager&& phyDeviceMgr, TProps&& props) noexcept
-    : phyDeviceMgr_(std::move(phyDeviceMgr)), props_(std::move(props)) {}
+template <CPhyDeviceProps TDProps>
+PhyDeviceWithProps_<TDProps>::PhyDeviceWithProps_(PhyDeviceManager&& phyDeviceMgr, TDProps&& phyDeviceProps) noexcept
+    : phyDeviceMgr_(std::move(phyDeviceMgr)), phyDeviceProps_(std::move(phyDeviceProps)) {}
 
 }  // namespace vkc
 

@@ -9,7 +9,7 @@ namespace vkc {
 template class ExtEntry_<vk::ExtensionProperties>;
 template class ExtEntry_<vk::LayerProperties>;
 
-template class OrderedExtEntries_<vk::ExtensionProperties>;
-template class OrderedExtEntries_<vk::LayerProperties>;
+template class ExtEntries_<vk::ExtensionProperties>;
+template class ExtEntries_<vk::LayerProperties>;
 
 }  // namespace vkc

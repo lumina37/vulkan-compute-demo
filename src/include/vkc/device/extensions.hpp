@@ -52,18 +52,18 @@ private:
 };
 
 template <CExt TExt_>
-class OrderedExtEntries_ {
+class ExtEntries_ {
 public:
     using TExt = TExt_;
     using TEntry = ExtEntry_<TExt>;
 
 private:
-    OrderedExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& extEntries) noexcept;
+    ExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& extEntries) noexcept;
 
 public:
-    [[nodiscard]] static std::expected<OrderedExtEntries_, Error> create(std::vector<TExt>&& exts) noexcept;
+    [[nodiscard]] static std::expected<ExtEntries_, Error> create(std::vector<TExt>&& exts) noexcept;
 
-    [[nodiscard]] bool has(std::string_view query) const noexcept;
+    [[nodiscard]] bool has(std::string_view key) const noexcept;
 
 private:
     std::vector<TExt> exts_;
@@ -83,19 +83,19 @@ ExtEntry_<TExt_> ExtEntry_<TExt_>::fromExt(const TExt& ext) noexcept {
 }
 
 template <CExt TExt_>
-OrderedExtEntries_<TExt_>::OrderedExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& extEntries) noexcept
+ExtEntries_<TExt_>::ExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& extEntries) noexcept
     : exts_(std::move(exts)), extEntries_(std::move(extEntries)) {}
 
 template <CExt TExt_>
-std::expected<OrderedExtEntries_<TExt_>, Error> OrderedExtEntries_<TExt_>::create(std::vector<TExt>&& exts) noexcept {
+std::expected<ExtEntries_<TExt_>, Error> ExtEntries_<TExt_>::create(std::vector<TExt>&& exts) noexcept {
     auto extEntries = exts | rgs::views::transform(TEntry::fromExt) | rgs::to<std::vector>();
     rgs::sort(extEntries);
-    return OrderedExtEntries_{std::move(exts), std::move(extEntries)};
+    return ExtEntries_{std::move(exts), std::move(extEntries)};
 }
 
 template <CExt TExt>
-bool OrderedExtEntries_<TExt>::has(std::string_view query) const noexcept {
-    return rgs::binary_search(extEntries_, query, std::less{}, [](const TEntry& entry) { return entry.getKey(); });
+bool ExtEntries_<TExt>::has(std::string_view key) const noexcept {
+    return rgs::binary_search(extEntries_, key, std::less{}, [](const TEntry& entry) { return entry.getKey(); });
 }
 
 }  // namespace vkc

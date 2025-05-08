@@ -41,12 +41,12 @@ std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
             return std::unexpected{Error{layerPropsRes}};
         }
 
-        auto orderedLayerEntriesRes = OrderedExtEntries_<vk::LayerProperties>::create(std::move(layerProps));
-        if (!orderedLayerEntriesRes) return std::unexpected{std::move(orderedLayerEntriesRes.error())};
-        auto orderedLayerEntries = std::move(orderedLayerEntriesRes.value());
+        auto layerEntriesRes = ExtEntries_<vk::LayerProperties>::create(std::move(layerProps));
+        if (!layerEntriesRes) return std::unexpected{std::move(layerEntriesRes.error())};
+        auto layerEntries = std::move(layerEntriesRes.value());
 
         constexpr std::string_view VALIDATION_LAYER_NAME{"VK_LAYER_KHRONOS_validation"};
-        const bool hasValLayer = orderedLayerEntries.has(VALIDATION_LAYER_NAME);
+        const bool hasValLayer = layerEntries.has(VALIDATION_LAYER_NAME);
         if (hasValLayer) {
             const std::array enabledLayers{VALIDATION_LAYER_NAME.data()};
             instInfo.setPEnabledLayerNames(enabledLayers);
