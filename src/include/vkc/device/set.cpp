@@ -12,20 +12,10 @@ namespace vkc {
 std::expected<float, Error> defaultJudge(const PhyDeviceWithProps_<PhyDeviceProps>& phyDeviceWithProps) noexcept {
     const PhyDeviceProps& props = phyDeviceWithProps.getProps();
 
-    int deviceTypeAmp;
-    switch (props.deviceType) {
-        case vk::PhysicalDeviceType::eDiscreteGpu:
-            deviceTypeAmp = 3;
-            break;
-        case vk::PhysicalDeviceType::eIntegratedGpu:
-            deviceTypeAmp = 2;
-            break;
-        default:
-            deviceTypeAmp = 1;
-            break;
-    }
+    float score = (float)props.maxSharedMemSize;
 
-    const float score = (float)(props.maxSharedMemSize * deviceTypeAmp);
+    if (props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) score *= 3.0f;
+    if (props.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) score *= 2.0f;
 
     return score;
 }

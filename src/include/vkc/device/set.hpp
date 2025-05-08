@@ -25,7 +25,7 @@ public:
     using FnJudge = std::expected<float, Error> (*)(const TPhyDeviceWithProps&) noexcept;
 
 private:
-    PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDeviceWithPropsVec) noexcept;
+    PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDevicesWithProps) noexcept;
 
 public:
     [[nodiscard]] static std::expected<PhyDeviceSet_, Error> create(const InstanceManager& instMgr) noexcept;
@@ -35,12 +35,12 @@ public:
     [[nodiscard]] std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> pickDefault() noexcept;
 
 private:
-    std::vector<TPhyDeviceWithProps> deviceWithPropsVec_;
+    std::vector<TPhyDeviceWithProps> phyDevicesWithProps_;
 };
 
 template <CPhyDeviceProps TProps>
-PhyDeviceSet_<TProps>::PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDeviceWithPropsVec) noexcept
-    : deviceWithPropsVec_(std::move(phyDeviceWithPropsVec)) {}
+PhyDeviceSet_<TProps>::PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDevicesWithProps) noexcept
+    : phyDevicesWithProps_(std::move(phyDevicesWithProps)) {}
 
 template <CPhyDeviceProps TProps>
 std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const InstanceManager& instMgr) noexcept {
@@ -51,8 +51,8 @@ std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const 
         return std::unexpected{Error{physicalDevicesRes}};
     }
 
-    std::vector<TPhyDeviceWithProps> deviceWithPropsVec;
-    deviceWithPropsVec.reserve(physicalDevices.size());
+    std::vector<TPhyDeviceWithProps> phyDevicesWithProps;
+    phyDevicesWithProps.reserve(physicalDevices.size());
     for (const auto& physicalDevice : physicalDevices) {
         auto phyDeviceMgrRes = PhyDeviceManager::create(physicalDevice);
         if (!phyDeviceMgrRes) return std::unexpected{std::move(phyDeviceMgrRes.error())};
@@ -62,17 +62,17 @@ std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const 
         if (!phyDevicePropsRes) return std::unexpected{std::move(phyDevicePropsRes.error())};
         auto& phyDeviceProps = phyDevicePropsRes.value();
 
-        deviceWithPropsVec.emplace_back(std::move(phyDeviceMgr), std::move(phyDeviceProps));
+        phyDevicesWithProps.emplace_back(std::move(phyDeviceMgr), std::move(phyDeviceProps));
     }
 
-    return PhyDeviceSet_{std::move(deviceWithPropsVec)};
+    return PhyDeviceSet_{std::move(phyDevicesWithProps)};
 }
 
 template <CPhyDeviceProps TProps>
 std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDeviceSet_<TProps>::select(
     const FnJudge& judge) noexcept {
     std::vector<Score<std::reference_wrapper<TPhyDeviceWithProps>>> scores;
-    scores.reserve(deviceWithPropsVec_.size());
+    scores.reserve(phyDevicesWithProps_.size());
 
     const auto printDeviceInfo = [](const TPhyDeviceWithProps& deviceWithProps,
                                     const float score) -> std::expected<void, Error> {
@@ -87,7 +87,7 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDev
         return {};
     };
 
-    for (auto& deviceWithProps : deviceWithPropsVec_) {
+    for (auto& deviceWithProps : phyDevicesWithProps_) {
         auto scoreRes = judge(deviceWithProps);
         if (!scoreRes) return std::unexpected{std::move(scoreRes.error())};
 
