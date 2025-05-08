@@ -18,31 +18,32 @@ namespace vkc {
 std::expected<float, Error> defaultJudge(const PhyDeviceWithProps_<PhyDeviceProps>& phyDeviceWithProps) noexcept;
 
 template <CPhyDeviceProps TProps_>
-class DeviceSet_ {
+class PhyDeviceSet_ {
 public:
     using TProps = TProps_;
-    using TDeviceWithProps = PhyDeviceWithProps_<TProps>;
-    using FnJudge = std::expected<float, Error> (*)(const TDeviceWithProps&) noexcept;
+    using TPhyDeviceWithProps = PhyDeviceWithProps_<TProps>;
+    using FnJudge = std::expected<float, Error> (*)(const TPhyDeviceWithProps&) noexcept;
 
 private:
-    DeviceSet_(std::vector<TDeviceWithProps>&& deviceWithPropsVec) noexcept;
+    PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDeviceWithPropsVec) noexcept;
 
 public:
-    [[nodiscard]] static std::expected<DeviceSet_, Error> create(const InstanceManager& instMgr) noexcept;
+    [[nodiscard]] static std::expected<PhyDeviceSet_, Error> create(const InstanceManager& instMgr) noexcept;
 
-    [[nodiscard]] std::expected<std::reference_wrapper<TDeviceWithProps>, Error> select(const FnJudge& judge) noexcept;
-    [[nodiscard]] std::expected<std::reference_wrapper<TDeviceWithProps>, Error> pickDefault() noexcept;
+    [[nodiscard]] std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> select(
+        const FnJudge& judge) noexcept;
+    [[nodiscard]] std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> pickDefault() noexcept;
 
 private:
-    std::vector<TDeviceWithProps> deviceWithPropsVec_;
+    std::vector<TPhyDeviceWithProps> deviceWithPropsVec_;
 };
 
 template <CPhyDeviceProps TProps>
-DeviceSet_<TProps>::DeviceSet_(std::vector<TDeviceWithProps>&& deviceWithPropsVec) noexcept
-    : deviceWithPropsVec_(std::move(deviceWithPropsVec)) {}
+PhyDeviceSet_<TProps>::PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDeviceWithPropsVec) noexcept
+    : deviceWithPropsVec_(std::move(phyDeviceWithPropsVec)) {}
 
 template <CPhyDeviceProps TProps>
-std::expected<DeviceSet_<TProps>, Error> DeviceSet_<TProps>::create(const InstanceManager& instMgr) noexcept {
+std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const InstanceManager& instMgr) noexcept {
     const auto& instance = instMgr.getInstance();
 
     const auto [physicalDevicesRes, physicalDevices] = instance.enumeratePhysicalDevices();
@@ -50,7 +51,7 @@ std::expected<DeviceSet_<TProps>, Error> DeviceSet_<TProps>::create(const Instan
         return std::unexpected{Error{physicalDevicesRes}};
     }
 
-    std::vector<TDeviceWithProps> deviceWithPropsVec;
+    std::vector<TPhyDeviceWithProps> deviceWithPropsVec;
     deviceWithPropsVec.reserve(physicalDevices.size());
     for (const auto& physicalDevice : physicalDevices) {
         auto phyDeviceMgrRes = PhyDeviceManager::create(physicalDevice);
@@ -64,22 +65,17 @@ std::expected<DeviceSet_<TProps>, Error> DeviceSet_<TProps>::create(const Instan
         deviceWithPropsVec.emplace_back(std::move(phyDeviceMgr), std::move(phyDeviceProps));
     }
 
-    return DeviceSet_{std::move(deviceWithPropsVec)};
+    return PhyDeviceSet_{std::move(deviceWithPropsVec)};
 }
 
 template <CPhyDeviceProps TProps>
-std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> DeviceSet_<TProps>::select(
+std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDeviceSet_<TProps>::select(
     const FnJudge& judge) noexcept {
-    std::vector<Score<std::reference_wrapper<TDeviceWithProps>>> scores;
+    std::vector<Score<std::reference_wrapper<TPhyDeviceWithProps>>> scores;
     scores.reserve(deviceWithPropsVec_.size());
 
-    const auto printDeviceInfo = [](const TDeviceWithProps& deviceWithProps,
+    const auto printDeviceInfo = [](const TPhyDeviceWithProps& deviceWithProps,
                                     const float score) -> std::expected<void, Error> {
-        const auto rstrip = [](std::string_view str) {
-            size_t lastCh = str.find_last_not_of(' ');
-            return str.substr(0, lastCh + 1);
-        };
-
         const auto phyDevice = deviceWithProps.getPhyDeviceMgr().getPhyDevice();
         const auto& phyDeviceProp = phyDevice.getProperties();
         const uint32_t apiVersion = deviceWithProps.getProps().apiVersion;
@@ -112,7 +108,8 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> Device
 }
 
 template <CPhyDeviceProps TProps>
-std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> DeviceSet_<TProps>::pickDefault() noexcept {
+std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error>
+PhyDeviceSet_<TProps>::pickDefault() noexcept {
     return select(defaultJudge);
 }
 

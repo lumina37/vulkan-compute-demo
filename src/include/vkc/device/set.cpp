@@ -30,6 +30,6 @@ std::expected<float, Error> defaultJudge(const PhyDeviceWithProps_<PhyDeviceProp
     return score;
 }
 
-template class DeviceSet_<PhyDeviceProps>;
+template class PhyDeviceSet_<PhyDeviceProps>;
 
 }  // namespace vkc

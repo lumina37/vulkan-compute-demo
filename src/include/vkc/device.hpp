@@ -14,6 +14,6 @@ namespace vkc {
 static_assert(CPhyDeviceProps<PhyDeviceProps>);
 
 using PhyDeviceWithProps = PhyDeviceWithProps_<PhyDeviceProps>;
-using PhyDeviceSet = DeviceSet_<PhyDeviceProps>;
+using PhyDeviceSet = PhyDeviceSet_<PhyDeviceProps>;
 
 }  // namespace vkc
