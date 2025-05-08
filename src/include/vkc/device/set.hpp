@@ -100,7 +100,7 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDev
     }
 
     if (scores.empty()) {
-        return std::unexpected{Error{1, "no sufficient device"}};
+        return std::unexpected{Error{-1, "no sufficient device"}};
     }
 
     auto maxScoreIt = std::max_element(scores.begin(), scores.end());

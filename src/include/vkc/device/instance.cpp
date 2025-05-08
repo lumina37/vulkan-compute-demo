@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "vkc/device/extensions.hpp"
 #include "vkc/helper/defines.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
@@ -35,16 +36,16 @@ std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
     instInfo.setPApplicationInfo(&appInfo);
 
     if constexpr (ENABLE_DEBUG) {
-        const auto hasValidationLayer = [](const auto& layerProp) {
-            return VALIDATION_LAYER_NAME == layerProp.layerName;
-        };
-
-        const auto [layerPropsRes, layerProps] = vk::enumerateInstanceLayerProperties();
+        auto [layerPropsRes, layerProps] = vk::enumerateInstanceLayerProperties();
         if (layerPropsRes != vk::Result::eSuccess) {
             return std::unexpected{Error{layerPropsRes}};
         }
 
-        const bool hasValLayer = rgs::any_of(layerProps, hasValidationLayer);
+        auto orderedLayerEntriesRes = OrderedExtEntries_<vk::LayerProperties>::create(std::move(layerProps));
+        if (!orderedLayerEntriesRes) return std::unexpected{std::move(orderedLayerEntriesRes.error())};
+        auto orderedLayerEntries = std::move(orderedLayerEntriesRes.value());
+
+        const bool hasValLayer = orderedLayerEntries.has(VALIDATION_LAYER_NAME);
         if (hasValLayer) {
             const std::array enabledLayers{VALIDATION_LAYER_NAME.data()};
             instInfo.setPEnabledLayerNames(enabledLayers);
