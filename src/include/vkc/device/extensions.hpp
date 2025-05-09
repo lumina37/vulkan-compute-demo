@@ -63,6 +63,8 @@ private:
     ExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& extEntries) noexcept;
 
 public:
+    ExtEntries_() noexcept = default;
+
     [[nodiscard]] static std::expected<ExtEntries_, Error> create(std::vector<TExt>&& exts) noexcept;
 
     [[nodiscard]] bool has(std::string_view key) const noexcept;

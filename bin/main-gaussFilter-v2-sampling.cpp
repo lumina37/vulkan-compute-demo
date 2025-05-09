@@ -38,7 +38,9 @@ int main() {
     vkc::StbImageManager dstImage = vkc::StbImageManager::createWithExtent(srcImage.getExtent()) | unwrap;
 
     // Device
-    vkc::InstanceManager instMgr = vkc::InstanceManager::create() | unwrap;
+    vkc::DefaultInstanceProps instProps = vkc::DefaultInstanceProps::create() | unwrap;
+    if (!instProps.layers.has(""))
+    vkc::InstanceManager instMgr = vkc::InstanceManager::createDefault() | unwrap;
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instMgr) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.pickDefault() | unwrap).get();
     vkc::PhyDeviceManager& phyDeviceMgr = phyDeviceWithProps.getPhyDeviceMgr();

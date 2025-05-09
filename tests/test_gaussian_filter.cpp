@@ -111,7 +111,7 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
     vkc::StbImageManager dstImageVk = vkc::StbImageManager::createWithExtent(srcImage.getExtent()) | unwrap;
 
     // Device
-    vkc::InstanceManager instMgr = vkc::InstanceManager::create() | unwrap;
+    vkc::InstanceManager instMgr = vkc::InstanceManager::createDefault() | unwrap;
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instMgr) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.pickDefault() | unwrap).get();
     vkc::PhyDeviceManager& phyDeviceMgr = phyDeviceWithProps.getPhyDeviceMgr();

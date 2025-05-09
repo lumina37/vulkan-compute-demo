@@ -1,6 +1,8 @@
 #pragma once
 
 #include <expected>
+#include <span>
+#include <string>
 #include <utility>
 
 #include "vkc/helper/error.hpp"
@@ -17,7 +19,9 @@ public:
     InstanceManager(InstanceManager&& rhs) noexcept;
     ~InstanceManager() noexcept;
 
-    [[nodiscard]] static std::expected<InstanceManager, Error> create() noexcept;
+    [[nodiscard]] static std::expected<InstanceManager, Error> createDefault() noexcept;
+    [[nodiscard]] static std::expected<InstanceManager, Error> create(
+        std::span<const std::string_view> enableExtNames, std::span<const std::string_view> enableLayerNames) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getInstance(this Self&& self) noexcept {

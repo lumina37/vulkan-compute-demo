@@ -1,10 +1,11 @@
 #include <array>
 #include <expected>
 #include <ranges>
+#include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
-#include "vkc/device/extensions.hpp"
 #include "vkc/helper/defines.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
@@ -27,7 +28,18 @@ InstanceManager::~InstanceManager() noexcept {
     instance_ = nullptr;
 }
 
-std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
+std::expected<InstanceManager, Error> InstanceManager::createDefault() noexcept {
+    constexpr std::string_view validationLayerName{"VK_LAYER_KHRONOS_validation"};
+    if constexpr (ENABLE_DEBUG) {
+        constexpr std::array enableLayerNames{validationLayerName};
+        return create({}, enableLayerNames);
+    } else {
+        return create({}, {});
+    }
+}
+
+std::expected<InstanceManager, Error> InstanceManager::create(
+    std::span<const std::string_view> enableExtNames, std::span<const std::string_view> enableLayerNames) noexcept {
     vk::ApplicationInfo appInfo;
     appInfo.setPApplicationName("vk-compute-demo");
     appInfo.setApiVersion(vk::ApiVersion11);
@@ -35,22 +47,14 @@ std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
     vk::InstanceCreateInfo instInfo;
     instInfo.setPApplicationInfo(&appInfo);
 
-    if constexpr (ENABLE_DEBUG) {
-        auto [layerPropsRes, layerProps] = vk::enumerateInstanceLayerProperties();
-        if (layerPropsRes != vk::Result::eSuccess) {
-            return std::unexpected{Error{layerPropsRes}};
-        }
+    auto enabledPExtNames = enableExtNames | rgs::views::transform([](std::string_view name) { return name.data(); }) |
+                            rgs::to<std::vector>();
+    instInfo.setPEnabledExtensionNames(enabledPExtNames);
 
-        auto layerEntriesRes = ExtEntries_<vk::LayerProperties>::create(std::move(layerProps));
-        if (!layerEntriesRes) return std::unexpected{std::move(layerEntriesRes.error())};
-        auto layerEntries = std::move(layerEntriesRes.value());
-
-        constexpr std::string_view VALIDATION_LAYER_NAME{"VK_LAYER_KHRONOS_validation"};
-        if (layerEntries.has(VALIDATION_LAYER_NAME)) {
-            const std::array enabledLayers{VALIDATION_LAYER_NAME.data()};
-            instInfo.setPEnabledLayerNames(enabledLayers);
-        }
-    }
+    auto enabledPLayerNames = enableLayerNames |
+                              rgs::views::transform([](std::string_view name) { return name.data(); }) |
+                              rgs::to<std::vector>();
+    instInfo.setPEnabledLayerNames(enabledPLayerNames);
 
     const auto [instanceRes, instance] = vk::createInstance(instInfo);
     if (instanceRes != vk::Result::eSuccess) {
