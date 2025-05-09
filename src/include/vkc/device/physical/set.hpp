@@ -15,8 +15,6 @@
 
 namespace vkc {
 
-std::expected<float, Error> defaultJudge(const PhyDeviceWithProps_<DefaultPhyDeviceProps>& phyDeviceWithProps) noexcept;
-
 template <CPhyDeviceProps TProps_>
 class PhyDeviceSet_ {
 public:
@@ -110,6 +108,9 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDev
 template <CPhyDeviceProps TProps>
 std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error>
 PhyDeviceSet_<TProps>::pickDefault() noexcept {
+    constexpr auto defaultJudge = [](const TPhyDeviceWithProps& phyDeviceWithProps) noexcept {
+        return phyDeviceWithProps.getPhyDeviceProps().score();
+    };
     return select(defaultJudge);
 }
 

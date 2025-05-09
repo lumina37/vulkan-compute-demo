@@ -23,7 +23,7 @@ std::expected<DefaultInstanceProps, Error> DefaultInstanceProps::create() noexce
 
     auto extEntriesRes = ExtEntries_<vk::ExtensionProperties>::create(std::move(extProps));
     if (!extEntriesRes) return std::unexpected{std::move(extEntriesRes.error())};
-    props.exts = std::move(extEntriesRes.value());
+    props.extensions = std::move(extEntriesRes.value());
 
     auto [layerPropsRes, layerProps] = vk::enumerateInstanceLayerProperties();
     if (layerPropsRes != vk::Result::eSuccess) {

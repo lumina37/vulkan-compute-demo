@@ -18,6 +18,15 @@ std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(
     DefaultPhyDeviceProps props;
     const auto phyDevice = phyDeviceMgr.getPhyDevice();
 
+    auto [extPropsRes, extProps] = phyDevice.enumerateDeviceExtensionProperties();
+    if (extPropsRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{extPropsRes}};
+    }
+
+    auto extEntriesRes = ExtEntries_<vk::ExtensionProperties>::create(std::move(extProps));
+    if (!extEntriesRes) return std::unexpected{std::move(extEntriesRes.error())};
+    props.extensions = std::move(extEntriesRes.value());
+
     vk::StructureChain<vk::PhysicalDeviceProperties2> propsChain;
     phyDevice.getProperties2(&propsChain.get());
 
@@ -35,6 +44,15 @@ std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(
     props.supportFp16 = (bool)shaderFp16Int8Features.shaderFloat16;
 
     return props;
+}
+
+std::expected<float, Error> DefaultPhyDeviceProps::score() const noexcept {
+    float score = (float)maxSharedMemSize;
+
+    if (deviceType == vk::PhysicalDeviceType::eDiscreteGpu) score *= 3.0f;
+    if (deviceType == vk::PhysicalDeviceType::eIntegratedGpu) score *= 2.0f;
+
+    return score;
 }
 
 template class PhyDeviceWithProps_<DefaultPhyDeviceProps>;

@@ -16,7 +16,7 @@ public:
     [[nodiscard]] static std::expected<DefaultInstanceProps, Error> create() noexcept;
 
     // Members
-    ExtEntries_<vk::ExtensionProperties> exts;
+    ExtEntries_<vk::ExtensionProperties> extensions;
     ExtEntries_<vk::LayerProperties> layers;
 };
 

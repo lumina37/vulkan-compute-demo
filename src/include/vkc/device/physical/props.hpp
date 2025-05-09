@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "vkc/device/concepts.hpp"
+#include "vkc/device/extensions.hpp"
 #include "vkc/device/physical/manager.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
@@ -19,8 +20,10 @@ public:
 
     [[nodiscard]] static std::expected<DefaultPhyDeviceProps, Error> create(
         const PhyDeviceManager& phyDeviceMgr) noexcept;
+    [[nodiscard]] std::expected<float, Error> score() const noexcept;
 
     // Members
+    ExtEntries_<vk::ExtensionProperties> extensions;
     uint32_t apiVersion;
     vk::PhysicalDeviceType deviceType;
     uint32_t maxSharedMemSize;
