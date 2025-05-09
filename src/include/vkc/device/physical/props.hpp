@@ -4,8 +4,8 @@
 #include <expected>
 #include <utility>
 
-#include "vkc/device/concepts.hpp"
 #include "vkc/device/extensions.hpp"
+#include "vkc/device/physical/concepts.hpp"
 #include "vkc/device/physical/manager.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"

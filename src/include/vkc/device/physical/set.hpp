@@ -4,8 +4,8 @@
 #include <print>
 #include <utility>
 
-#include "vkc/device/concepts.hpp"
 #include "vkc/device/instance.hpp"
+#include "vkc/device/physical/concepts.hpp"
 #include "vkc/device/physical/manager.hpp"
 #include "vkc/device/physical/props.hpp"
 #include "vkc/device/score.hpp"
