@@ -10,7 +10,7 @@
 #include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/device/instance.hpp"
+#    include "vkc/device/instance/manager.hpp"
 #endif
 
 namespace vkc {
