@@ -6,8 +6,8 @@
 
 #include "vkc/device/concepts.hpp"
 #include "vkc/device/instance.hpp"
-#include "vkc/device/physical.hpp"
-#include "vkc/device/props.hpp"
+#include "vkc/device/physical/manager.hpp"
+#include "vkc/device/physical/props.hpp"
 #include "vkc/device/score.hpp"
 #include "vkc/helper/defines.hpp"
 #include "vkc/helper/error.hpp"
@@ -116,5 +116,5 @@ PhyDeviceSet_<TProps>::pickDefault() noexcept {
 }  // namespace vkc
 
 #ifdef _vkc_LIB_HEADER_ONLY
-#    include "vkc/device/set.cpp"
+#    include "vkc/device/physical/set.cpp"
 #endif

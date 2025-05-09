@@ -3,7 +3,7 @@
 #include <concepts>
 #include <expected>
 
-#include "vkc/device/physical.hpp"
+#include "vkc/device/physical/manager.hpp"
 #include "vkc/helper/error.hpp"
 
 namespace vkc {

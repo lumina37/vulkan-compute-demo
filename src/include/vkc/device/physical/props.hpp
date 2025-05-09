@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "vkc/device/concepts.hpp"
-#include "vkc/device/physical.hpp"
+#include "vkc/device/physical/manager.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 
@@ -54,5 +54,5 @@ PhyDeviceWithProps_<TDProps>::PhyDeviceWithProps_(PhyDeviceManager&& phyDeviceMg
 }  // namespace vkc
 
 #ifdef _vkc_LIB_HEADER_ONLY
-#    include "vkc/device/props.cpp"
+#    include "vkc/device/physical/props.cpp"
 #endif

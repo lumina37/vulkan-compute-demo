@@ -1,10 +1,10 @@
 #include <expected>
 
-#include "vkc/device/props.hpp"
+#include "vkc/device/physical/props.hpp"
 #include "vkc/helper/error.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/device/set.hpp"
+#    include "vkc/device/physical/set.hpp"
 #endif
 
 namespace vkc {
