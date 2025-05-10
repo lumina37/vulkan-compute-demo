@@ -15,7 +15,7 @@ class QueueManager {
 
 public:
     [[nodiscard]] static std::expected<QueueManager, Error> create(DeviceManager& deviceMgr,
-                                                                   uint32_t queueFamilyIdx) noexcept;
+                                                                   vk::QueueFlags type) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getComputeQueue(this Self&& self) noexcept {

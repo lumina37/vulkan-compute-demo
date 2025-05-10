@@ -28,17 +28,17 @@ InstanceManager::~InstanceManager() noexcept {
     instance_ = nullptr;
 }
 
-std::expected<InstanceManager, Error> InstanceManager::createDefault() noexcept {
+std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
     constexpr std::string_view validationLayerName{"VK_LAYER_KHRONOS_validation"};
     if constexpr (ENABLE_DEBUG) {
         constexpr std::array enableLayerNames{validationLayerName};
-        return create({}, enableLayerNames);
+        return createWithExts({}, enableLayerNames);
     } else {
-        return create({}, {});
+        return createWithExts({}, {});
     }
 }
 
-std::expected<InstanceManager, Error> InstanceManager::create(
+std::expected<InstanceManager, Error> InstanceManager::createWithExts(
     std::span<const std::string_view> enableExtNames, std::span<const std::string_view> enableLayerNames) noexcept {
     vk::ApplicationInfo appInfo;
     appInfo.setPApplicationName("vk-compute-demo");

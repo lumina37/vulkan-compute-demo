@@ -15,11 +15,12 @@ namespace vkc {
 
 QueueManager::QueueManager(vk::Queue queue) noexcept : computeQueue_(queue) {}
 
-std::expected<QueueManager, Error> QueueManager::create(DeviceManager& deviceMgr, uint32_t queueFamilyIdx) noexcept {
-    auto& device = deviceMgr.getDevice();
-    const vk::Queue computeQueue = device.getQueue(queueFamilyIdx, 0);
+std::expected<QueueManager, Error> QueueManager::create(DeviceManager& deviceMgr, vk::QueueFlags type) noexcept {
+    auto queueRes = deviceMgr.getQueue(type);
+    if (!queueRes) return std::unexpected{std::move(queueRes.error())};
+    const vk::Queue queue = queueRes.value();
 
-    return QueueManager{computeQueue};
+    return QueueManager{queue};
 }
 
 }  // namespace vkc

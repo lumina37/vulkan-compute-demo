@@ -39,15 +39,19 @@ int main() {
 
     // Device
     vkc::DefaultInstanceProps instProps = vkc::DefaultInstanceProps::create() | unwrap;
-    if (!instProps.layers.has(""))
-    vkc::InstanceManager instMgr = vkc::InstanceManager::createDefault() | unwrap;
+    if (!instProps.layers.has("VK_LAYER_KHRONOS_validation")) {
+        std::println(std::cerr, "VK_LAYER_KHRONOS_validation not supported");
+        return -1;
+    }
+    vkc::InstanceManager instMgr = vkc::InstanceManager::create() | unwrap;
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instMgr) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.pickDefault() | unwrap).get();
     vkc::PhyDeviceManager& phyDeviceMgr = phyDeviceWithProps.getPhyDeviceMgr();
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr) | unwrap;
-    auto pDeviceMgr =
-        std::make_shared<vkc::DeviceManager>(vkc::DeviceManager::create(phyDeviceMgr, computeQFamilyIdx) | unwrap);
-    vkc::QueueManager queueMgr = vkc::QueueManager::create(*pDeviceMgr, computeQFamilyIdx) | unwrap;
+    const std::array requiredQueueIndices{vkc::QueueIndex{vk::QueueFlagBits::eCompute, computeQFamilyIdx}};
+    auto pDeviceMgr = std::make_shared<vkc::DeviceManager>(
+        vkc::DeviceManager::create(phyDeviceMgr, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}) | unwrap);
+    vkc::QueueManager queueMgr = vkc::QueueManager::create(*pDeviceMgr, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Descriptor & Layouts
     vkc::SamplerManager samplerMgr = vkc::SamplerManager::create(pDeviceMgr) | unwrap;
@@ -123,9 +127,4 @@ int main() {
         fenceMgr.reset() | unwrap;
 
         auto elapsedTime = queryPoolMgr.getElaspedTimes() | unwrap;
-        std::println("Gaussian blur timecost: {} ms", elapsedTime[0]);
-    }
-
-    dstImageMgr.downloadTo(dstImage.getImageSpan()) | unwrap;
-    dstImage.saveTo("out.png") | unwrap;
-}
+        std::println("Gaussian blur timecost: {} ms

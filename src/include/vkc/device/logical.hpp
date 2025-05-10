@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <expected>
 #include <utility>
+#include <vector>
 
 #include "vkc/device/physical.hpp"
 #include "vkc/helper/error.hpp"
@@ -10,23 +11,39 @@
 
 namespace vkc {
 
+struct QueueIndex {
+    vk::QueueFlags type;
+    uint32_t familyIndex;
+};
+
 class DeviceManager {
-    DeviceManager(vk::Device device) noexcept;
+    DeviceManager(vk::Device device, std::vector<QueueIndex>&& queueIndices) noexcept;
 
 public:
     DeviceManager(DeviceManager&& rhs) noexcept;
     ~DeviceManager() noexcept;
 
     [[nodiscard]] static std::expected<DeviceManager, Error> create(PhyDeviceManager& phyDeviceMgr,
-                                                                    uint32_t queueFamilyIdx) noexcept;
+                                                                    QueueIndex requiredQueueIndex) noexcept;
+
+    [[nodiscard]] static std::expected<DeviceManager, Error> createWithExts(
+        PhyDeviceManager& phyDeviceMgr, QueueIndex requiredQueueIndex,
+        std::span<const std::string_view> enableExtNames) noexcept;
+
+    [[nodiscard]] static std::expected<DeviceManager, Error> createWithMultiQueueAndExts(
+        PhyDeviceManager& phyDeviceMgr, std::span<const QueueIndex> requiredQueueIndices,
+        std::span<const std::string_view> enableExtNames) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getDevice(this Self&& self) noexcept {
         return std::forward_like<Self>(self).device_;
     }
 
+    [[nodiscard]] std::expected<vk::Queue, Error> getQueue(vk::QueueFlags type) const noexcept;
+
 private:
     vk::Device device_;
+    std::vector<QueueIndex> queueIndices_;
 };
 
 }  // namespace vkc

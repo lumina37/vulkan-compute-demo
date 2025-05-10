@@ -16,6 +16,7 @@ namespace vkc {
 enum class ImageType {
     Read,
     Write,
+    ReadWrite,
 };
 
 class ImageManager {

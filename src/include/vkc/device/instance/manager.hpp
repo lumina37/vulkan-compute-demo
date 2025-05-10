@@ -19,8 +19,8 @@ public:
     InstanceManager(InstanceManager&& rhs) noexcept;
     ~InstanceManager() noexcept;
 
-    [[nodiscard]] static std::expected<InstanceManager, Error> createDefault() noexcept;
-    [[nodiscard]] static std::expected<InstanceManager, Error> create(
+    [[nodiscard]] static std::expected<InstanceManager, Error> create() noexcept;
+    [[nodiscard]] static std::expected<InstanceManager, Error> createWithExts(
         std::span<const std::string_view> enableExtNames, std::span<const std::string_view> enableLayerNames) noexcept;
 
     template <typename Self>
