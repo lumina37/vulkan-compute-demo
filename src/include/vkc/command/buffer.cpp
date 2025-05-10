@@ -111,7 +111,7 @@ void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageM
                                    uploadConvBarriers.data());
 }
 
-void CommandBufferManager::recordUploadToSrc(const std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept {
+void CommandBufferManager::recordCopyStagingToSrc(const std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -224,7 +224,7 @@ void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImage
                                    (uint32_t)downloadConvBarriers.size(), downloadConvBarriers.data());
 }
 
-void CommandBufferManager::recordDownloadToDst(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
+void CommandBufferManager::recordCopyDstToStaging(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);

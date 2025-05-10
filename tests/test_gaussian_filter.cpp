@@ -168,12 +168,12 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
-        gaussCmdBufMgr.recordUploadToSrc(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgrCRefs);
         gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
         gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
-        gaussCmdBufMgr.recordDownloadToDst(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgrCRefs);
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;
 
@@ -210,12 +210,12 @@ TEST_CASE("Gaussian Blur", "hlsl::gaussFilterVx") {
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
-        gaussCmdBufMgr.recordUploadToSrc(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgrCRefs);
         gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
         gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
-        gaussCmdBufMgr.recordDownloadToDst(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgrCRefs);
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;
 

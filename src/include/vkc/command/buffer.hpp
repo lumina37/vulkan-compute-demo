@@ -52,7 +52,7 @@ public:
 
     using TImageMgrCRef = std::reference_wrapper<const ImageManager>;
     void recordSrcPrepareTranfer(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
-    void recordUploadToSrc(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
+    void recordCopyStagingToSrc(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
 
     struct ImageManagerPair {
         const ImageManager& copyFrom;
@@ -63,7 +63,7 @@ public:
     void recordDstPrepareShaderWrite(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
     void recordDispatch(Extent extent, BlockSize blockSize) noexcept;
     void recordDstPrepareTransfer(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
-    void recordDownloadToDst(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
+    void recordCopyDstToStaging(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
     void recordWaitDownloadComplete(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
 
     template <typename TQueryPoolManager>
