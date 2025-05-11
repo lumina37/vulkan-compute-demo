@@ -90,7 +90,7 @@ int main() {
         vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
     vkc::TimestampQueryPoolManager queryPoolMgr =
-        vkc::TimestampQueryPoolManager::create(pDeviceMgr, 2, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
+        vkc::TimestampQueryPoolManager::create(pDeviceMgr, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
         unwrap;
 
     // Pipeline
@@ -109,14 +109,18 @@ int main() {
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
-        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
+        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
-        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader);
+        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;
 
@@ -125,7 +129,10 @@ int main() {
         fenceMgr.reset() | unwrap;
 
         auto elapsedTime = queryPoolMgr.getElaspedTimes() | unwrap;
-        std::println("Gaussian blur timecost: {} ms", elapsedTime[0]);
+        std::println("============================");
+        std::println("Staging to src timecost: {} ms", elapsedTime[0]);
+        std::println("Dispatch timecost: {} ms", elapsedTime[1]);
+        std::println("Staging to dst timecost: {} ms", elapsedTime[2]);
     }
 
     dstImageMgr.downloadTo(dstImage.getImageSpan()) | unwrap;

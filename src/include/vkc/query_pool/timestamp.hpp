@@ -21,9 +21,9 @@ public:
     [[nodiscard]] static std::expected<TimestampQueryPoolManager, Error> create(
         std::shared_ptr<DeviceManager> pDeviceMgr, int queryCount, float timestampPeriod) noexcept;
 
-    int getQueryIndex() const noexcept { return queryIndex_; }
-    void addQueryIndex() noexcept { queryIndex_++; }
-    void resetQueryIndex() noexcept { queryIndex_ = 0; }
+    [[nodiscard]] int getQueryIndex() const noexcept { return queryIndex_; }
+    [[nodiscard]] std::expected<void, Error> addQueryIndex() noexcept;
+    void resetQueryIndex() noexcept;
 
     [[nodiscard]] int getQueryCount() const noexcept { return queryCount_; }
 

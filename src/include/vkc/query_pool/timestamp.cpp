@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <format>
 #include <memory>
 #include <ranges>
 #include <utility>
@@ -55,6 +56,17 @@ std::expected<TimestampQueryPoolManager, Error> TimestampQueryPoolManager::creat
 
     return TimestampQueryPoolManager{std::move(pDeviceMgr), queryPool, queryCount, timestampPeriod};
 }
+
+std::expected<void, Error> TimestampQueryPoolManager::addQueryIndex() noexcept {
+    queryIndex_++;
+    if (queryIndex_ > queryCount_) {
+        auto errMsg = std::format("query index exceeds limits. max={}", queryCount_);
+        return std::unexpected{Error{-1, std::move(errMsg)}};
+    }
+    return {};
+}
+
+void TimestampQueryPoolManager::resetQueryIndex() noexcept { queryIndex_ = 0; }
 
 std::expected<std::vector<float>, Error> TimestampQueryPoolManager::getElaspedTimes() const noexcept {
     std::vector<uint64_t> timestamps(queryIndex_);

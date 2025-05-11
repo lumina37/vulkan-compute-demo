@@ -78,8 +78,8 @@ std::expected<vk::Queue, Error> DeviceManager::getQueue(vk::QueueFlags type) con
 
     auto queueIndexIt = rgs::find(queueIndices_, type, exposeType);
     if (queueIndexIt == queueIndices_.end()) {
-        auto errmsg = std::format("no family index for type: {}", (uint32_t)type);
-        return std::unexpected{Error{-1, std::move(errmsg)}};
+        auto errMsg = std::format("no family index for type={}", (uint32_t)type);
+        return std::unexpected{Error{-1, std::move(errMsg)}};
     }
 
     const uint32_t familyIndex = queueIndexIt->familyIndex;

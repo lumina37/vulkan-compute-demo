@@ -262,20 +262,30 @@ void CommandBufferManager::recordWaitDownloadComplete(const std::span<const TIma
                                    downloadCompleteBarriers.data(), 0, nullptr);
 }
 
-void CommandBufferManager::recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr,
-                                                const vk::PipelineStageFlagBits pipelineStage) noexcept {
+std::expected<void, Error> CommandBufferManager::recordTimestampStart(
+    TimestampQueryPoolManager& queryPoolMgr, const vk::PipelineStageFlagBits pipelineStage) noexcept {
     auto& queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
-    queryPoolMgr.addQueryIndex();
+
+    auto addIndexRes = queryPoolMgr.addQueryIndex();
+    if (!addIndexRes) return std::unexpected{std::move(addIndexRes.error())};
+
     commandBuffer_.writeTimestamp(pipelineStage, queryPool, queryIndex);
+
+    return {};
 }
 
-void CommandBufferManager::recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr,
-                                              const vk::PipelineStageFlagBits pipelineStage) noexcept {
+std::expected<void, Error> CommandBufferManager::recordTimestampEnd(
+    TimestampQueryPoolManager& queryPoolMgr, const vk::PipelineStageFlagBits pipelineStage) noexcept {
     auto& queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
-    queryPoolMgr.addQueryIndex();
+
+    auto addIndexRes = queryPoolMgr.addQueryIndex();
+    if (!addIndexRes) return std::unexpected{std::move(addIndexRes.error())};
+
     commandBuffer_.writeTimestamp(pipelineStage, queryPool, queryIndex);
+
+    return {};
 }
 
 std::expected<void, Error> CommandBufferManager::end() noexcept {

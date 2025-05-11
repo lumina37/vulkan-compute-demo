@@ -70,9 +70,10 @@ public:
         requires CQueryPoolManager<TQueryPoolManager>
     void recordResetQueryPool(TQueryPoolManager& queryPoolMgr) noexcept;
 
-    void recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr,
-                              vk::PipelineStageFlagBits pipelineStage) noexcept;
-    void recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr, vk::PipelineStageFlagBits pipelineStage) noexcept;
+    [[nodiscard]] std::expected<void, Error> recordTimestampStart(TimestampQueryPoolManager& queryPoolMgr,
+                                                                  vk::PipelineStageFlagBits pipelineStage) noexcept;
+    [[nodiscard]] std::expected<void, Error> recordTimestampEnd(TimestampQueryPoolManager& queryPoolMgr,
+                                                                vk::PipelineStageFlagBits pipelineStage) noexcept;
 
     [[nodiscard]] std::expected<void, Error> end() noexcept;
     [[nodiscard]] std::expected<void, Error> submitTo(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept;
