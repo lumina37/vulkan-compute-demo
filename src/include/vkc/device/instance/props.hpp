@@ -22,6 +22,6 @@ public:
 
 }  // namespace vkc
 
-#ifdef _vkc_LIB_HEADER_ONLY
+#ifdef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/instance/props.cpp"
 #endif

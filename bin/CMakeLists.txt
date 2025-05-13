@@ -1,10 +1,7 @@
 function(vkc_add_executable name src)
     add_executable(${name} ${src})
 
-    target_link_libraries(${name} PRIVATE
-            vkc-lib
-            vkc-shader
-    )
+    target_link_libraries(${name} PRIVATE vkc::lib::static vkc::shader)
 
     vkc_copy_dlls_if_needed(${name})
 endfunction()

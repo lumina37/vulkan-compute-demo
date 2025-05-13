@@ -116,6 +116,6 @@ PhyDeviceSet_<TProps>::pickDefault() noexcept {
 
 }  // namespace vkc
 
-#ifdef _vkc_LIB_HEADER_ONLY
+#ifdef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/physical/set.cpp"
 #endif

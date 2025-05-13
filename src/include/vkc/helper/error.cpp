@@ -2,7 +2,7 @@
 #include <string>
 #include <utility>
 
-#ifndef _TLCT_LIB_HEADER_ONLY
+#ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/helper/error.hpp"
 #endif
 

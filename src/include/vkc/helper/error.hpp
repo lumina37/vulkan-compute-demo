@@ -23,6 +23,6 @@ public:
 
 }  // namespace vkc
 
-#ifdef _TLCT_LIB_HEADER_ONLY
+#ifdef _VKC_LIB_HEADER_ONLY
 #    include "vkc/helper/error.cpp"
 #endif

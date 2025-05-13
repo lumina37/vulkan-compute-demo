@@ -56,6 +56,6 @@ PhyDeviceWithProps_<TDProps>::PhyDeviceWithProps_(PhyDeviceManager&& phyDeviceMg
 
 }  // namespace vkc
 
-#ifdef _vkc_LIB_HEADER_ONLY
+#ifdef _VKC_LIB_HEADER_ONLY
 #    include "vkc/device/physical/props.cpp"
 #endif
