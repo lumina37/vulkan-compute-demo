@@ -10,7 +10,7 @@ public:
     float score;
     TAttach attachment;
 
-    static friend constexpr std::partial_ordering operator<=>(const Score& lhs, const Score& rhs) noexcept {
+    friend constexpr std::partial_ordering operator<=>(const Score& lhs, const Score& rhs) noexcept {
         return lhs.score <=> rhs.score;
     }
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <expected>
+#include <memory>
 #include <utility>
 
 #include "vkc/device/logical.hpp"

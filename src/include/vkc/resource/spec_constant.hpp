@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstdint>
-#include <type_traits>
 #include <utility>
 
 #include "vkc/helper/vulkan.hpp"
@@ -10,7 +9,6 @@
 namespace vkc {
 
 template <typename... TSc>
-    requires(std::is_trivially_copyable_v<TSc> && ...)
 class SpecConstantManager {
 public:
     constexpr SpecConstantManager(TSc... specConstants) noexcept;
@@ -27,7 +25,6 @@ private:
     vk::SpecializationInfo specInfo_;
 };
 template <typename... TSc>
-    requires(std::is_trivially_copyable_v<TSc> && ...)
 constexpr SpecConstantManager<TSc...>::SpecConstantManager(TSc... specConstants) noexcept
     : specConstants_(specConstants...) {
     const auto genSpecMapEntry = [&]<size_t index>() {

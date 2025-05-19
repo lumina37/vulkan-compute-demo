@@ -1,5 +1,4 @@
 #include <array>
-#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -72,10 +71,10 @@ int main() {
         unwrap;
 
     // Pipeline
-    constexpr vkc::BlockSize blockSize{256, 1, 1};
+    constexpr vkc::BlockSize blockSize{16, 16, 1};
     vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilterV2SpirvCode) | unwrap;
-    constexpr int maxHalfKSize = 128;
-    vkc::SpecConstantManager specConstantMgr{blockSize.x, maxHalfKSize};
+    constexpr int maxHalfKSize = 16;
+    vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y, maxHalfKSize};
     vkc::PipelineManager gaussPipelineMgr =
         vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
         unwrap;

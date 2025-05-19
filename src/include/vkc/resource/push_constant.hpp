@@ -1,13 +1,10 @@
 #pragma once
 
-#include <type_traits>
-
 #include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
 
 template <typename TPc_>
-    requires std::is_trivially_copyable_v<TPc_>
 class PushConstantManager {
 public:
     using TPc = TPc_;
@@ -27,7 +24,6 @@ private:
 };
 
 template <typename TPc>
-    requires std::is_trivially_copyable_v<TPc>
 constexpr PushConstantManager<TPc>::PushConstantManager(const TPc pushConstant) noexcept : pushConstant_(pushConstant) {
     pushConstantRange_.setStageFlags(vk::ShaderStageFlagBits::eCompute);
     pushConstantRange_.setSize(sizeof(TPc));

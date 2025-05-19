@@ -6,8 +6,8 @@ function(vkc_add_test name srcs)
     add_executable(${name} ${srcs})
     target_link_libraries(${name} PRIVATE
             Catch2::Catch2WithMain
-            vkc-lib
-            vkc-shader
+            vkc::lib::static
+            vkc::shader
     )
 
     catch_discover_tests(${name})

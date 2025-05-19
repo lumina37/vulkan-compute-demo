@@ -38,13 +38,16 @@ void main() {
         const int smemWriteX = GROUP_SIZE * x + groupTID.x;
         if (smemWriteX < SHARED_MEM_SIZE) {
             // Gather from `[srcStartY-halfKSize, srcStartY+halfKSise]` rows
-            vec4 acc = vec4(0.0);
-            float accWeight = 0.0;
-            for (int y = -halfKSize; y <= halfKSize; y++) {
-                const ivec2 iUv = ivec2(srcStartX + GROUP_SIZE * x, srcStartY + y);
-                const vec2 uv = (vec2(iUv) + 0.5) * invDstSize;
-                const vec4 srcVal = texture(sampler2D(srcTex, srcSampler), uv);
-                const float weight = exp(-float(y * y) / pc.sigma2);
+            const ivec2 glb2shrCoord = ivec2(srcStartX + GROUP_SIZE * x, srcStartY - halfKSize);
+            const vec2 glb2shrNormCoord = (vec2(glb2shrCoord) + 0.5) * invDstSize;
+            float accWeight = exp(-float(halfKSize * halfKSize) / pc.sigma2);
+            vec4 acc = texture(sampler2D(srcTex, srcSampler), glb2shrNormCoord) * accWeight;
+            for (int y = 1 - halfKSize; y <= halfKSize; y += 2) {
+                const float weightUp = exp(-float(y * y) / pc.sigma2);
+                const float weightDown = exp(-float((y + 1) * (y + 1)) / pc.sigma2);
+                const float weight = weightUp + weightDown;
+                const float yOffset = (float(y + halfKSize) + weightDown / weight) * invDstSize.y;
+                const vec4 srcVal = texture(sampler2D(srcTex, srcSampler), vec2(glb2shrNormCoord.x, glb2shrNormCoord.y + yOffset));
                 acc += srcVal * weight;
                 accWeight += weight;
             }

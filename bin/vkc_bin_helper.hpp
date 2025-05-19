@@ -15,7 +15,7 @@ namespace fs = std::filesystem;
 class Unwrap {
 public:
     template <typename T>
-    static friend auto operator|(std::expected<T, vkc::Error>&& src, [[maybe_unused]] const Unwrap& _) {
+    friend auto operator|(std::expected<T, vkc::Error>&& src, [[maybe_unused]] const Unwrap& _) {
         if (!src.has_value()) {
             const auto& err = src.error();
             const fs::path filePath{err.source.file_name()};
