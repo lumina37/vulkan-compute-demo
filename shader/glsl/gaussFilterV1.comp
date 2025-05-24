@@ -13,16 +13,18 @@ layout (binding = 2, rgba8) uniform writeonly image2D dstImage;
 
 layout (constant_id = 1) const int MAX_HALF_KSIZE = 128;
 
-const int GROUP_SIZE = int(gl_WorkGroupSize.x);
-const int SHARED_MEM_SIZE = GROUP_SIZE + 2 * MAX_HALF_KSIZE;
-// Gathered Y for each X
+const int GROUP_SIZE_X = int(gl_WorkGroupSize.x);
+const int SHARED_MEM_SIZE = GROUP_SIZE_X + 2 * MAX_HALF_KSIZE;
+const int ALIGNED_SHARED_MEM_SIZE = (SHARED_MEM_SIZE + (GROUP_SIZE_X - 1)) & ((~GROUP_SIZE_X) + 1);
+// Each thread should sample multiple times across cols
+const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE_X;
+
+// Gather multiple rows for each X
 shared vec4 gatheredY[SHARED_MEM_SIZE];
-// Each thread should sample multiple times to fill up the `gatheredY`
-const int ALIGNED_SHARED_MEM_SIZE = (SHARED_MEM_SIZE + (GROUP_SIZE - 1)) & ((~GROUP_SIZE) + 1);
-const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
 
 void main() {
-    const ivec2 dstIdx = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 globalTID = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 dstIdx = globalTID;
     const ivec2 dstSize = imageSize(dstImage);
 
     const vec2 invDstSize = 1.0 / vec2(dstSize);
@@ -30,15 +32,15 @@ void main() {
 
     const ivec2 groupTID = ivec2(gl_LocalInvocationID);
     const ivec2 groupID = ivec2(gl_WorkGroupID);
-    const int srcStartX = groupID.x * GROUP_SIZE + groupTID.x - MAX_HALF_KSIZE;
+    const int srcStartX = groupID.x * GROUP_SIZE_X + groupTID.x - MAX_HALF_KSIZE;
     const int srcStartY = groupID.y;
 
     // Gather col cache for each `[srcStartX, srcStartX + GROUP_SIZE, srcStartX + 2*GROUP_SIZE, ...]` cols
-    for (int x = 0; x < SAMPLE_TIMES; x++) {
-        const int smemWriteX = GROUP_SIZE * x + groupTID.x;
+    for (int iSample = 0; iSample < SAMPLE_TIMES; iSample++) {
+        const int smemWriteX = GROUP_SIZE_X * iSample + groupTID.x;
         if (smemWriteX < SHARED_MEM_SIZE) {
             // Gather from `[srcStartY-halfKSize, srcStartY+halfKSise]` rows
-            const ivec2 glb2shrCoord = ivec2(srcStartX + GROUP_SIZE * x, srcStartY - halfKSize);
+            const ivec2 glb2shrCoord = ivec2(srcStartX + GROUP_SIZE_X * iSample, srcStartY - halfKSize);
             const vec2 glb2shrNormCoord = (vec2(glb2shrCoord) + 0.5) * invDstSize;
             float accWeight = exp(-float(halfKSize * halfKSize) / pc.sigma2);
             vec4 acc = texture(sampler2D(srcTex, srcSampler), glb2shrNormCoord) * accWeight;

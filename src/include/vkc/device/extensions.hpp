@@ -91,7 +91,7 @@ ExtEntries_<TExt_>::ExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& 
     : exts_(std::move(exts)), extEntries_(std::move(extEntries)) {}
 
 template <CExt TExt_>
-std::expected<ExtEntries_<TExt_>, Error> ExtEntries_<TExt_>::create(std::vector<TExt>&& exts) noexcept {
+auto ExtEntries_<TExt_>::create(std::vector<TExt>&& exts) noexcept -> std::expected<ExtEntries_, Error> {
     auto extEntries = exts | rgs::views::transform(TEntry::createWithoutErr) | rgs::to<std::vector>();
     rgs::sort(extEntries);
     return ExtEntries_{std::move(exts), std::move(extEntries)};
