@@ -1,3 +1,3 @@
 # vulkan-compute-demo
 
-Gaussian blur by Vulkan+HLSL.
+Gaussian blur by Vulkan+GLSL.
