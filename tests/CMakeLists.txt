@@ -2,11 +2,11 @@ enable_testing()
 
 set(_VKC_TEST_TARGETS)
 
-function(vkc_add_test name srcs)
+function(vkc_add_test name lib srcs)
     add_executable(${name} ${srcs})
     target_link_libraries(${name} PRIVATE
             Catch2::Catch2WithMain
-            vkc::lib::static
+            ${lib}
             vkc::shader
     )
 
@@ -17,6 +17,7 @@ function(vkc_add_test name srcs)
     vkc_copy_dlls_if_needed(${name})
 endfunction()
 
-vkc_add_test(test_gaussian_filter "test_gaussian_filter.cpp")
+vkc_add_test(test_gaussian_filter vkc::lib::static "test_gaussian_filter.cpp")
+vkc_add_test(test_gaussian_filter_header_only vkc::lib::header-only "test_gaussian_filter.cpp")
 
 add_custom_target(vkc-tests DEPENDS ${_VKC_TEST_TARGETS})

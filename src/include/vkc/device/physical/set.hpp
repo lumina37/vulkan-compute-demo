@@ -30,7 +30,7 @@ public:
 
     [[nodiscard]] std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> select(
         const FnJudge& judge) noexcept;
-    [[nodiscard]] std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> pickDefault() noexcept;
+    [[nodiscard]] std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> selectDefault() noexcept;
 
 private:
     std::vector<TPhyDeviceWithProps> phyDevicesWithProps_;
@@ -107,7 +107,7 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDev
 
 template <CPhyDeviceProps TProps>
 std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error>
-PhyDeviceSet_<TProps>::pickDefault() noexcept {
+PhyDeviceSet_<TProps>::selectDefault() noexcept {
     constexpr auto defaultJudge = [](const TPhyDeviceWithProps& phyDeviceWithProps) noexcept {
         return phyDeviceWithProps.getPhyDeviceProps().score();
     };
