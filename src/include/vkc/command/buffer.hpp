@@ -48,22 +48,20 @@ public:
     template <typename TPc>
     void pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
                       const PipelineLayoutManager& pipelineLayoutMgr) noexcept;
+
     [[nodiscard]] std::expected<void, Error> begin() noexcept;
 
     using TImageMgrCRef = std::reference_wrapper<const ImageManager>;
     void recordSrcPrepareTranfer(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
-    void recordCopyStagingToSrc(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
-
-    struct ImageManagerPair {
-        const ImageManager& copyFrom;
-        const ImageManager& copyTo;
-    };
-    void recordImageCopy(std::span<const ImageManagerPair> imageMgrPairs) noexcept;
     void recordSrcPrepareShaderRead(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
     void recordDstPrepareShaderWrite(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
     void recordDispatch(Extent extent, BlockSize blockSize) noexcept;
     void recordDstPrepareTransfer(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
-    void recordCopyDstToStaging(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
+
+    void recordCopyStagingToSrc(const ImageManager& srcImageMgr) noexcept;
+    void recordCopyDstToStaging(ImageManager& dstImageMgr) noexcept;
+    void recordImageCopy(const ImageManager& srcImageMgr, ImageManager& dstImageMgr) noexcept;
+
     void recordWaitDownloadComplete(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
 
     template <typename TQueryPoolManager>

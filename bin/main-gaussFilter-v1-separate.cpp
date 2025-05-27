@@ -1,5 +1,4 @@
 #include <array>
-#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <print>
@@ -88,7 +87,7 @@ int main() {
         gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
@@ -97,7 +96,7 @@ int main() {
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;

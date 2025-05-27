@@ -1,5 +1,4 @@
 #include <array>
-#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <print>
@@ -9,8 +8,6 @@
 #include "spirv/gaussFilter.hpp"
 #include "vkc.hpp"
 #include "vkc_bin_helper.hpp"
-
-namespace fs = std::filesystem;
 
 int main() {
     vkc::StbImageManager srcImage = vkc::StbImageManager::createFromPath("in.png") | unwrap;
@@ -89,7 +86,7 @@ int main() {
         gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
@@ -98,7 +95,7 @@ int main() {
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;

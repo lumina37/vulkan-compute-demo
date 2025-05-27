@@ -106,7 +106,7 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
     vkc::StbImageManager dstImageCpuRef = vkc::StbImageManager::createWithExtent(srcImage.getExtent()) | unwrap;
     gaussianFilterRefImpl(srcImage.getImageSpan(), dstImageCpuRef.getImageSpan(), srcImage.getExtent(), kernelSize,
                           sigma);
-    dstImageCpuRef.saveTo("ref.png") | unwrap;
+    // dstImageCpuRef.saveTo("ref.png") | unwrap;
 
     vkc::StbImageManager dstImageVk = vkc::StbImageManager::createWithExtent(srcImage.getExtent()) | unwrap;
 
@@ -168,12 +168,12 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
-        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
         gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
         gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
-        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;
 
@@ -210,12 +210,12 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
-        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
         gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
         gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
-        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;
 

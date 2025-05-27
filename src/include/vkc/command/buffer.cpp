@@ -111,38 +111,6 @@ void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageM
                                    uploadConvBarriers.data());
 }
 
-void CommandBufferManager::recordCopyStagingToSrc(const std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
-    vk::BufferImageCopy copyRegionTemplate;
-    copyRegionTemplate.setImageSubresource(subresourceLayers);
-
-    for (const auto mgrRef : srcImageMgrRefs) {
-        const auto& mgr = mgrRef.get();
-        vk::BufferImageCopy copyRegion = copyRegionTemplate;
-        copyRegion.setImageExtent(mgr.getExtent().extent3D());
-        commandBuffer_.copyBufferToImage(mgr.getStagingBuffer(), mgr.getImage(), vk::ImageLayout::eTransferDstOptimal,
-                                         1, &copyRegion);
-    }
-}
-
-void CommandBufferManager::recordImageCopy(const std::span<const ImageManagerPair> imageMgrPairs) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
-    vk::ImageCopy copyRegionTemplate;
-    copyRegionTemplate.setSrcSubresource(subresourceLayers);
-    copyRegionTemplate.setDstSubresource(subresourceLayers);
-
-    for (const auto mgrPair : imageMgrPairs) {
-        vk::ImageCopy copyRegion = copyRegionTemplate;
-        copyRegion.setExtent(mgrPair.copyFrom.getExtent().extent3D());
-        commandBuffer_.copyImage(mgrPair.copyFrom.getImage(), vk::ImageLayout::eTransferSrcOptimal,
-                                 mgrPair.copyTo.getImage(), vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
-    }
-}
-
 void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
     shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
@@ -224,20 +192,41 @@ void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImage
                                    (uint32_t)downloadConvBarriers.size(), downloadConvBarriers.data());
 }
 
-void CommandBufferManager::recordCopyDstToStaging(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
+void CommandBufferManager::recordCopyStagingToSrc(const ImageManager& srcImageMgr) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
-    vk::BufferImageCopy copyRegionTemplate;
-    copyRegionTemplate.setImageSubresource(subresourceLayers);
+    vk::BufferImageCopy copyRegion;
+    copyRegion.setImageExtent(srcImageMgr.getExtent().extent3D());
+    copyRegion.setImageSubresource(subresourceLayers);
 
-    for (const auto mgrRef : dstImageMgrRefs) {
-        const auto& mgr = mgrRef.get();
-        vk::BufferImageCopy copyRegion = copyRegionTemplate;
-        copyRegion.setImageExtent(mgr.getExtent().extent3D());
-        commandBuffer_.copyImageToBuffer(mgr.getImage(), vk::ImageLayout::eTransferSrcOptimal, mgr.getStagingBuffer(),
-                                         1, &copyRegion);
-    }
+    commandBuffer_.copyBufferToImage(srcImageMgr.getStagingBuffer(), srcImageMgr.getImage(),
+                                     vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
+}
+
+void CommandBufferManager::recordCopyDstToStaging(ImageManager& dstImageMgr) noexcept {
+    vk::ImageSubresourceLayers subresourceLayers;
+    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceLayers.setLayerCount(1);
+    vk::BufferImageCopy copyRegion;
+    copyRegion.setImageExtent(dstImageMgr.getExtent().extent3D());
+    copyRegion.setImageSubresource(subresourceLayers);
+
+    commandBuffer_.copyImageToBuffer(dstImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal,
+                                     dstImageMgr.getStagingBuffer(), 1, &copyRegion);
+}
+
+void CommandBufferManager::recordImageCopy(const ImageManager& srcImageMgr, ImageManager& dstImageMgr) noexcept {
+    vk::ImageSubresourceLayers subresourceLayers;
+    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceLayers.setLayerCount(1);
+    vk::ImageCopy copyRegion;
+    copyRegion.setSrcSubresource(subresourceLayers);
+    copyRegion.setDstSubresource(subresourceLayers);
+
+    copyRegion.setExtent(srcImageMgr.getExtent().extent3D());
+    commandBuffer_.copyImage(srcImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageMgr.getImage(),
+                             vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
 void CommandBufferManager::recordWaitDownloadComplete(const std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
