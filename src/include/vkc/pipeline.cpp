@@ -24,7 +24,7 @@ PipelineManager::PipelineManager(PipelineManager&& rhs) noexcept
 
 PipelineManager::~PipelineManager() noexcept {
     if (pipeline_ == nullptr) return;
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     device.destroyPipeline(pipeline_);
     pipeline_ = nullptr;
 }
@@ -48,7 +48,7 @@ std::expected<PipelineManager, Error> PipelineManager::create(std::shared_ptr<De
     pipelineInfo.setLayout(pipelineLayout);
 
     // Create Pipeline
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     auto pipelineResult = device.createComputePipeline(nullptr, pipelineInfo);
     if constexpr (ENABLE_DEBUG) {
         if (pipelineResult.result != vk::Result::eSuccess) {

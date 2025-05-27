@@ -37,7 +37,7 @@ TimestampQueryPoolManager::TimestampQueryPoolManager(TimestampQueryPoolManager&&
 
 TimestampQueryPoolManager::~TimestampQueryPoolManager() noexcept {
     if (queryPool_ == nullptr) return;
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     device.destroyQueryPool(queryPool_);
     queryPool_ = nullptr;
 }
@@ -48,7 +48,7 @@ std::expected<TimestampQueryPoolManager, Error> TimestampQueryPoolManager::creat
     queryPoolInfo.setQueryType(vk::QueryType::eTimestamp);
     queryPoolInfo.setQueryCount(queryCount);
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     const auto [queryPoolRes, queryPool] = device.createQueryPool(queryPoolInfo);
     if (queryPoolRes != vk::Result::eSuccess) {
         return std::unexpected{Error{queryPoolRes}};
@@ -73,7 +73,7 @@ std::expected<std::vector<float>, Error> TimestampQueryPoolManager::getElaspedTi
     std::vector<float> elapsedTimes(queryIndex_ / 2);
     constexpr size_t valueSize = sizeof(decltype(timestamps)::value_type);
 
-    const auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     vk::Result queryResult =
         device.getQueryPoolResults(queryPool_, 0, queryIndex_, timestamps.size() * valueSize, (void*)timestamps.data(),
                                    valueSize, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);

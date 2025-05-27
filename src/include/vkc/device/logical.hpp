@@ -34,10 +34,7 @@ public:
         PhyDeviceManager& phyDeviceMgr, std::span<const QueueIndex> requiredQueueIndices,
         std::span<const std::string_view> enableExtNames) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getDevice(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).device_;
-    }
+    [[nodiscard]] vk::Device getDevice() const noexcept { return device_; }
 
     [[nodiscard]] std::expected<vk::Queue, Error> getQueue(vk::QueueFlags type) const noexcept;
 

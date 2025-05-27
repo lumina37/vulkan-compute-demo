@@ -33,7 +33,9 @@ UniformBufferManager::UniformBufferManager(UniformBufferManager&& rhs) noexcept
       descBufferInfo_(std::exchange(rhs.descBufferInfo_, {})) {}
 
 UniformBufferManager::~UniformBufferManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
+    if (pDeviceMgr_ == nullptr) return;
+    vk::Device device = pDeviceMgr_->getDevice();
+
     if (buffer_ != nullptr) {
         device.destroyBuffer(buffer_);
         buffer_ = nullptr;
@@ -47,7 +49,7 @@ UniformBufferManager::~UniformBufferManager() noexcept {
 std::expected<UniformBufferManager, Error> UniformBufferManager::create(PhyDeviceManager& phyDeviceMgr,
                                                                         std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                         vk::DeviceSize size) noexcept {
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
 
     // Buffer
     vk::BufferCreateInfo bufferInfo;

@@ -16,10 +16,7 @@ public:
 
     [[nodiscard]] static std::expected<PhyDeviceManager, Error> create(vk::PhysicalDevice phyDevice) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getPhyDevice(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).phyDevice_;
-    }
+    [[nodiscard]] vk::PhysicalDevice getPhyDevice() const noexcept { return phyDevice_; }
 
 private:
     vk::PhysicalDevice phyDevice_;

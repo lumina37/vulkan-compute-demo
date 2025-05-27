@@ -27,10 +27,7 @@ public:
 
     [[nodiscard]] int getQueryCount() const noexcept { return queryCount_; }
 
-    template <typename Self>
-    [[nodiscard]] auto&& getQueryPool(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).queryPool_;
-    }
+    [[nodiscard]] vk::QueryPool getQueryPool() const noexcept { return queryPool_; }
 
     [[nodiscard]] std::expected<std::vector<float>, Error> getElaspedTimes() const noexcept;
 

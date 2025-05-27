@@ -24,7 +24,7 @@ CommandPoolManager::CommandPoolManager(CommandPoolManager&& rhs) noexcept
 
 CommandPoolManager::~CommandPoolManager() noexcept {
     if (commandPool_ == nullptr) return;
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     device.destroyCommandPool(commandPool_);
     commandPool_ = nullptr;
 }
@@ -35,7 +35,7 @@ std::expected<CommandPoolManager, Error> CommandPoolManager::create(std::shared_
     commandPoolInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     commandPoolInfo.setQueueFamilyIndex(queueFamilyIdx);
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     const auto [commandPoolRes, commandPool] = device.createCommandPool(commandPoolInfo);
     if (commandPoolRes != vk::Result::eSuccess) {
         return std::unexpected{Error{commandPoolRes}};

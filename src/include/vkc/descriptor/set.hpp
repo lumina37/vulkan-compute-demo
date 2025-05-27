@@ -48,10 +48,7 @@ public:
         return std::forward_like<Self>(self).descSets_;
     }
 
-    template <typename Self>
-    [[nodiscard]] auto&& getDescSet(this Self&& self, const int index) noexcept {
-        return std::forward_like<Self>(self).descSets_[index];
-    }
+    [[nodiscard]] vk::DescriptorSet getDescSet(const int index) const noexcept { return descSets_[index]; }
 
     void updateDescSets(std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs) noexcept;
 

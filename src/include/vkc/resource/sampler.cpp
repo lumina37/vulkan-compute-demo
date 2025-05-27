@@ -25,7 +25,7 @@ SamplerManager::SamplerManager(SamplerManager&& rhs) noexcept
 
 SamplerManager::~SamplerManager() noexcept {
     if (sampler_ == nullptr) return;
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     device.destroySampler(sampler_);
     sampler_ = nullptr;
     descSamplerInfo_.setSampler(nullptr);
@@ -39,7 +39,7 @@ std::expected<SamplerManager, Error> SamplerManager::create(std::shared_ptr<Devi
     samplerCreateInfo.setAddressModeV(vk::SamplerAddressMode::eMirroredRepeat);
     samplerCreateInfo.setAddressModeW(vk::SamplerAddressMode::eMirroredRepeat);
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     const auto [samplerRes, sampler] = device.createSampler(samplerCreateInfo);
     if (samplerRes != vk::Result::eSuccess) {
         return std::unexpected{Error{samplerRes}};

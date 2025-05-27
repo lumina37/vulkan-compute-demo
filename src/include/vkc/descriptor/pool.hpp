@@ -56,10 +56,7 @@ public:
     [[nodiscard]] static std::expected<DescPoolManager, Error> create(
         std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorPoolSize> poolSizes) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getDescPool(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).descPool_;
-    }
+    [[nodiscard]] vk::DescriptorPool getDescPool() const noexcept { return descPool_; }
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;

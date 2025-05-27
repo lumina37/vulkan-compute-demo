@@ -22,7 +22,7 @@ DescSetLayoutManager::DescSetLayoutManager(DescSetLayoutManager&& rhs) noexcept
 
 DescSetLayoutManager::~DescSetLayoutManager() noexcept {
     if (descSetlayout_ == nullptr) return;
-    auto& device = pDdeviceMgr_->getDevice();
+    vk::Device device = pDdeviceMgr_->getDevice();
     device.destroyDescriptorSetLayout(descSetlayout_);
     descSetlayout_ = nullptr;
 }
@@ -32,7 +32,7 @@ std::expected<DescSetLayoutManager, Error> DescSetLayoutManager::create(
     vk::DescriptorSetLayoutCreateInfo layoutInfo;
     layoutInfo.setBindings(bindings);
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     const auto [descSetlayoutRes, descSetlayout] = device.createDescriptorSetLayout(layoutInfo);
     if (descSetlayoutRes != vk::Result::eSuccess) {
         return std::unexpected{Error{descSetlayoutRes}};

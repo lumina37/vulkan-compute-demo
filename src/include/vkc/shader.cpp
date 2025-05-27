@@ -27,7 +27,7 @@ ShaderManager::ShaderManager(ShaderManager&& rhs) noexcept
 
 ShaderManager::~ShaderManager() noexcept {
     if (shader_ == nullptr) return;
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     device.destroyShaderModule(shader_);
     shader_ = nullptr;
 }
@@ -38,7 +38,7 @@ std::expected<ShaderManager, Error> ShaderManager::create(std::shared_ptr<Device
     shaderInfo.setPCode((uint32_t*)code.data());
     shaderInfo.setCodeSize(code.size());
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     const auto [shaderRes, shader] = device.createShaderModule(shaderInfo);
     if (shaderRes != vk::Result::eSuccess) {
         return std::unexpected{Error{shaderRes}};
@@ -57,7 +57,7 @@ std::expected<ShaderManager, Error> ShaderManager::createFromPath(std::shared_pt
     shaderInfo.setPCode((uint32_t*)code.data());
     shaderInfo.setCodeSize(code.size());
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     const auto [shaderRes, shader] = device.createShaderModule(shaderInfo);
     if (shaderRes != vk::Result::eSuccess) {
         return std::unexpected{Error{shaderRes}};

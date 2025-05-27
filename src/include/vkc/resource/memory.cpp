@@ -34,7 +34,7 @@ std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceManager& phyDevi
 std::expected<void, Error> allocBufferMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
                                              vk::Buffer& buffer, vk::MemoryPropertyFlags memProps,
                                              vk::DeviceMemory& bufferMemory) noexcept {
-    auto& device = deviceMgr.getDevice();
+    vk::Device device = deviceMgr.getDevice();
 
     vk::MemoryAllocateInfo allocInfo;
     const vk::MemoryRequirements memRequirements = device.getBufferMemoryRequirements(buffer);
@@ -55,7 +55,7 @@ std::expected<void, Error> allocBufferMemory(const PhyDeviceManager& phyDeviceMg
 std::expected<void, Error> allocImageMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
                                             vk::Image& image, vk::MemoryPropertyFlags memProps,
                                             vk::DeviceMemory& bufferMemory) noexcept {
-    auto& device = deviceMgr.getDevice();
+    vk::Device device = deviceMgr.getDevice();
 
     vk::MemoryAllocateInfo allocInfo;
     const vk::MemoryRequirements memRequirements = device.getImageMemoryRequirements(image);
@@ -75,7 +75,7 @@ std::expected<void, Error> allocImageMemory(const PhyDeviceManager& phyDeviceMgr
 
 std::expected<void, Error> uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory,
                                       const std::span<const std::byte> data) noexcept {
-    auto& device = deviceMgr.getDevice();
+    vk::Device device = deviceMgr.getDevice();
 
     // Upload to Buffer
     void* mapPtr;
@@ -92,7 +92,7 @@ std::expected<void, Error> uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory
 
 std::expected<void, Error> downloadTo(DeviceManager& deviceMgr, const vk::DeviceMemory& memory,
                                       const std::span<std::byte> data) noexcept {
-    auto& device = deviceMgr.getDevice();
+    vk::Device device = deviceMgr.getDevice();
 
     // Download from Buffer
     void* mapPtr;

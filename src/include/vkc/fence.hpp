@@ -19,10 +19,7 @@ public:
 
     [[nodiscard]] static std::expected<FenceManager, Error> create(std::shared_ptr<DeviceManager> pDeviceMgr) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getFence(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).fence_;
-    }
+    [[nodiscard]] vk::Fence getFence() const noexcept { return fence_; }
 
     [[nodiscard]] std::expected<void, Error> wait() noexcept;
     [[nodiscard]] std::expected<void, Error> reset() noexcept;

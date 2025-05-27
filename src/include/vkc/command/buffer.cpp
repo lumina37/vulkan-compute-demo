@@ -35,18 +35,18 @@ CommandBufferManager::CommandBufferManager(CommandBufferManager&& rhs) noexcept
       commandBuffer_(std::exchange(rhs.commandBuffer_, nullptr)) {}
 
 CommandBufferManager::~CommandBufferManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
-    auto& commandPool = pCommandPoolMgr_->getCommandPool();
-    if (commandBuffer_ != nullptr) {
-        device.freeCommandBuffers(commandPool, commandBuffer_);
-        commandBuffer_ = nullptr;
-    }
+    if (commandBuffer_ == nullptr) return;
+
+    auto device = pDeviceMgr_->getDevice();
+    auto commandPool = pCommandPoolMgr_->getCommandPool();
+    device.freeCommandBuffers(commandPool, commandBuffer_);
+    commandBuffer_ = nullptr;
 }
 
 std::expected<CommandBufferManager, Error> CommandBufferManager::create(
     std::shared_ptr<DeviceManager> pDeviceMgr, std::shared_ptr<CommandPoolManager> pCommandPoolMgr) noexcept {
-    auto& device = pDeviceMgr->getDevice();
-    auto& commandPool = pCommandPoolMgr->getCommandPool();
+    vk::Device device = pDeviceMgr->getDevice();
+    vk::CommandPool commandPool = pCommandPoolMgr->getCommandPool();
 
     vk::CommandBufferAllocateInfo allocInfo;
     allocInfo.setCommandPool(commandPool);
@@ -260,7 +260,7 @@ void CommandBufferManager::recordWaitDownloadComplete(
 
 std::expected<void, Error> CommandBufferManager::recordTimestampStart(
     TimestampQueryPoolManager& queryPoolMgr, const vk::PipelineStageFlagBits pipelineStage) noexcept {
-    auto& queryPool = queryPoolMgr.getQueryPool();
+    vk::QueryPool queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
 
     auto addIndexRes = queryPoolMgr.addQueryIndex();
@@ -273,7 +273,7 @@ std::expected<void, Error> CommandBufferManager::recordTimestampStart(
 
 std::expected<void, Error> CommandBufferManager::recordTimestampEnd(
     TimestampQueryPoolManager& queryPoolMgr, const vk::PipelineStageFlagBits pipelineStage) noexcept {
-    auto& queryPool = queryPoolMgr.getQueryPool();
+    vk::QueryPool queryPool = queryPoolMgr.getQueryPool();
     const int queryIndex = queryPoolMgr.getQueryIndex();
 
     auto addIndexRes = queryPoolMgr.addQueryIndex();
@@ -296,7 +296,7 @@ std::expected<void, Error> CommandBufferManager::submitTo(QueueManager& queueMgr
     vk::SubmitInfo submitInfo;
     submitInfo.setCommandBuffers(commandBuffer_);
 
-    auto& computeQueue = queueMgr.getComputeQueue();
+    vk::Queue computeQueue = queueMgr.getComputeQueue();
     const vk::Result submitRes = computeQueue.submit(submitInfo, fenceMgr.getFence());
     if (submitRes != vk::Result::eSuccess) {
         return std::unexpected{Error{submitRes}};

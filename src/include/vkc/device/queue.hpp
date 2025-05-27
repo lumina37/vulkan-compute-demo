@@ -17,10 +17,7 @@ public:
     [[nodiscard]] static std::expected<QueueManager, Error> create(DeviceManager& deviceMgr,
                                                                    vk::QueueFlags type) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getComputeQueue(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).computeQueue_;
-    }
+    [[nodiscard]] vk::Queue getComputeQueue() const noexcept { return computeQueue_; }
 
 private:
     vk::Queue computeQueue_;

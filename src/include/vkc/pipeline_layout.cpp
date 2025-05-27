@@ -26,7 +26,7 @@ PipelineLayoutManager::PipelineLayoutManager(PipelineLayoutManager&& rhs) noexce
 
 PipelineLayoutManager::~PipelineLayoutManager() noexcept {
     if (pipelineLayout_ == nullptr) return;
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     device.destroyPipelineLayout(pipelineLayout_);
     pipelineLayout_ = nullptr;
 }
@@ -45,7 +45,7 @@ std::expected<PipelineLayoutManager, Error> PipelineLayoutManager::create(
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
     pipelineLayoutInfo.setSetLayouts(descSetLayouts);
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     const auto [pipelineLayoutRes, pipelineLayout] = device.createPipelineLayout(pipelineLayoutInfo);
     if (pipelineLayoutRes != vk::Result::eSuccess) {
         return std::unexpected{Error{pipelineLayoutRes}};
@@ -70,7 +70,7 @@ std::expected<PipelineLayoutManager, Error> PipelineLayoutManager::createWithPus
     pipelineLayoutInfo.setSetLayouts(descSetLayouts);
     pipelineLayoutInfo.setPushConstantRanges(pushConstantRange);
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     const auto [pipelineLayoutRes, pipelineLayout] = device.createPipelineLayout(pipelineLayoutInfo);
     if (pipelineLayoutRes != vk::Result::eSuccess) {
         return std::unexpected{Error{pipelineLayoutRes}};

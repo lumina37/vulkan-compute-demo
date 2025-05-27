@@ -21,10 +21,7 @@ public:
     [[nodiscard]] static std::expected<DescSetLayoutManager, Error> create(
         std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorSetLayoutBinding> bindings) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getDescSetLayout(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).descSetlayout_;
-    }
+    [[nodiscard]] vk::DescriptorSetLayout getDescSetLayout() const noexcept { return descSetlayout_; }
 
 private:
     std::shared_ptr<DeviceManager> pDdeviceMgr_;

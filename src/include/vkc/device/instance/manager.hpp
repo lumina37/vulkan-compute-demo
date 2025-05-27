@@ -23,10 +23,7 @@ public:
     [[nodiscard]] static std::expected<InstanceManager, Error> createWithExts(
         std::span<const std::string_view> enableExtNames, std::span<const std::string_view> enableLayerNames) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getInstance(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).instance_;
-    }
+    [[nodiscard]] vk::Instance getInstance() const noexcept { return instance_; }
 
 private:
     vk::Instance instance_;

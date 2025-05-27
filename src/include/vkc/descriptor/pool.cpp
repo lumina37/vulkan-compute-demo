@@ -20,8 +20,8 @@ DescPoolManager::DescPoolManager(DescPoolManager&& rhs) noexcept
     : pDeviceMgr_(std::move(rhs.pDeviceMgr_)), descPool_(std::exchange(rhs.descPool_, nullptr)) {}
 
 DescPoolManager::~DescPoolManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
     if (descPool_ == nullptr) return;
+    vk::Device device = pDeviceMgr_->getDevice();
     device.destroyDescriptorPool(descPool_);
     descPool_ = nullptr;
 }
@@ -32,7 +32,7 @@ std::expected<DescPoolManager, Error> DescPoolManager::create(
     poolInfo.setMaxSets((uint32_t)poolSizes.size());
     poolInfo.setPoolSizes(poolSizes);
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     const auto [descPoolRes, descPool] = device.createDescriptorPool(poolInfo);
     if (descPoolRes != vk::Result::eSuccess) {
         return std::unexpected{Error{descPoolRes}};

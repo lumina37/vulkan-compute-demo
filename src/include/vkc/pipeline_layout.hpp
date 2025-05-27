@@ -27,10 +27,7 @@ public:
         std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs,
         const vk::PushConstantRange& pushConstantRange) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getPipelineLayout(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).pipelineLayout_;
-    }
+    [[nodiscard]] vk::PipelineLayout getPipelineLayout() const noexcept { return pipelineLayout_; }
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;

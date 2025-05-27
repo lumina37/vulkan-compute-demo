@@ -19,13 +19,13 @@ FenceManager::FenceManager(FenceManager&& rhs) noexcept
 
 FenceManager::~FenceManager() noexcept {
     if (fence_ == nullptr) return;
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     device.destroyFence(fence_);
     fence_ = nullptr;
 }
 
 std::expected<FenceManager, Error> FenceManager::create(std::shared_ptr<DeviceManager> pDeviceMgr) noexcept {
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     vk::FenceCreateInfo fenceInfo;
     const auto [fenceRes, fence] = device.createFence(fenceInfo);
     if (fenceRes != vk::Result::eSuccess) {
@@ -36,7 +36,7 @@ std::expected<FenceManager, Error> FenceManager::create(std::shared_ptr<DeviceMa
 }
 
 std::expected<void, Error> FenceManager::wait() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     const auto waitFenceRes = device.waitForFences(fence_, true, std::numeric_limits<uint64_t>::max());
     if (waitFenceRes != vk::Result::eSuccess) {
         return std::unexpected{Error{waitFenceRes}};
@@ -46,7 +46,7 @@ std::expected<void, Error> FenceManager::wait() noexcept {
 }
 
 std::expected<void, Error> FenceManager::reset() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     const auto resetFenceRes = device.resetFences(fence_);
     if (resetFenceRes != vk::Result::eSuccess) {
         return std::unexpected{Error{resetFenceRes}};

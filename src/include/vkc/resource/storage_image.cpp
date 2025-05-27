@@ -40,7 +40,9 @@ StorageImageManager::StorageImageManager(StorageImageManager&& rhs) noexcept
       descImageInfo_(std::exchange(rhs.descImageInfo_, {})) {}
 
 StorageImageManager::~StorageImageManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
+    if (pDeviceMgr_ == nullptr) return;
+    vk::Device device = pDeviceMgr_->getDevice();
+
     if (stagingBuffer_ != nullptr) {
         device.destroyBuffer(stagingBuffer_);
         stagingBuffer_ = nullptr;
@@ -67,7 +69,7 @@ StorageImageManager::~StorageImageManager() noexcept {
 std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyDeviceManager& phyDeviceMgr,
                                                                       std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                       const Extent& extent) noexcept {
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
 
     constexpr vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
     constexpr vk::BufferUsageFlags bufferUsage = vk::BufferUsageFlagBits::eTransferDst;

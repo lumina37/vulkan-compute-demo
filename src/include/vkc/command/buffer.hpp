@@ -37,10 +37,7 @@ public:
     [[nodiscard]] static std::expected<CommandBufferManager, Error> create(
         std::shared_ptr<DeviceManager> pDeviceMgr, std::shared_ptr<CommandPoolManager> pCommandPoolMgr) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getCommandBuffer(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).commandBuffer_;
-    }
+    [[nodiscard]] vk::CommandBuffer getCommandBuffer() const noexcept { return commandBuffer_; }
 
     void bindPipeline(PipelineManager& pipelineMgr) noexcept;
     void bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr) noexcept;
@@ -97,7 +94,7 @@ void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushCons
 template <typename TQueryPoolManager>
     requires CQueryPoolManager<TQueryPoolManager>
 void CommandBufferManager::recordResetQueryPool(TQueryPoolManager& queryPoolMgr) noexcept {
-    auto& queryPool = queryPoolMgr.getQueryPool();
+    vk::QueryPool queryPool = queryPoolMgr.getQueryPool();
     queryPoolMgr.resetQueryIndex();
     commandBuffer_.resetQueryPool(queryPool, 0, queryPoolMgr.getQueryCount());
 }

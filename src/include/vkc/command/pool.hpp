@@ -22,11 +22,7 @@ public:
     [[nodiscard]] static std::expected<CommandPoolManager, Error> create(std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                          uint32_t queueFamilyIdx) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getCommandPool(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).commandPool_;
-    }
-
+    [[nodiscard]] vk::CommandPool getCommandPool() const noexcept { return commandPool_; }
     [[nodiscard]] uint32_t getQueueFamilyIdx() const noexcept { return queueFamilyIdx_; }
 
 private:

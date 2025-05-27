@@ -41,11 +41,7 @@ public:
         return lhs.getKey() == rhs.getKey();
     }
 
-    template <typename Self>
-    [[nodiscard]] auto&& getKey(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).key_;
-    }
-
+    [[nodiscard]] std::string_view getKey() const noexcept { return key_; }
     [[nodiscard]] static std::string_view exposeKey(const ExtEntry_& entry) noexcept { return entry.getKey(); }
 
 private:

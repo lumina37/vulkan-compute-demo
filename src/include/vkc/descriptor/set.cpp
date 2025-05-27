@@ -35,12 +35,12 @@ std::expected<DescSetsManager, Error> DescSetsManager::create(
         descSetLayoutMgrCRefs | rgs::views::transform(genDescSetLayout) | rgs::to<std::vector>();
 
     vk::DescriptorSetAllocateInfo descSetAllocInfo;
-    auto& descPool = descPoolMgr.getDescPool();
+    vk::DescriptorPool descPool = descPoolMgr.getDescPool();
     descSetAllocInfo.setDescriptorPool(descPool);
     descSetAllocInfo.setDescriptorSetCount((uint32_t)descSetLayoutMgrCRefs.size());
     descSetAllocInfo.setSetLayouts(descSetLayouts);
 
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     auto [descSetsRes, descSets] = device.allocateDescriptorSets(descSetAllocInfo);
     if (descSetsRes != vk::Result::eSuccess) {
         return std::unexpected{Error{descSetsRes}};
@@ -68,7 +68,7 @@ void DescSetsManager::updateDescSets(
         }
     }
 
-    auto& device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     device.updateDescriptorSets(writeDescSets, nullptr);
 }
 

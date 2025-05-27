@@ -40,7 +40,9 @@ SampledImageManager::SampledImageManager(SampledImageManager&& rhs) noexcept
       descImageInfo_(std::exchange(rhs.descImageInfo_, {})) {}
 
 SampledImageManager::~SampledImageManager() noexcept {
-    auto& device = pDeviceMgr_->getDevice();
+    if (pDeviceMgr_ == nullptr) return;
+    vk::Device device = pDeviceMgr_->getDevice();
+
     if (stagingBuffer_ != nullptr) {
         device.destroyBuffer(stagingBuffer_);
         stagingBuffer_ = nullptr;
@@ -67,7 +69,7 @@ SampledImageManager::~SampledImageManager() noexcept {
 std::expected<SampledImageManager, Error> SampledImageManager::create(const PhyDeviceManager& phyDeviceMgr,
                                                                       std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                       const Extent& extent) noexcept {
-    auto& device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
 
     constexpr vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
     constexpr vk::BufferUsageFlags bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;

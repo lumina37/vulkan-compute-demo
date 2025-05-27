@@ -62,7 +62,7 @@ std::expected<DeviceManager, Error> DeviceManager::createWithMultiQueueAndExts(
                             rgs::to<std::vector>();
     deviceInfo.setPEnabledExtensionNames(enabledPExtNames);
 
-    auto& phyDevice = phyDeviceMgr.getPhyDevice();
+    vk::PhysicalDevice phyDevice = phyDeviceMgr.getPhyDevice();
     const auto [deviceRes, device] = phyDevice.createDevice(deviceInfo);
     if (deviceRes != vk::Result::eSuccess) {
         return std::unexpected{Error{deviceRes}};

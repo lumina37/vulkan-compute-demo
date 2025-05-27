@@ -27,10 +27,7 @@ public:
     [[nodiscard]] static std::expected<ShaderManager, Error> createFromPath(std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                             const fs::path& path) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getShaderModule(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).shader_;
-    }
+    [[nodiscard]] vk::ShaderModule getShaderModule() const noexcept { return shader_; }
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;

@@ -24,10 +24,7 @@ public:
                                                                       const ShaderManager& computeShaderMgr,
                                                                       const vk::SpecializationInfo& specInfo) noexcept;
 
-    template <typename Self>
-    [[nodiscard]] auto&& getPipeline(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).pipeline_;
-    }
+    [[nodiscard]] vk::Pipeline getPipeline() const noexcept { return pipeline_; }
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;
