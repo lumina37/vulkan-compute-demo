@@ -157,7 +157,7 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
     SECTION("v0") {
         constexpr vkc::BlockSize blockSize{16, 16, 1};
         vkc::ShaderManager gaussShaderMgr =
-            vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilterV0SpirvCode) | unwrap;
+            vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v0::code) | unwrap;
         vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
         vkc::PipelineManager gaussPipelineMgr =
             vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
@@ -196,10 +196,10 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
         REQUIRE(avgDiff < maxValidAvgDiff);
     }
 
-    SECTION("v2") {
+    SECTION("v1") {
         constexpr vkc::BlockSize blockSize{256, 1, 1};
         vkc::ShaderManager gaussShaderMgr =
-            vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilterV2SpirvCode) | unwrap;
+            vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v1::code) | unwrap;
         vkc::SpecConstantManager specConstantMgr{blockSize.x};
         vkc::PipelineManager gaussPipelineMgr =
             vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |

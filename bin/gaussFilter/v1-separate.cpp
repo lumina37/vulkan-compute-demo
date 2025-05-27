@@ -5,9 +5,9 @@
 #include <span>
 #include <vector>
 
-#include "spirv/gaussFilter.hpp"
+#include "../vkc_bin_helper.hpp"
+#include "shader.hpp"
 #include "vkc.hpp"
-#include "vkc_bin_helper.hpp"
 
 int main() {
     vkc::StbImageManager srcImage = vkc::StbImageManager::createFromPath("in.png") | unwrap;
@@ -70,10 +70,10 @@ int main() {
         unwrap;
 
     // Pipeline
-    constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilterV2SpirvCode) | unwrap;
-    constexpr int maxHalfKSize = 16;
-    vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y, maxHalfKSize};
+    constexpr vkc::BlockSize blockSize{256, 1, 1};
+    vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v1::code) | unwrap;
+    constexpr int maxHalfKSize = 128;
+    vkc::SpecConstantManager specConstantMgr{blockSize.x, maxHalfKSize};
     vkc::PipelineManager gaussPipelineMgr =
         vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
         unwrap;
