@@ -4,6 +4,7 @@
 #include <memory>
 #include <utility>
 
+#include "vkc/command/concepts.hpp"
 #include "vkc/command/pool.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device/logical.hpp"
@@ -15,8 +16,7 @@
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
-#include "vkc/resource/image.hpp"
-#include "vkc/resource/push_constant.hpp"
+#include "vkc/resource.hpp"
 
 namespace vkc {
 
@@ -51,18 +51,19 @@ public:
 
     [[nodiscard]] std::expected<void, Error> begin() noexcept;
 
-    using TImageMgrCRef = std::reference_wrapper<const ImageManager>;
-    void recordSrcPrepareTranfer(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
-    void recordSrcPrepareShaderRead(std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept;
-    void recordDstPrepareShaderWrite(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
+    using TSampledImageMgrCRef = std::reference_wrapper<const SampledImageManager>;
+    using TStorageImageMgrCRef = std::reference_wrapper<const StorageImageManager>;
+    void recordSrcPrepareTranfer(std::span<const TSampledImageMgrCRef> srcImageMgrRefs) noexcept;
+    void recordSrcPrepareShaderRead(std::span<const TSampledImageMgrCRef> srcImageMgrRefs) noexcept;
+    void recordDstPrepareShaderWrite(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
     void recordDispatch(Extent extent, BlockSize blockSize) noexcept;
-    void recordDstPrepareTransfer(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
+    void recordDstPrepareTransfer(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
 
-    void recordCopyStagingToSrc(const ImageManager& srcImageMgr) noexcept;
-    void recordCopyDstToStaging(ImageManager& dstImageMgr) noexcept;
-    void recordImageCopy(const ImageManager& srcImageMgr, ImageManager& dstImageMgr) noexcept;
+    void recordCopyStagingToSrc(const SampledImageManager& srcImageMgr) noexcept;
+    void recordCopyDstToStaging(StorageImageManager& dstImageMgr) noexcept;
+    void recordImageCopy(const StorageImageManager& srcImageMgr, SampledImageManager& dstImageMgr) noexcept;
 
-    void recordWaitDownloadComplete(std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept;
+    void recordWaitDownloadComplete(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
 
     template <typename TQueryPoolManager>
         requires CQueryPoolManager<TQueryPoolManager>

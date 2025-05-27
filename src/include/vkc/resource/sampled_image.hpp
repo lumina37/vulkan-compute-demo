@@ -13,25 +13,18 @@
 
 namespace vkc {
 
-enum class ImageType {
-    Read,
-    Write,
-    ReadWrite,
-};
-
-class ImageManager {
-    ImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, ImageType imageType,
-                 vk::DescriptorType descType, vk::Image image, vk::ImageView imageView, vk::DeviceMemory imageMemory,
-                 vk::Buffer stagingBuffer, vk::DeviceMemory stagingMemory,
-                 vk::DescriptorImageInfo descImageInfo) noexcept;
+class SampledImageManager {
+    SampledImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, vk::Image image,
+                        vk::ImageView imageView, vk::DeviceMemory imageMemory, vk::Buffer stagingBuffer,
+                        vk::DeviceMemory stagingMemory, vk::DescriptorImageInfo descImageInfo) noexcept;
 
 public:
-    ImageManager(ImageManager&& rhs) noexcept;
-    ~ImageManager() noexcept;
+    SampledImageManager(SampledImageManager&& rhs) noexcept;
+    ~SampledImageManager() noexcept;
 
-    [[nodiscard]] static std::expected<ImageManager, Error> create(const PhyDeviceManager& phyDeviceMgr,
-                                                                   std::shared_ptr<DeviceManager> pDeviceMgr,
-                                                                   const Extent& extent, ImageType imageType) noexcept;
+    [[nodiscard]] static std::expected<SampledImageManager, Error> create(const PhyDeviceManager& phyDeviceMgr,
+                                                                          std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                                          const Extent& extent) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {
@@ -53,8 +46,9 @@ public:
         return std::forward_like<Self>(self).stagingBuffer_;
     }
 
-    [[nodiscard]] ImageType getImageType() const noexcept { return imageType_; }
-    [[nodiscard]] vk::DescriptorType getDescType() const noexcept { return descType_; }
+    [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
+        return vk::DescriptorType::eSampledImage;
+    }
     [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
     [[nodiscard]] vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() const noexcept;
 
@@ -65,8 +59,6 @@ private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;
 
     Extent extent_;
-    ImageType imageType_;
-    vk::DescriptorType descType_;
 
     vk::Image image_;
     vk::ImageView imageView_;
@@ -81,5 +73,5 @@ private:
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/resource/image.cpp"
+#    include "vkc/resource/sampled_image.cpp"
 #endif

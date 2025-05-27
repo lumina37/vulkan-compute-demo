@@ -11,19 +11,17 @@
 #include "vkc/resource/memory.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/resource/image.hpp"
+#    include "vkc/resource/storage_image.hpp"
 #endif
 
 namespace vkc {
 
-ImageManager::ImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, ImageType imageType,
-                           vk::DescriptorType descType, vk::Image image, vk::ImageView imageView,
-                           vk::DeviceMemory imageMemory, vk::Buffer stagingBuffer, vk::DeviceMemory stagingMemory,
-                           vk::DescriptorImageInfo descImageInfo) noexcept
+StorageImageManager::StorageImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, vk::Image image,
+                                         vk::ImageView imageView, vk::DeviceMemory imageMemory,
+                                         vk::Buffer stagingBuffer, vk::DeviceMemory stagingMemory,
+                                         vk::DescriptorImageInfo descImageInfo) noexcept
     : pDeviceMgr_(std::move(pDeviceMgr)),
       extent_(extent),
-      imageType_(imageType),
-      descType_(descType),
       image_(image),
       imageView_(imageView),
       imageMemory_(imageMemory),
@@ -31,11 +29,9 @@ ImageManager::ImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent e
       stagingMemory_(stagingMemory),
       descImageInfo_(descImageInfo) {}
 
-ImageManager::ImageManager(ImageManager&& rhs) noexcept
+StorageImageManager::StorageImageManager(StorageImageManager&& rhs) noexcept
     : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
       extent_(rhs.extent_),
-      imageType_(rhs.imageType_),
-      descType_(rhs.descType_),
       image_(std::exchange(rhs.image_, nullptr)),
       imageView_(std::exchange(rhs.imageView_, nullptr)),
       imageMemory_(std::exchange(rhs.imageMemory_, nullptr)),
@@ -43,7 +39,7 @@ ImageManager::ImageManager(ImageManager&& rhs) noexcept
       stagingMemory_(std::exchange(rhs.stagingMemory_, nullptr)),
       descImageInfo_(std::exchange(rhs.descImageInfo_, {})) {}
 
-ImageManager::~ImageManager() noexcept {
+StorageImageManager::~StorageImageManager() noexcept {
     auto& device = pDeviceMgr_->getDevice();
     if (stagingBuffer_ != nullptr) {
         device.destroyBuffer(stagingBuffer_);
@@ -68,31 +64,14 @@ ImageManager::~ImageManager() noexcept {
     descImageInfo_.setImageView(nullptr);
 }
 
-std::expected<ImageManager, Error> ImageManager::create(const PhyDeviceManager& phyDeviceMgr,
-                                                        std::shared_ptr<DeviceManager> pDeviceMgr, const Extent& extent,
-                                                        ImageType imageType) noexcept {
+std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyDeviceManager& phyDeviceMgr,
+                                                                      std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                                      const Extent& extent) noexcept {
     auto& device = pDeviceMgr->getDevice();
 
-    vk::DescriptorType descType;
-    vk::ImageUsageFlags imageUsage;
-    vk::BufferUsageFlags bufferUsage;
-    vk::ImageLayout imageLayout;
-    switch (imageType) {
-        case ImageType::Read:
-            descType = vk::DescriptorType::eSampledImage;
-            imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
-            bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
-            imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-            break;
-        case ImageType::Write:
-            descType = vk::DescriptorType::eStorageImage;
-            imageUsage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
-            bufferUsage = vk::BufferUsageFlagBits::eTransferDst;
-            imageLayout = vk::ImageLayout::eGeneral;
-            break;
-        default:
-            std::unreachable();
-    }
+    constexpr vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
+    constexpr vk::BufferUsageFlags bufferUsage = vk::BufferUsageFlagBits::eTransferDst;
+    constexpr vk::ImageLayout imageLayout = vk::ImageLayout::eGeneral;
 
     // Image
     vk::ImageCreateInfo imageInfo;
@@ -166,31 +145,31 @@ std::expected<ImageManager, Error> ImageManager::create(const PhyDeviceManager& 
     descImageInfo.setImageView(imageView);
     descImageInfo.setImageLayout(imageLayout);
 
-    return ImageManager{std::move(pDeviceMgr), extent,        imageType,     descType,     image, imageView,
-                        imageMemory,           stagingBuffer, stagingMemory, descImageInfo};
+    return StorageImageManager{std::move(pDeviceMgr), extent,        image,         imageView,
+                               imageMemory,           stagingBuffer, stagingMemory, descImageInfo};
 }
 
-vk::WriteDescriptorSet ImageManager::draftWriteDescSet() const noexcept {
+vk::WriteDescriptorSet StorageImageManager::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
-    writeDescSet.setDescriptorType(descType_);
+    writeDescSet.setDescriptorType(vk::DescriptorType::eStorageImage);
     writeDescSet.setImageInfo(descImageInfo_);
     return writeDescSet;
 }
 
-vk::DescriptorSetLayoutBinding ImageManager::draftDescSetLayoutBinding() const noexcept {
+vk::DescriptorSetLayoutBinding StorageImageManager::draftDescSetLayoutBinding() const noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
-    binding.setDescriptorType(descType_);
+    binding.setDescriptorType(vk::DescriptorType::eStorageImage);
     binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
     return binding;
 }
 
-std::expected<void, Error> ImageManager::uploadFrom(const std::span<const std::byte> data) noexcept {
+std::expected<void, Error> StorageImageManager::uploadFrom(const std::span<const std::byte> data) noexcept {
     return _hp::uploadFrom(*pDeviceMgr_, stagingMemory_, data);
 }
 
-std::expected<void, Error> ImageManager::downloadTo(const std::span<std::byte> data) noexcept {
+std::expected<void, Error> StorageImageManager::downloadTo(const std::span<std::byte> data) noexcept {
     return _hp::downloadTo(*pDeviceMgr_, stagingMemory_, data);
 }
 

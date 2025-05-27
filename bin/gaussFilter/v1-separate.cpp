@@ -35,11 +35,11 @@ int main() {
     constexpr float sigma = 10.0f;
     vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, sigma * sigma * 2.0f}};
 
-    vkc::ImageManager srcImageMgr =
-        vkc::ImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Read) | unwrap;
+    vkc::SampledImageManager srcImageMgr =
+        vkc::SampledImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
     const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
-    vkc::ImageManager dstImageMgr =
-        vkc::ImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::ImageType::Write) | unwrap;
+    vkc::StorageImageManager dstImageMgr =
+        vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
     const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
     srcImageMgr.uploadFrom(srcImage.getImageSpan()) | unwrap;
 

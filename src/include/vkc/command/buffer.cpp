@@ -3,6 +3,7 @@
 #include <ranges>
 #include <utility>
 
+#include "vkc/command/concepts.hpp"
 #include "vkc/command/pool.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device/logical.hpp"
@@ -88,7 +89,8 @@ std::expected<void, Error> CommandBufferManager::begin() noexcept {
     return {};
 }
 
-void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept {
+void CommandBufferManager::recordSrcPrepareTranfer(
+    const std::span<const TSampledImageMgrCRef> srcImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier uploadConvBarrierTemplate;
     uploadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
     uploadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
@@ -98,7 +100,7 @@ void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageM
     uploadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     uploadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&uploadConvBarrierTemplate](const TImageMgrCRef mgrRef) {
+    const auto fillout = [&uploadConvBarrierTemplate](const TSampledImageMgrCRef mgrRef) {
         vk::ImageMemoryBarrier uploadConvBarrier = uploadConvBarrierTemplate;
         uploadConvBarrier.setImage(mgrRef.get().getImage());
         return uploadConvBarrier;
@@ -111,7 +113,8 @@ void CommandBufferManager::recordSrcPrepareTranfer(const std::span<const TImageM
                                    uploadConvBarriers.data());
 }
 
-void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TImageMgrCRef> srcImageMgrRefs) noexcept {
+void CommandBufferManager::recordSrcPrepareShaderRead(
+    const std::span<const TSampledImageMgrCRef> srcImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
     shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
@@ -121,7 +124,7 @@ void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TIma
     shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     shaderCompatibleBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&shaderCompatibleBarrierTemplate](const TImageMgrCRef mgrRef) {
+    const auto fillout = [&shaderCompatibleBarrierTemplate](const TSampledImageMgrCRef mgrRef) {
         vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
         shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
         return shaderCompatibleBarrier;
@@ -134,7 +137,8 @@ void CommandBufferManager::recordSrcPrepareShaderRead(const std::span<const TIma
                                    (uint32_t)shaderCompatibleBarriers.size(), shaderCompatibleBarriers.data());
 }
 
-void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
+void CommandBufferManager::recordDstPrepareShaderWrite(
+    const std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept {
     vk::ImageSubresourceRange subresourceRange;
     subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceRange.setLevelCount(1);
@@ -150,7 +154,7 @@ void CommandBufferManager::recordDstPrepareShaderWrite(const std::span<const TIm
     shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     shaderCompatibleBarrierTemplate.setSubresourceRange(subresourceRange);
 
-    const auto fillout = [&shaderCompatibleBarrierTemplate](const TImageMgrCRef mgrRef) {
+    const auto fillout = [&shaderCompatibleBarrierTemplate](const TStorageImageMgrCRef mgrRef) {
         vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
         shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
         return shaderCompatibleBarrier;
@@ -169,7 +173,8 @@ void CommandBufferManager::recordDispatch(const Extent extent, const BlockSize b
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);
 }
 
-void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
+void CommandBufferManager::recordDstPrepareTransfer(
+    const std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier downloadConvBarrierTemplate;
     downloadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite);
     downloadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
@@ -179,7 +184,7 @@ void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImage
     downloadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     downloadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&downloadConvBarrierTemplate](const TImageMgrCRef mgrRef) {
+    const auto fillout = [&downloadConvBarrierTemplate](const TStorageImageMgrCRef mgrRef) {
         vk::ImageMemoryBarrier downloadConvBarrier = downloadConvBarrierTemplate;
         downloadConvBarrier.setImage(mgrRef.get().getImage());
         return downloadConvBarrier;
@@ -192,7 +197,7 @@ void CommandBufferManager::recordDstPrepareTransfer(const std::span<const TImage
                                    (uint32_t)downloadConvBarriers.size(), downloadConvBarriers.data());
 }
 
-void CommandBufferManager::recordCopyStagingToSrc(const ImageManager& srcImageMgr) noexcept {
+void CommandBufferManager::recordCopyStagingToSrc(const SampledImageManager& srcImageMgr) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -204,7 +209,7 @@ void CommandBufferManager::recordCopyStagingToSrc(const ImageManager& srcImageMg
                                      vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
-void CommandBufferManager::recordCopyDstToStaging(ImageManager& dstImageMgr) noexcept {
+void CommandBufferManager::recordCopyDstToStaging(StorageImageManager& dstImageMgr) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -216,7 +221,8 @@ void CommandBufferManager::recordCopyDstToStaging(ImageManager& dstImageMgr) noe
                                      dstImageMgr.getStagingBuffer(), 1, &copyRegion);
 }
 
-void CommandBufferManager::recordImageCopy(const ImageManager& srcImageMgr, ImageManager& dstImageMgr) noexcept {
+void CommandBufferManager::recordImageCopy(const StorageImageManager& srcImageMgr,
+                                           SampledImageManager& dstImageMgr) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -229,14 +235,15 @@ void CommandBufferManager::recordImageCopy(const ImageManager& srcImageMgr, Imag
                              vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
-void CommandBufferManager::recordWaitDownloadComplete(const std::span<const TImageMgrCRef> dstImageMgrRefs) noexcept {
+void CommandBufferManager::recordWaitDownloadComplete(
+    const std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept {
     vk::BufferMemoryBarrier downloadCompleteBarrierTemplate;
     downloadCompleteBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     downloadCompleteBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eHostRead);
     downloadCompleteBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     downloadCompleteBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
 
-    const auto fillout = [&downloadCompleteBarrierTemplate](const TImageMgrCRef mgrRef) {
+    const auto fillout = [&downloadCompleteBarrierTemplate](const TStorageImageMgrCRef mgrRef) {
         const auto& mgr = mgrRef.get();
         vk::BufferMemoryBarrier downloadCompleteBarrier = downloadCompleteBarrierTemplate;
         downloadCompleteBarrier.setBuffer(mgr.getStagingBuffer());
