@@ -89,8 +89,14 @@ vk::WriteDescriptorSet UniformBufferManager::draftWriteDescSet() const noexcept 
     return writeDescSet;
 }
 
-std::expected<void, Error> UniformBufferManager::uploadFrom(const std::span<const std::byte> data) noexcept {
-    return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
+std::expected<void, Error> UniformBufferManager::uploadFrom(const std::byte* pData) noexcept {
+    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, memory_, size_);
+    if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
+    auto& mmapMgr = mmapRes.value();
+
+    std::memcpy(mmapMgr.getMapPtr(), pData, size_);
+
+    return {};
 }
 
 }  // namespace vkc

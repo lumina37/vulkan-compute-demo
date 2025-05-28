@@ -25,12 +25,6 @@ namespace vkc::_hp {
                                                           vk::MemoryPropertyFlags memProps,
                                                           vk::DeviceMemory& bufferMemory) noexcept;
 
-[[nodiscard]] std::expected<void, Error> uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory,
-                                                    std::span<const std::byte> data) noexcept;
-
-[[nodiscard]] std::expected<void, Error> downloadTo(DeviceManager& deviceMgr, const vk::DeviceMemory& memory,
-                                                    std::span<std::byte> data) noexcept;
-
 class MemMapManager {
     MemMapManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceMemory memory, void* mapPtr) noexcept;
 

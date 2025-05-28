@@ -168,7 +168,13 @@ vk::DescriptorSetLayoutBinding SampledImageManager::draftDescSetLayoutBinding() 
 }
 
 std::expected<void, Error> SampledImageManager::uploadFrom(const std::span<const std::byte> data) noexcept {
-    return _hp::uploadFrom(*pDeviceMgr_, stagingMemory_, data);
+    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
+    if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
+    auto& mmapMgr = mmapRes.value();
+
+    std::memcpy(mmapMgr.getMapPtr(), data.data(), extent_.size());
+
+    return {};
 }
 
 }  // namespace vkc

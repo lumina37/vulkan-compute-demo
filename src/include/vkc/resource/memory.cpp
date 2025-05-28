@@ -74,39 +74,6 @@ std::expected<void, Error> allocImageMemory(const PhyDeviceManager& phyDeviceMgr
     return {};
 }
 
-std::expected<void, Error> uploadFrom(DeviceManager& deviceMgr, vk::DeviceMemory& memory,
-                                      const std::span<const std::byte> data) noexcept {
-    vk::Device device = deviceMgr.getDevice();
-
-    // Upload to Buffer
-    void* mapPtr;
-    auto uploadMapRes = device.mapMemory(memory, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
-    if (uploadMapRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{uploadMapRes}};
-    }
-
-    std::memcpy(mapPtr, data.data(), data.size());
-    device.unmapMemory(memory);
-
-    return {};
-}
-
-std::expected<void, Error> downloadTo(DeviceManager& deviceMgr, const vk::DeviceMemory& memory,
-                                      const std::span<std::byte> data) noexcept {
-    vk::Device device = deviceMgr.getDevice();
-
-    // Download from Buffer
-    void* mapPtr;
-    auto downloadMapRes = device.mapMemory(memory, 0, data.size(), (vk::MemoryMapFlags)0, &mapPtr);
-    if (downloadMapRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{downloadMapRes}};
-    }
-    std::memcpy(data.data(), mapPtr, data.size());
-    device.unmapMemory(memory);
-
-    return {};
-}
-
 MemMapManager::MemMapManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceMemory memory,
                              void* mapPtr) noexcept
     : pDeviceMgr_(std::move(pDeviceMgr)), memory_(memory), mapPtr_(mapPtr) {}

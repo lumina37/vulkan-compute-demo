@@ -89,12 +89,24 @@ vk::WriteDescriptorSet StorageBufferManager::draftWriteDescSet() const noexcept 
     return writeDescSet;
 }
 
-std::expected<void, Error> StorageBufferManager::uploadFrom(const std::span<const std::byte> data) noexcept {
-    return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
+std::expected<void, Error> StorageBufferManager::uploadFrom(const std::byte* pData) noexcept {
+    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, memory_, size_);
+    if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
+    auto& mmapMgr = mmapRes.value();
+
+    std::memcpy(mmapMgr.getMapPtr(), pData, size_);
+
+    return {};
 }
 
-std::expected<void, Error> StorageBufferManager::downloadTo(const std::span<std::byte> data) noexcept {
-    return _hp::downloadTo(*pDeviceMgr_, memory_, data);
+std::expected<void, Error> StorageBufferManager::downloadTo(std::byte* pData) noexcept {
+    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, memory_, size_);
+    if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
+    auto& mmapMgr = mmapRes.value();
+
+    std::memcpy(pData, mmapMgr.getMapPtr(), size_);
+
+    return {};
 }
 
 }  // namespace vkc
