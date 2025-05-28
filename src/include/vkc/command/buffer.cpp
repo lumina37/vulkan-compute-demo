@@ -247,4 +247,19 @@ std::expected<void, Error> CommandBufferManager::submitTo(QueueManager& queueMgr
     return {};
 }
 
+template void CommandBufferManager::recordSrcPrepareTranfer<SampledImageManager>(
+    std::span<const std::reference_wrapper<const SampledImageManager>>) noexcept;
+template void CommandBufferManager::recordSrcPrepareTranfer<StorageImageManager>(
+    std::span<const std::reference_wrapper<const StorageImageManager>>) noexcept;
+
+template void CommandBufferManager::recordSrcPrepareShaderRead<SampledImageManager>(
+    std::span<const std::reference_wrapper<const SampledImageManager>>) noexcept;
+template void CommandBufferManager::recordSrcPrepareShaderRead<StorageImageManager>(
+    std::span<const std::reference_wrapper<const StorageImageManager>>) noexcept;
+
+template void CommandBufferManager::recordCopyStagingToSrc<SampledImageManager>(
+    const SampledImageManager& srcImageMgr) noexcept;
+template void CommandBufferManager::recordCopyStagingToSrc<StorageImageManager>(
+    const StorageImageManager& srcImageMgr) noexcept;
+
 }  // namespace vkc
