@@ -45,6 +45,22 @@ private:
     size_t size_;
 };
 
+class ROI {
+public:
+    constexpr ROI() = default;
+    constexpr ROI(const int x, const int y, const int width, const int height)
+        : offset_(x, y), extent_(width, height) {}
+
+    [[nodiscard]] vk::Offset2D offset() const noexcept { return offset_; }
+    [[nodiscard]] vk::Offset3D offset3D() const noexcept { return {offset_.x, offset_.y, 0}; }
+    [[nodiscard]] vk::Extent2D extent() const noexcept { return extent_; }
+    [[nodiscard]] vk::Extent3D extent3D() const noexcept { return {extent_.width, extent_.height, 1}; }
+
+private:
+    vk::Offset2D offset_;
+    vk::Extent2D extent_;
+};
+
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
