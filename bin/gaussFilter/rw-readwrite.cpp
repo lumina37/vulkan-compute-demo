@@ -95,7 +95,7 @@ int main() {
         gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::StorageImageManager>(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
+        gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;

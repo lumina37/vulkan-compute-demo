@@ -121,9 +121,9 @@ void CommandBufferManager::recordDstPrepareShaderWrite(
                                    (uint32_t)shaderCompatibleBarriers.size(), shaderCompatibleBarriers.data());
 }
 
-void CommandBufferManager::recordDispatch(const Extent extent, const BlockSize blockSize) noexcept {
-    uint32_t groupSizeX = (extent.width() + (blockSize.x - 1)) / blockSize.x;
-    uint32_t groupSizeY = (extent.height() + (blockSize.y - 1)) / blockSize.y;
+void CommandBufferManager::recordDispatch(const vk::Extent2D extent, const BlockSize blockSize) noexcept {
+    uint32_t groupSizeX = (extent.width + (blockSize.x - 1)) / blockSize.x;
+    uint32_t groupSizeY = (extent.height + (blockSize.y - 1)) / blockSize.y;
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);
 }
 

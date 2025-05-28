@@ -60,7 +60,7 @@ public:
         std::span<const std::reference_wrapper<const TImageManager>> srcImageMgrRefs) noexcept;
 
     void recordDstPrepareShaderWrite(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
-    void recordDispatch(Extent extent, BlockSize blockSize) noexcept;
+    void recordDispatch(vk::Extent2D extent, BlockSize blockSize) noexcept;
     void recordDstPrepareTransfer(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
 
     template <CImageManager TImageManager>
