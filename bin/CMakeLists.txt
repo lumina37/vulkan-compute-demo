@@ -9,8 +9,8 @@ endfunction()
 vkc_add_executable(vkc-bin-gaussFilter-v0-baseline gaussFilter/v0-baseline.cpp)
 vkc_add_executable(vkc-bin-gaussFilter-v1-separate gaussFilter/v1-separate.cpp)
 vkc_add_executable(vkc-bin-gaussFilter-v2-sampling gaussFilter/v2-sampling.cpp)
+vkc_add_executable(vkc-bin-gaussFilter-grayscale-after-gauss gaussFilter/grayscale-after-gauss.cpp)
 
-vkc_add_executable(vkc-bin-gaussFilter-storage-image-as-input gaussFilter/storage-image-as-input.cpp)
-vkc_add_executable(vkc-bin-gaussFilter-process-with-roi gaussFilter/process-with-roi.cpp)
-
-vkc_add_executable(vkc-bin-grayscale-after-gauss grayscale/grayscale-after-gauss.cpp)
+vkc_add_executable(vkc-bin-grayscale-common grayscale/common.cpp)
+vkc_add_executable(vkc-bin-grayscale-storage-image-as-input grayscale/storage-image-as-input.cpp)
+vkc_add_executable(vkc-bin-grayscale-process-with-roi grayscale/process-with-roi.cpp)

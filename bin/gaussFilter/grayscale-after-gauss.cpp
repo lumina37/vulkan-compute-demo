@@ -41,15 +41,10 @@ int main() {
     vkc::StorageImageManager dstImageMgr =
         vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
     const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
+    srcImageMgr.upload(srcImage.getPData()) | unwrap;
 
-    Timer uploadTimer;
-    uploadTimer.begin();
-    constexpr vkc::Roi roi{100, 200, 300, 400};
-    srcImageMgr.uploadWithRoi(srcImage.getPData(), roi) | unwrap;
-    uploadTimer.end();
-    std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
-
-    const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
+    const std::vector descPoolSizes =
+        genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr, srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr = vkc::DescPoolManager::create(pDeviceMgr, descPoolSizes) | unwrap;
 
     const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
@@ -66,11 +61,24 @@ int main() {
     const std::array gaussWriteDescSetss{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
     gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
 
+    const std::array grayDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
+    vkc::DescSetLayoutManager grayDLayoutMgr =
+        vkc::DescSetLayoutManager::create(pDeviceMgr, grayDLayoutBindings) | unwrap;
+    const std::array grayDLayoutMgrCRefs{std::cref(grayDLayoutMgr)};
+    vkc::PipelineLayoutManager grayPLayoutMgr =
+        vkc::PipelineLayoutManager::create(pDeviceMgr, grayDLayoutMgrCRefs) | unwrap;
+    vkc::DescSetsManager grayDescSetsMgr =
+        vkc::DescSetsManager::create(pDeviceMgr, descPoolMgr, grayDLayoutMgrCRefs) | unwrap;
+    const std::array grayWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr);
+    const std::array grayWriteDescSetss{std::span{grayWriteDescSets.begin(), grayWriteDescSets.end()}};
+    grayDescSetsMgr.updateDescSets(grayWriteDescSetss);
+
     // Command Buffer
     vkc::FenceManager fenceMgr = vkc::FenceManager::create(pDeviceMgr) | unwrap;
     auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
         vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
+    vkc::CommandBufferManager grayCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
     vkc::TimestampQueryPoolManager queryPoolMgr =
         vkc::TimestampQueryPoolManager::create(pDeviceMgr, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
         unwrap;
@@ -83,45 +91,56 @@ int main() {
         vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
         unwrap;
 
+    vkc::ShaderManager grayShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::grayscale::ro::code) | unwrap;
+    vkc::PipelineManager grayPipelineMgr =
+        vkc::PipelineManager::create(pDeviceMgr, grayPLayoutMgr, grayShaderMgr, specConstantMgr.getSpecInfo()) | unwrap;
+
     // Gaussian Blur
-    for (int i = 0; i < 15; i++) {
-        gaussCmdBufMgr.begin() | unwrap;
-        gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
-        gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
-        gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
-        gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrCRefs);
-        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordCopyStagingToSrcWithRoi(srcImageMgr, roi);
-        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrCRefs);
-        gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
-        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
-        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
-        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordCopyDstToStagingWithRoi(dstImageMgr, roi);
-        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
-        gaussCmdBufMgr.end() | unwrap;
+    gaussCmdBufMgr.begin() | unwrap;
+    gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
+    gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
+    gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
+    gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
+    gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrCRefs);
+    gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
+    gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrCRefs);
+    gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
+    gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
+    gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    gaussCmdBufMgr.end() | unwrap;
+    gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+    fenceMgr.wait() | unwrap;
+    fenceMgr.reset() | unwrap;
 
-        gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
-        fenceMgr.wait() | unwrap;
-        fenceMgr.reset() | unwrap;
+    // Grayscale
+    grayCmdBufMgr.begin() | unwrap;
+    grayCmdBufMgr.bindPipeline(grayPipelineMgr);
+    grayCmdBufMgr.bindDescSets(grayDescSetsMgr, grayPLayoutMgr);
+    grayCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrCRefs);
+    grayCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
+    grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    grayCmdBufMgr.recordCopyStorageToSampled(dstImageMgr, srcImageMgr);
+    grayCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    grayCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrCRefs);
+    grayCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
+    grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    grayCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
+    grayCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    grayCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
+    grayCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
+    grayCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
+    grayCmdBufMgr.end() | unwrap;
 
-        auto elapsedTime = queryPoolMgr.getElaspedTimes() | unwrap;
-        std::println("============================");
-        std::println("Staging to src timecost: {} ms", elapsedTime[0]);
-        std::println("Dispatch timecost: {} ms", elapsedTime[1]);
-        std::println("Dst from staging timecost: {} ms", elapsedTime[2]);
-    }
+    grayCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+    fenceMgr.wait() | unwrap;
+    fenceMgr.reset() | unwrap;
 
-    Timer downloadTimer;
-    downloadTimer.begin();
-    dstImageMgr.downloadWithRoi(dstImage.getPData(), roi) | unwrap;
-    downloadTimer.end();
-    std::println("Download from staging timecost: {} ms", downloadTimer.durationMs());
+    auto elapsedTime = queryPoolMgr.getElaspedTimes() | unwrap;
+    std::println("GaussFilter dispatch timecost: {} ms", elapsedTime[0]);
+    std::println("Storage to sampled transfer timecost: {} ms", elapsedTime[1]);
+    std::println("Grayscale dispatch timecost: {} ms", elapsedTime[2]);
 
+    dstImageMgr.download(dstImage.getPData()) | unwrap;
     dstImage.saveTo("out.png") | unwrap;
 }

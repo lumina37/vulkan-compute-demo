@@ -168,7 +168,7 @@ vk::WriteDescriptorSet StorageImageManager::draftWriteDescSet() const noexcept {
     return writeDescSet;
 }
 
-std::expected<void, Error> StorageImageManager::uploadFrom(const std::byte* pSrc) noexcept {
+std::expected<void, Error> StorageImageManager::upload(const std::byte* pSrc) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
@@ -178,17 +178,20 @@ std::expected<void, Error> StorageImageManager::uploadFrom(const std::byte* pSrc
     return {};
 }
 
-std::expected<void, Error> StorageImageManager::uploadWithRoi(const std::byte* pSrc, const Roi roi) noexcept {
+std::expected<void, Error> StorageImageManager::uploadWithRoi(const std::byte* pSrc, const Roi roi,
+                                                              const size_t bufferRowPitch) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    int offset = roi.offset().y * (int)extent_.rowPitch() + roi.offset().x * extent_.bpp();
+    size_t srcOffset = 0;
+    size_t dstOffset = extent_.computeByteOffset(roi.offset());
     for (int row = 0; row < (int)roi.extent().height; row++) {
-        const std::byte* srcCursor = pSrc + offset;
-        std::byte* dstCursor = (std::byte*)mmapMgr.getMapPtr() + offset;
+        const std::byte* srcCursor = pSrc + srcOffset;
+        std::byte* dstCursor = (std::byte*)mmapMgr.getMapPtr() + dstOffset;
         std::memcpy(dstCursor, srcCursor, roi.extent().width * extent_.bpp());
-        offset += (int)extent_.rowPitch();
+        srcOffset += bufferRowPitch;
+        dstOffset += extent_.rowPitch();
     }
 
     return {};
@@ -204,17 +207,20 @@ std::expected<void, Error> StorageImageManager::download(std::byte* pDst) noexce
     return {};
 }
 
-std::expected<void, Error> StorageImageManager::downloadWithRoi(std::byte* pDst, const Roi roi) noexcept {
+std::expected<void, Error> StorageImageManager::downloadWithRoi(std::byte* pDst, const Roi roi,
+                                                                const size_t bufferRowPitch) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    int offset = roi.offset().y * (int)extent_.rowPitch() + roi.offset().x * extent_.bpp();
+    size_t srcOffset = extent_.computeByteOffset(roi.offset());
+    size_t dstOffset = 0;
     for (int row = 0; row < (int)roi.extent().height; row++) {
-        const std::byte* srcCursor = (std::byte*)mmapMgr.getMapPtr() + offset;
-        std::byte* dstCursor = pDst + offset;
+        const std::byte* srcCursor = (std::byte*)mmapMgr.getMapPtr() + srcOffset;
+        std::byte* dstCursor = pDst + dstOffset;
         std::memcpy(dstCursor, srcCursor, roi.extent().width * extent_.bpp());
-        offset += (int)extent_.rowPitch();
+        srcOffset += extent_.rowPitch();
+        dstOffset += bufferRowPitch;
     }
 
     return {};

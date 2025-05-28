@@ -35,6 +35,9 @@ public:
     [[nodiscard]] vk::Extent2D extent() const noexcept { return extent_; }
     [[nodiscard]] vk::Extent3D extent3D() const noexcept { return {extent_.width, extent_.height, 1}; }
     [[nodiscard]] vk::Format format() const noexcept { return format_; }
+    [[nodiscard]] size_t computeByteOffset(const vk::Offset2D offset) const noexcept {
+        return offset.y * rowPitch() + offset.x * bpp();
+    }
 
 private:
     vk::Extent2D extent_;

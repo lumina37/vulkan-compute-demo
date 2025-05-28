@@ -180,7 +180,7 @@ void CommandBufferManager::recordCopyStagingToSrcWithRoi(const TImageManager& sr
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
     const auto& imageExtent = srcImageMgr.getExtent();
-    copyRegion.setBufferOffset(roi.offset().y * imageExtent.rowPitch() + roi.offset().x * imageExtent.bpp());
+    copyRegion.setBufferOffset(imageExtent.computeByteOffset(roi.offset()));
     copyRegion.setBufferRowLength(imageExtent.width());
     copyRegion.setBufferImageHeight(imageExtent.height());
     copyRegion.setImageSubresource(subresourceLayers);
