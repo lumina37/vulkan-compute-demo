@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <expected>
 #include <memory>
-#include <span>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/device/physical.hpp"

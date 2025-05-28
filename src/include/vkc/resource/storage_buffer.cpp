@@ -1,7 +1,6 @@
 #include <cstddef>
 #include <expected>
 #include <memory>
-#include <span>
 #include <utility>
 
 #include "vkc/device/logical.hpp"

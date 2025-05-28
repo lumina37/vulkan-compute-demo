@@ -1,7 +1,6 @@
 #include <cstddef>
 #include <expected>
 #include <memory>
-#include <span>
 #include <utility>
 
 #include "vkc/device.hpp"
@@ -177,7 +176,7 @@ vk::DescriptorSetLayoutBinding StorageImageManager::draftDescSetLayoutBinding() 
     return binding;
 }
 
-std::expected<void, Error> StorageImageManager::uploadFrom(const std::byte* pData, const Roi roi) noexcept {
+std::expected<void, Error> StorageImageManager::uploadFrom(const std::byte* pData) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
@@ -187,7 +186,27 @@ std::expected<void, Error> StorageImageManager::uploadFrom(const std::byte* pDat
     return {};
 }
 
-std::expected<void, Error> StorageImageManager::downloadTo(std::byte* pData, const Roi roi) noexcept {
+std::expected<void, Error> StorageImageManager::uploadWithRoi(const std::byte* pData, const Roi roi) noexcept {
+    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
+    if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
+    auto& mmapMgr = mmapRes.value();
+
+    std::memcpy(mmapMgr.getMapPtr(), pData, extent_.size());
+
+    return {};
+}
+
+std::expected<void, Error> StorageImageManager::downloadTo(std::byte* pData) noexcept {
+    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
+    if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
+    auto& mmapMgr = mmapRes.value();
+
+    std::memcpy(pData, mmapMgr.getMapPtr(), extent_.size());
+
+    return {};
+}
+
+std::expected<void, Error> StorageImageManager::downloadWithRoi(std::byte* pData, const Roi roi) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();

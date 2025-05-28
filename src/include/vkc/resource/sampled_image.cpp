@@ -1,7 +1,6 @@
 #include <cstddef>
 #include <expected>
 #include <memory>
-#include <span>
 #include <utility>
 
 #include "vkc/device.hpp"
@@ -167,7 +166,17 @@ vk::DescriptorSetLayoutBinding SampledImageManager::draftDescSetLayoutBinding() 
     return binding;
 }
 
-std::expected<void, Error> SampledImageManager::uploadFrom(const std::byte* pData, const Roi roi) noexcept {
+std::expected<void, Error> SampledImageManager::uploadFrom(const std::byte* pData) noexcept {
+    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
+    if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
+    auto& mmapMgr = mmapRes.value();
+
+    std::memcpy(mmapMgr.getMapPtr(), pData, extent_.size());
+
+    return {};
+}
+
+std::expected<void, Error> SampledImageManager::uploadWithRoi(const std::byte* pData, const Roi roi) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
