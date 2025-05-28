@@ -68,12 +68,22 @@ StorageImageManager::~StorageImageManager() noexcept {
 
 std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyDeviceManager& phyDeviceMgr,
                                                                       std::shared_ptr<DeviceManager> pDeviceMgr,
-                                                                      const Extent& extent) noexcept {
+                                                                      const Extent& extent,
+                                                                      StorageImageType imageType) noexcept {
     vk::Device device = pDeviceMgr->getDevice();
 
-    constexpr vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
-    constexpr vk::BufferUsageFlags bufferUsage = vk::BufferUsageFlagBits::eTransferDst;
+    vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eStorage;
+    vk::BufferUsageFlags bufferUsage{};
     constexpr vk::ImageLayout imageLayout = vk::ImageLayout::eGeneral;
+
+    if (StorageImageType::Read & imageType) {
+        imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
+        bufferUsage |= vk::BufferUsageFlagBits::eTransferSrc;
+    }
+    if (StorageImageType::Write & imageType) {
+        imageUsage |= vk::ImageUsageFlagBits::eTransferSrc;
+        bufferUsage |= vk::BufferUsageFlagBits::eTransferDst;
+    }
 
     // Image
     vk::ImageCreateInfo imageInfo;

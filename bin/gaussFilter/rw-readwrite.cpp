@@ -29,14 +29,13 @@ int main() {
     vkc::QueueManager queueMgr = vkc::QueueManager::create(*pDeviceMgr, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Descriptor & Layouts
-    vkc::SamplerManager samplerMgr = vkc::SamplerManager::create(pDeviceMgr) | unwrap;
-
     constexpr int kernelSize = 23;
     constexpr float sigma = 10.0f;
     vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, sigma * sigma * 2.0f}};
 
-    vkc::SampledImageManager srcImageMgr =
-        vkc::SampledImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
+    vkc::StorageImageManager srcImageMgr =
+        vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent(), vkc::StorageImageType::Read) |
+        unwrap;
     const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
     vkc::StorageImageManager dstImageMgr =
         vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
@@ -48,10 +47,10 @@ int main() {
     uploadTimer.end();
     std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
 
-    const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
+    const std::vector descPoolSizes = genPoolSizes(srcImageMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr = vkc::DescPoolManager::create(pDeviceMgr, descPoolSizes) | unwrap;
 
-    const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
+    const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, dstImageMgr);
     vkc::DescSetLayoutManager gaussDLayoutMgr =
         vkc::DescSetLayoutManager::create(pDeviceMgr, gaussDLayoutBindings) | unwrap;
     const std::array gaussDLayoutMgrCRefs{std::cref(gaussDLayoutMgr)};
@@ -61,7 +60,7 @@ int main() {
         unwrap;
     vkc::DescSetsManager gaussDescSetsMgr =
         vkc::DescSetsManager::create(pDeviceMgr, descPoolMgr, gaussDLayoutMgrCRefs) | unwrap;
-    const std::array gaussWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr);
+    const std::array gaussWriteDescSets = genWriteDescSets(srcImageMgr, dstImageMgr);
     const std::array gaussWriteDescSetss{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
     gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
 
@@ -76,7 +75,7 @@ int main() {
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v0::code) | unwrap;
+    vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::rw::code) | unwrap;
     vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
     vkc::PipelineManager gaussPipelineMgr =
         vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
@@ -89,11 +88,11 @@ int main() {
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
-        gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::StorageImageManager>(srcImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::StorageImageManager>(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
@@ -113,7 +112,7 @@ int main() {
         std::println("============================");
         std::println("Staging to src timecost: {} ms", elapsedTime[0]);
         std::println("Dispatch timecost: {} ms", elapsedTime[1]);
-        std::println("Staging to dst timecost: {} ms", elapsedTime[2]);
+        std::println("Dst from staging timecost: {} ms", elapsedTime[2]);
     }
 
     Timer downloadTimer;

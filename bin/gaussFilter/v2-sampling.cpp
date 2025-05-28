@@ -41,7 +41,12 @@ int main() {
     vkc::StorageImageManager dstImageMgr =
         vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
     const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
+
+    Timer uploadTimer;
+    uploadTimer.begin();
     srcImageMgr.uploadFrom(srcImage.getImageSpan()) | unwrap;
+    uploadTimer.end();
+    std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
 
     const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr = vkc::DescPoolManager::create(pDeviceMgr, descPoolSizes) | unwrap;
@@ -71,9 +76,8 @@ int main() {
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v1::code) | unwrap;
-    constexpr int maxHalfKSize = 16;
-    vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y, maxHalfKSize};
+    vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v0::code) | unwrap;
+    vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
     vkc::PipelineManager gaussPipelineMgr =
         vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
         unwrap;
@@ -85,11 +89,11 @@ int main() {
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
-        gaussCmdBufMgr.recordSrcPrepareTranfer(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordSrcPrepareShaderRead(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrCRefs);
         gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufMgr.recordDispatch(srcImage.getExtent(), blockSize);
@@ -112,6 +116,11 @@ int main() {
         std::println("Staging to dst timecost: {} ms", elapsedTime[2]);
     }
 
+    Timer downloadTimer;
+    downloadTimer.begin();
     dstImageMgr.downloadTo(dstImage.getImageSpan()) | unwrap;
+    downloadTimer.end();
+    std::println("Download from staging timecost: {} ms", downloadTimer.durationMs());
+
     dstImage.saveTo("out.png") | unwrap;
 }

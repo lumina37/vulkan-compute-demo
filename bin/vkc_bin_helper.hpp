@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <expected>
 #include <filesystem>
 #include <iostream>
@@ -30,3 +31,17 @@ public:
 };
 
 constexpr auto unwrap = Unwrap();
+
+class Timer {
+public:
+    void begin() noexcept { begin_ = std::chrono::steady_clock::now(); }
+    void end() noexcept {
+        const auto end = std::chrono::steady_clock::now();
+        durationNs_ = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin_).count();
+    }
+    [[nodiscard]] float durationMs() const noexcept { return (float)durationNs_ / 1000000.0f; }
+
+private:
+    std::chrono::time_point<std::chrono::steady_clock> begin_;
+    int64_t durationNs_{};
+};

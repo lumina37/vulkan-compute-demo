@@ -50,13 +50,21 @@ public:
 
     using TSampledImageMgrCRef = std::reference_wrapper<const SampledImageManager>;
     using TStorageImageMgrCRef = std::reference_wrapper<const StorageImageManager>;
-    void recordSrcPrepareTranfer(std::span<const TSampledImageMgrCRef> srcImageMgrRefs) noexcept;
-    void recordSrcPrepareShaderRead(std::span<const TSampledImageMgrCRef> srcImageMgrRefs) noexcept;
+
+    template <CImageManager TImageManager>
+    void recordSrcPrepareTranfer(std::span<const std::reference_wrapper<const TImageManager>> srcImageMgrRefs) noexcept;
+
+    template <CImageManager TImageManager>
+    void recordSrcPrepareShaderRead(
+        std::span<const std::reference_wrapper<const TImageManager>> srcImageMgrRefs) noexcept;
+
     void recordDstPrepareShaderWrite(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
     void recordDispatch(Extent extent, BlockSize blockSize) noexcept;
     void recordDstPrepareTransfer(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
 
-    void recordCopyStagingToSrc(const SampledImageManager& srcImageMgr) noexcept;
+    template <CImageManager TImageManager>
+    void recordCopyStagingToSrc(const TImageManager& srcImageMgr) noexcept;
+
     void recordCopyDstToStaging(StorageImageManager& dstImageMgr) noexcept;
     void recordImageCopy(const StorageImageManager& srcImageMgr, SampledImageManager& dstImageMgr) noexcept;
 
@@ -89,6 +97,73 @@ void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushCons
     const auto& piplelineLayout = pipelineLayoutMgr.getPipelineLayout();
     commandBuffer_.pushConstants(piplelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(TPc),
                                  pushConstantMgr.getPPushConstant());
+}
+
+template <CImageManager TImageManager>
+void CommandBufferManager::recordSrcPrepareTranfer(
+    const std::span<const std::reference_wrapper<const TImageManager>> srcImageMgrRefs) noexcept {
+    vk::ImageMemoryBarrier uploadConvBarrierTemplate;
+    uploadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
+    uploadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
+    uploadConvBarrierTemplate.setOldLayout(vk::ImageLayout::eUndefined);
+    uploadConvBarrierTemplate.setNewLayout(vk::ImageLayout::eTransferDstOptimal);
+    uploadConvBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    uploadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+    uploadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+
+    const auto fillout = [&uploadConvBarrierTemplate](const std::reference_wrapper<const TImageManager> mgrRef) {
+        vk::ImageMemoryBarrier uploadConvBarrier = uploadConvBarrierTemplate;
+        uploadConvBarrier.setImage(mgrRef.get().getImage());
+        return uploadConvBarrier;
+    };
+
+    const auto uploadConvBarriers = srcImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)uploadConvBarriers.size(),
+                                   uploadConvBarriers.data());
+}
+
+template <CImageManager TImageManager>
+void CommandBufferManager::recordSrcPrepareShaderRead(
+    const std::span<const std::reference_wrapper<const TImageManager>> srcImageMgrRefs) noexcept {
+    vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
+    shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
+    shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
+    shaderCompatibleBarrierTemplate.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
+    if constexpr (std::is_same_v<TImageManager, SampledImageManager>) {
+        shaderCompatibleBarrierTemplate.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    } else {
+        shaderCompatibleBarrierTemplate.setNewLayout(vk::ImageLayout::eGeneral);
+    }
+    shaderCompatibleBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+    shaderCompatibleBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+
+    const auto fillout = [&shaderCompatibleBarrierTemplate](const std::reference_wrapper<const TImageManager> mgrRef) {
+        vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
+        shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
+        return shaderCompatibleBarrier;
+    };
+
+    const auto shaderCompatibleBarriers = srcImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
+                                   (uint32_t)shaderCompatibleBarriers.size(), shaderCompatibleBarriers.data());
+}
+
+template <CImageManager TImageManager>
+void CommandBufferManager::recordCopyStagingToSrc(const TImageManager& srcImageMgr) noexcept {
+    vk::ImageSubresourceLayers subresourceLayers;
+    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceLayers.setLayerCount(1);
+    vk::BufferImageCopy copyRegion;
+    copyRegion.setImageExtent(srcImageMgr.getExtent().extent3D());
+    copyRegion.setImageSubresource(subresourceLayers);
+
+    commandBuffer_.copyBufferToImage(srcImageMgr.getStagingBuffer(), srcImageMgr.getImage(),
+                                     vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
 template <typename TQueryPoolManager>

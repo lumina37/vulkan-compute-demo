@@ -13,6 +13,11 @@
 
 namespace vkc {
 
+typedef enum StorageImageType {
+    Write = 1 << 0,
+    Read = 1 << 1,
+} StorageImageType;
+
 class StorageImageManager {
     StorageImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, vk::Image image,
                         vk::ImageView imageView, vk::DeviceMemory imageMemory, vk::Buffer stagingBuffer,
@@ -22,9 +27,9 @@ public:
     StorageImageManager(StorageImageManager&& rhs) noexcept;
     ~StorageImageManager() noexcept;
 
-    [[nodiscard]] static std::expected<StorageImageManager, Error> create(const PhyDeviceManager& phyDeviceMgr,
-                                                                          std::shared_ptr<DeviceManager> pDeviceMgr,
-                                                                          const Extent& extent) noexcept;
+    [[nodiscard]] static std::expected<StorageImageManager, Error> create(
+        const PhyDeviceManager& phyDeviceMgr, std::shared_ptr<DeviceManager> pDeviceMgr, const Extent& extent,
+        StorageImageType imageType = StorageImageType::Write) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {

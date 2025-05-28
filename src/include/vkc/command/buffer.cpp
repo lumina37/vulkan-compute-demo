@@ -89,54 +89,6 @@ std::expected<void, Error> CommandBufferManager::begin() noexcept {
     return {};
 }
 
-void CommandBufferManager::recordSrcPrepareTranfer(
-    const std::span<const TSampledImageMgrCRef> srcImageMgrRefs) noexcept {
-    vk::ImageMemoryBarrier uploadConvBarrierTemplate;
-    uploadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
-    uploadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
-    uploadConvBarrierTemplate.setOldLayout(vk::ImageLayout::eUndefined);
-    uploadConvBarrierTemplate.setNewLayout(vk::ImageLayout::eTransferDstOptimal);
-    uploadConvBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
-    uploadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    uploadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
-
-    const auto fillout = [&uploadConvBarrierTemplate](const TSampledImageMgrCRef mgrRef) {
-        vk::ImageMemoryBarrier uploadConvBarrier = uploadConvBarrierTemplate;
-        uploadConvBarrier.setImage(mgrRef.get().getImage());
-        return uploadConvBarrier;
-    };
-
-    const auto uploadConvBarriers = srcImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
-
-    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)uploadConvBarriers.size(),
-                                   uploadConvBarriers.data());
-}
-
-void CommandBufferManager::recordSrcPrepareShaderRead(
-    const std::span<const TSampledImageMgrCRef> srcImageMgrRefs) noexcept {
-    vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
-    shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
-    shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
-    shaderCompatibleBarrierTemplate.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
-    shaderCompatibleBarrierTemplate.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-    shaderCompatibleBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
-    shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    shaderCompatibleBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
-
-    const auto fillout = [&shaderCompatibleBarrierTemplate](const TSampledImageMgrCRef mgrRef) {
-        vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
-        shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
-        return shaderCompatibleBarrier;
-    };
-
-    const auto shaderCompatibleBarriers = srcImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
-
-    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
-                                   (uint32_t)shaderCompatibleBarriers.size(), shaderCompatibleBarriers.data());
-}
-
 void CommandBufferManager::recordDstPrepareShaderWrite(
     const std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept {
     vk::ImageSubresourceRange subresourceRange;
@@ -195,18 +147,6 @@ void CommandBufferManager::recordDstPrepareTransfer(
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
                                    (uint32_t)downloadConvBarriers.size(), downloadConvBarriers.data());
-}
-
-void CommandBufferManager::recordCopyStagingToSrc(const SampledImageManager& srcImageMgr) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
-    vk::BufferImageCopy copyRegion;
-    copyRegion.setImageExtent(srcImageMgr.getExtent().extent3D());
-    copyRegion.setImageSubresource(subresourceLayers);
-
-    commandBuffer_.copyBufferToImage(srcImageMgr.getStagingBuffer(), srcImageMgr.getImage(),
-                                     vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
 void CommandBufferManager::recordCopyDstToStaging(StorageImageManager& dstImageMgr) noexcept {
