@@ -171,8 +171,4 @@ std::expected<void, Error> SampledImageManager::uploadFrom(const std::span<const
     return _hp::uploadFrom(*pDeviceMgr_, stagingMemory_, data);
 }
 
-std::expected<void, Error> SampledImageManager::downloadTo(const std::span<std::byte> data) noexcept {
-    return _hp::downloadTo(*pDeviceMgr_, stagingMemory_, data);
-}
-
 }  // namespace vkc

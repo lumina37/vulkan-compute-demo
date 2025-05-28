@@ -93,8 +93,4 @@ std::expected<void, Error> UniformBufferManager::uploadFrom(const std::span<cons
     return _hp::uploadFrom(*pDeviceMgr_, memory_, data);
 }
 
-std::expected<void, Error> UniformBufferManager::downloadTo(const std::span<std::byte> data) noexcept {
-    return _hp::downloadTo(*pDeviceMgr_, memory_, data);
-}
-
 }  // namespace vkc

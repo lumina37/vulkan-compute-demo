@@ -2,6 +2,7 @@
 #include <expected>
 #include <ranges>
 #include <tuple>
+#include <utility>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
@@ -104,6 +105,36 @@ std::expected<void, Error> downloadTo(DeviceManager& deviceMgr, const vk::Device
     device.unmapMemory(memory);
 
     return {};
+}
+
+MemMapManager::MemMapManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceMemory memory,
+                             void* mapPtr) noexcept
+    : pDeviceMgr_(std::move(pDeviceMgr)), memory_(memory), mapPtr_(mapPtr) {}
+
+MemMapManager::MemMapManager(MemMapManager&& rhs) noexcept
+    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+      memory_(std::exchange(rhs.memory_, nullptr)),
+      mapPtr_(std::exchange(rhs.mapPtr_, nullptr)) {}
+
+MemMapManager::~MemMapManager() noexcept {
+    if (mapPtr_ == nullptr) return;
+    vk::Device device = pDeviceMgr_->getDevice();
+    device.unmapMemory(memory_);
+    mapPtr_ = nullptr;
+    memory_ = nullptr;
+}
+
+std::expected<MemMapManager, Error> MemMapManager::create(std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                          vk::DeviceMemory& memory, size_t size) noexcept {
+    vk::Device device = pDeviceMgr->getDevice();
+
+    void* mapPtr;
+    auto mapRes = device.mapMemory(memory, 0, size, (vk::MemoryMapFlags)0, &mapPtr);
+    if (mapRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{mapRes}};
+    }
+
+    return MemMapManager{std::move(pDeviceMgr), memory, mapPtr};
 }
 
 }  // namespace vkc::_hp

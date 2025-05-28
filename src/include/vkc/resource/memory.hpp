@@ -31,6 +31,25 @@ namespace vkc::_hp {
 [[nodiscard]] std::expected<void, Error> downloadTo(DeviceManager& deviceMgr, const vk::DeviceMemory& memory,
                                                     std::span<std::byte> data) noexcept;
 
+class MemMapManager {
+    MemMapManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceMemory memory, void* mapPtr) noexcept;
+
+public:
+    MemMapManager(MemMapManager&& rhs) noexcept;
+    ~MemMapManager() noexcept;
+
+    [[nodiscard]] static std::expected<MemMapManager, Error> create(std::shared_ptr<DeviceManager> pDeviceMgr,
+                                                                    vk::DeviceMemory& memory, size_t size) noexcept;
+
+    [[nodiscard]] void* getMapPtr() const noexcept { return mapPtr_; }
+
+private:
+    std::shared_ptr<DeviceManager> pDeviceMgr_;
+
+    vk::DeviceMemory memory_;
+    void* mapPtr_;
+};
+
 }  // namespace vkc::_hp
 
 #ifdef _VKC_LIB_HEADER_ONLY
