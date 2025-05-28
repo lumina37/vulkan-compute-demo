@@ -191,7 +191,13 @@ std::expected<void, Error> StorageImageManager::uploadWithRoi(const std::byte* p
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    std::memcpy(mmapMgr.getMapPtr(), pData, extent_.size());
+    int offset = roi.offset().y * (int)extent_.rowPitch() + roi.offset().x * extent_.bpp();
+    for (int row = 0; row < (int)roi.extent().height; row++) {
+        const std::byte* pSrc = pData + offset;
+        std::byte* pDst = (std::byte*)mmapMgr.getMapPtr() + offset;
+        std::memcpy(pDst, pSrc, roi.extent().width * extent_.bpp());
+        offset += (int)extent_.rowPitch();
+    }
 
     return {};
 }
@@ -211,7 +217,13 @@ std::expected<void, Error> StorageImageManager::downloadWithRoi(std::byte* pData
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    std::memcpy(pData, mmapMgr.getMapPtr(), extent_.size());
+    int offset = roi.offset().y * (int)extent_.rowPitch() + roi.offset().x * extent_.bpp();
+    for (int row = 0; row < (int)roi.extent().height; row++) {
+        const std::byte* pSrc = (std::byte*)mmapMgr.getMapPtr() + offset;
+        std::byte* pDst = pData + offset;
+        std::memcpy(pDst, pSrc, roi.extent().width * extent_.bpp());
+        offset += (int)extent_.rowPitch();
+    }
 
     return {};
 }

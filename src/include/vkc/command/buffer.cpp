@@ -168,10 +168,10 @@ void CommandBufferManager::recordCopyDstToStagingWithRoi(StorageImageManager& ds
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
-    const int bufferRowLen = dstImageMgr.getExtent().width();
-    copyRegion.setBufferOffset(roi.offset().y * bufferRowLen + roi.offset().x);
-    copyRegion.setBufferRowLength(bufferRowLen);
-    copyRegion.setBufferImageHeight(dstImageMgr.getExtent().height());
+    const auto& imageExtent = dstImageMgr.getExtent();
+    copyRegion.setBufferOffset(roi.offset().y * imageExtent.rowPitch() + roi.offset().x * imageExtent.bpp());
+    copyRegion.setBufferRowLength(imageExtent.width());
+    copyRegion.setBufferImageHeight(imageExtent.height());
     copyRegion.setImageSubresource(subresourceLayers);
     copyRegion.setImageOffset(roi.offset3D());
     copyRegion.setImageExtent(roi.extent3D());
