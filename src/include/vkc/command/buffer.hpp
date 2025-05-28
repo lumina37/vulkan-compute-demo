@@ -67,7 +67,7 @@ public:
     void recordCopyStagingToSrc(const TImageManager& srcImageMgr) noexcept;
 
     void recordCopyDstToStaging(StorageImageManager& dstImageMgr) noexcept;
-    void recordImageCopy(const StorageImageManager& srcImageMgr, SampledImageManager& dstImageMgr) noexcept;
+    void recordCopyStorageToSampled(const StorageImageManager& srcImageMgr, SampledImageManager& dstImageMgr) noexcept;
 
     void recordWaitDownloadComplete(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
 

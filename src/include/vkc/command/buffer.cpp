@@ -163,8 +163,8 @@ void CommandBufferManager::recordCopyDstToStaging(StorageImageManager& dstImageM
                                      dstImageMgr.getStagingBuffer(), 1, &copyRegion);
 }
 
-void CommandBufferManager::recordImageCopy(const StorageImageManager& srcImageMgr,
-                                           SampledImageManager& dstImageMgr) noexcept {
+void CommandBufferManager::recordCopyStorageToSampled(const StorageImageManager& srcImageMgr,
+                                                      SampledImageManager& dstImageMgr) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
