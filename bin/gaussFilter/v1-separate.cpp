@@ -44,7 +44,7 @@ int main() {
 
     Timer uploadTimer;
     uploadTimer.begin();
-    srcImageMgr.uploadFrom(srcImage.getPData()) | unwrap;
+    srcImageMgr.upload(srcImage.getPData()) | unwrap;
     uploadTimer.end();
     std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
 
@@ -106,7 +106,7 @@ int main() {
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submitTo(queueMgr, fenceMgr) | unwrap;
+        gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 
@@ -119,7 +119,7 @@ int main() {
 
     Timer downloadTimer;
     downloadTimer.begin();
-    dstImageMgr.downloadTo(dstImage.getPData()) | unwrap;
+    dstImageMgr.download(dstImage.getPData()) | unwrap;
     downloadTimer.end();
     std::println("Download from staging timecost: {} ms", downloadTimer.durationMs());
 

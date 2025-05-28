@@ -87,7 +87,7 @@ public:
                                                                 vk::PipelineStageFlagBits pipelineStage) noexcept;
 
     [[nodiscard]] std::expected<void, Error> end() noexcept;
-    [[nodiscard]] std::expected<void, Error> submitTo(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept;
+    [[nodiscard]] std::expected<void, Error> submit(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept;
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;

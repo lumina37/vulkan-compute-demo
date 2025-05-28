@@ -31,7 +31,7 @@ public:
     [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
     [[nodiscard]] static constexpr vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() noexcept;
 
-    [[nodiscard]] std::expected<void, Error> uploadFrom(const std::byte* pData) noexcept;
+    [[nodiscard]] std::expected<void, Error> upload(const std::byte* pSrc) noexcept;
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;

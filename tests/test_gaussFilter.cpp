@@ -129,7 +129,7 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
     vkc::StorageImageManager dstImageMgr =
         vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
     const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
-    srcImageMgr.uploadFrom(srcImage.getPData()) | unwrap;
+    srcImageMgr.upload(srcImage.getPData()) | unwrap;
 
     const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr = vkc::DescPoolManager::create(pDeviceMgr, descPoolSizes) | unwrap;
@@ -177,11 +177,11 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submitTo(queueMgr, fenceMgr) | unwrap;
+        gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 
-        dstImageMgr.downloadTo(dstImageVk.getPData()) | unwrap;
+        dstImageMgr.download(dstImageVk.getPData()) | unwrap;
         // dstImageVk.saveTo("v0.png") | unwrap;
 
         int diffAcc = 0;
@@ -219,11 +219,11 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
         gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submitTo(queueMgr, fenceMgr) | unwrap;
+        gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 
-        dstImageMgr.downloadTo(dstImageVk.getPData()) | unwrap;
+        dstImageMgr.download(dstImageVk.getPData()) | unwrap;
         // dstImageVk.saveTo("v2.png") | unwrap;
 
         int diffAcc = 0;

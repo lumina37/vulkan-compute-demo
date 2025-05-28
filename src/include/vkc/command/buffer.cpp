@@ -267,7 +267,7 @@ std::expected<void, Error> CommandBufferManager::end() noexcept {
     return {};
 }
 
-std::expected<void, Error> CommandBufferManager::submitTo(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept {
+std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept {
     vk::SubmitInfo submitInfo;
     submitInfo.setCommandBuffers(commandBuffer_);
 

@@ -88,22 +88,22 @@ vk::WriteDescriptorSet StorageBufferManager::draftWriteDescSet() const noexcept 
     return writeDescSet;
 }
 
-std::expected<void, Error> StorageBufferManager::uploadFrom(const std::byte* pData) noexcept {
+std::expected<void, Error> StorageBufferManager::upload(const std::byte* pSrc) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, memory_, size_);
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    std::memcpy(mmapMgr.getMapPtr(), pData, size_);
+    std::memcpy(mmapMgr.getMapPtr(), pSrc, size_);
 
     return {};
 }
 
-std::expected<void, Error> StorageBufferManager::downloadTo(std::byte* pData) noexcept {
+std::expected<void, Error> StorageBufferManager::download(std::byte* pDst) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, memory_, size_);
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    std::memcpy(pData, mmapMgr.getMapPtr(), size_);
+    std::memcpy(pDst, mmapMgr.getMapPtr(), size_);
 
     return {};
 }

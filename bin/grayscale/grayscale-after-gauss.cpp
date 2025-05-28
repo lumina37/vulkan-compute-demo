@@ -41,7 +41,7 @@ int main() {
     vkc::StorageImageManager dstImageMgr =
         vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
     const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
-    srcImageMgr.uploadFrom(srcImage.getPData()) | unwrap;
+    srcImageMgr.upload(srcImage.getPData()) | unwrap;
 
     const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
     vkc::DescPoolManager descPoolMgr = vkc::DescPoolManager::create(pDeviceMgr, descPoolSizes) | unwrap;
@@ -108,7 +108,7 @@ int main() {
     gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
     gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     gaussCmdBufMgr.end() | unwrap;
-    gaussCmdBufMgr.submitTo(queueMgr, fenceMgr) | unwrap;
+    gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
     fenceMgr.wait() | unwrap;
     fenceMgr.reset() | unwrap;
 
@@ -131,7 +131,7 @@ int main() {
     grayCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
     grayCmdBufMgr.end() | unwrap;
 
-    grayCmdBufMgr.submitTo(queueMgr, fenceMgr) | unwrap;
+    grayCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
     fenceMgr.wait() | unwrap;
     fenceMgr.reset() | unwrap;
 
@@ -140,6 +140,6 @@ int main() {
     std::println("Storage to sampled transfer timecost: {} ms", elapsedTime[1]);
     std::println("Grayscale dispatch timecost: {} ms", elapsedTime[2]);
 
-    dstImageMgr.downloadTo(dstImage.getPData()) | unwrap;
+    dstImageMgr.download(dstImage.getPData()) | unwrap;
     dstImage.saveTo("out.png") | unwrap;
 }

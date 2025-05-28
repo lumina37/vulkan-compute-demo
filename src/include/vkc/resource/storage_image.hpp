@@ -41,12 +41,12 @@ public:
         return vk::DescriptorType::eStorageImage;
     }
     [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
-    [[nodiscard]] vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() const noexcept;
+    [[nodiscard]] static constexpr vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() noexcept;
 
-    [[nodiscard]] std::expected<void, Error> uploadFrom(const std::byte* pData) noexcept;
-    [[nodiscard]] std::expected<void, Error> uploadWithRoi(const std::byte* pData, Roi roi) noexcept;
-    [[nodiscard]] std::expected<void, Error> downloadTo(std::byte* pData) noexcept;
-    [[nodiscard]] std::expected<void, Error> downloadWithRoi(std::byte* pData, Roi roi) noexcept;
+    [[nodiscard]] std::expected<void, Error> uploadFrom(const std::byte* pSrc) noexcept;
+    [[nodiscard]] std::expected<void, Error> uploadWithRoi(const std::byte* pSrc, Roi roi) noexcept;
+    [[nodiscard]] std::expected<void, Error> download(std::byte* pDst) noexcept;
+    [[nodiscard]] std::expected<void, Error> downloadWithRoi(std::byte* pDst, Roi roi) noexcept;
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;
@@ -62,6 +62,14 @@ private:
 
     vk::DescriptorImageInfo descImageInfo_;
 };
+
+constexpr vk::DescriptorSetLayoutBinding StorageImageManager::draftDescSetLayoutBinding() noexcept {
+    vk::DescriptorSetLayoutBinding binding;
+    binding.setDescriptorCount(1);
+    binding.setDescriptorType(vk::DescriptorType::eStorageImage);
+    binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
+    return binding;
+}
 
 }  // namespace vkc
 

@@ -158,34 +158,26 @@ vk::WriteDescriptorSet SampledImageManager::draftWriteDescSet() const noexcept {
     return writeDescSet;
 }
 
-vk::DescriptorSetLayoutBinding SampledImageManager::draftDescSetLayoutBinding() const noexcept {
-    vk::DescriptorSetLayoutBinding binding;
-    binding.setDescriptorCount(1);
-    binding.setDescriptorType(vk::DescriptorType::eSampledImage);
-    binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
-    return binding;
-}
-
-std::expected<void, Error> SampledImageManager::uploadFrom(const std::byte* pData) noexcept {
+std::expected<void, Error> SampledImageManager::upload(const std::byte* pSrc) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    std::memcpy(mmapMgr.getMapPtr(), pData, extent_.size());
+    std::memcpy(mmapMgr.getMapPtr(), pSrc, extent_.size());
 
     return {};
 }
 
-std::expected<void, Error> SampledImageManager::uploadWithRoi(const std::byte* pData, const Roi roi) noexcept {
+std::expected<void, Error> SampledImageManager::uploadWithRoi(const std::byte* pSrc, const Roi roi) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
     int offset = roi.offset().y * (int)extent_.rowPitch() + roi.offset().x * extent_.bpp();
     for (int row = 0; row < (int)roi.extent().height; row++) {
-        const std::byte* pSrc = pData + offset;
-        std::byte* pDst = (std::byte*)mmapMgr.getMapPtr() + offset;
-        std::memcpy(pDst, pSrc, roi.extent().width * extent_.bpp());
+        const std::byte* srcCursor = pSrc + offset;
+        std::byte* dstCursor = (std::byte*)mmapMgr.getMapPtr() + offset;
+        std::memcpy(dstCursor, srcCursor, roi.extent().width * extent_.bpp());
         offset += (int)extent_.rowPitch();
     }
 
