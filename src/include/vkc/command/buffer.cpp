@@ -156,8 +156,25 @@ void CommandBufferManager::recordCopyDstToStaging(StorageImageManager& dstImageM
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
-    copyRegion.setImageExtent(dstImageMgr.getExtent().extent3D());
     copyRegion.setImageSubresource(subresourceLayers);
+    copyRegion.setImageExtent(dstImageMgr.getExtent().extent3D());
+
+    commandBuffer_.copyImageToBuffer(dstImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal,
+                                     dstImageMgr.getStagingBuffer(), 1, &copyRegion);
+}
+
+void CommandBufferManager::recordCopyDstToStagingWithRoi(StorageImageManager& dstImageMgr, const Roi roi) noexcept {
+    vk::ImageSubresourceLayers subresourceLayers;
+    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceLayers.setLayerCount(1);
+    vk::BufferImageCopy copyRegion;
+    const int bufferRowLen = dstImageMgr.getExtent().width();
+    copyRegion.setBufferOffset(roi.offset().y * bufferRowLen + roi.offset().x);
+    copyRegion.setBufferRowLength(bufferRowLen);
+    copyRegion.setBufferImageHeight(dstImageMgr.getExtent().height());
+    copyRegion.setImageSubresource(subresourceLayers);
+    copyRegion.setImageOffset(roi.offset3D());
+    copyRegion.setImageExtent(roi.extent3D());
 
     commandBuffer_.copyImageToBuffer(dstImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal,
                                      dstImageMgr.getStagingBuffer(), 1, &copyRegion);
@@ -171,8 +188,24 @@ void CommandBufferManager::recordCopyStorageToSampled(const StorageImageManager&
     vk::ImageCopy copyRegion;
     copyRegion.setSrcSubresource(subresourceLayers);
     copyRegion.setDstSubresource(subresourceLayers);
-
     copyRegion.setExtent(srcImageMgr.getExtent().extent3D());
+
+    commandBuffer_.copyImage(srcImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageMgr.getImage(),
+                             vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
+}
+
+void CommandBufferManager::recordCopyStorageToSampledWithRoi(const StorageImageManager& srcImageMgr,
+                                                             SampledImageManager& dstImageMgr, const Roi roi) noexcept {
+    vk::ImageSubresourceLayers subresourceLayers;
+    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceLayers.setLayerCount(1);
+    vk::ImageCopy copyRegion;
+    copyRegion.setSrcSubresource(subresourceLayers);
+    copyRegion.setSrcOffset(roi.offset3D());
+    copyRegion.setDstSubresource(subresourceLayers);
+    copyRegion.setDstOffset(roi.offset3D());
+    copyRegion.setExtent(srcImageMgr.getExtent().extent3D());
+
     commandBuffer_.copyImage(srcImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageMgr.getImage(),
                              vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }

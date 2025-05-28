@@ -66,8 +66,14 @@ public:
     template <CImageManager TImageManager>
     void recordCopyStagingToSrc(const TImageManager& srcImageMgr) noexcept;
 
+    template <CImageManager TImageManager>
+    void recordCopyStagingToSrcWithRoi(const TImageManager& srcImageMgr, Roi roi) noexcept;
+
     void recordCopyDstToStaging(StorageImageManager& dstImageMgr) noexcept;
+    void recordCopyDstToStagingWithRoi(StorageImageManager& dstImageMgr, Roi roi) noexcept;
     void recordCopyStorageToSampled(const StorageImageManager& srcImageMgr, SampledImageManager& dstImageMgr) noexcept;
+    void recordCopyStorageToSampledWithRoi(const StorageImageManager& srcImageMgr, SampledImageManager& dstImageMgr,
+                                           Roi roi) noexcept;
 
     void recordWaitDownloadComplete(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
 
@@ -160,8 +166,26 @@ void CommandBufferManager::recordCopyStagingToSrc(const TImageManager& srcImageM
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
-    copyRegion.setImageExtent(srcImageMgr.getExtent().extent3D());
     copyRegion.setImageSubresource(subresourceLayers);
+    copyRegion.setImageExtent(srcImageMgr.getExtent().extent3D());
+
+    commandBuffer_.copyBufferToImage(srcImageMgr.getStagingBuffer(), srcImageMgr.getImage(),
+                                     vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
+}
+
+template <CImageManager TImageManager>
+void CommandBufferManager::recordCopyStagingToSrcWithRoi(const TImageManager& srcImageMgr, const Roi roi) noexcept {
+    vk::ImageSubresourceLayers subresourceLayers;
+    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceLayers.setLayerCount(1);
+    vk::BufferImageCopy copyRegion;
+    const int bufferRowLen = srcImageMgr.getExtent().width();
+    copyRegion.setBufferOffset(roi.offset().y * bufferRowLen + roi.offset().x);
+    copyRegion.setBufferRowLength(bufferRowLen);
+    copyRegion.setBufferImageHeight(srcImageMgr.getExtent().height());
+    copyRegion.setImageSubresource(subresourceLayers);
+    copyRegion.setImageOffset(roi.offset3D());
+    copyRegion.setImageExtent(roi.extent3D());
 
     commandBuffer_.copyBufferToImage(srcImageMgr.getStagingBuffer(), srcImageMgr.getImage(),
                                      vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
