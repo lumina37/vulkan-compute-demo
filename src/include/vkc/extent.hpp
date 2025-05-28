@@ -45,10 +45,10 @@ private:
     size_t size_;
 };
 
-class ROI {
+class Roi {
 public:
-    constexpr ROI() = default;
-    constexpr ROI(const int x, const int y, const int width, const int height)
+    constexpr Roi() = default;
+    constexpr Roi(const int x, const int y, const int width, const int height)
         : offset_(x, y), extent_(width, height) {}
 
     [[nodiscard]] vk::Offset2D offset() const noexcept { return offset_; }

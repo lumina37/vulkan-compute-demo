@@ -177,22 +177,22 @@ vk::DescriptorSetLayoutBinding StorageImageManager::draftDescSetLayoutBinding() 
     return binding;
 }
 
-std::expected<void, Error> StorageImageManager::uploadFrom(const std::span<const std::byte> data) noexcept {
+std::expected<void, Error> StorageImageManager::uploadFrom(const std::byte* pData, const Roi roi) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    std::memcpy(mmapMgr.getMapPtr(), data.data(), extent_.size());
+    std::memcpy(mmapMgr.getMapPtr(), pData, extent_.size());
 
     return {};
 }
 
-std::expected<void, Error> StorageImageManager::downloadTo(const std::span<std::byte> data) noexcept {
+std::expected<void, Error> StorageImageManager::downloadTo(std::byte* pData, const Roi roi) noexcept {
     auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    std::memcpy(data.data(), mmapMgr.getMapPtr(), extent_.size());
+    std::memcpy(pData, mmapMgr.getMapPtr(), extent_.size());
 
     return {};
 }

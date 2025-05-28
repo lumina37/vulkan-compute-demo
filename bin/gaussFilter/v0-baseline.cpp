@@ -44,7 +44,7 @@ int main() {
 
     Timer uploadTimer;
     uploadTimer.begin();
-    srcImageMgr.uploadFrom(srcImage.getImageSpan()) | unwrap;
+    srcImageMgr.uploadFrom(srcImage.getPData(), {}) | unwrap;
     uploadTimer.end();
     std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
 
@@ -113,12 +113,12 @@ int main() {
         std::println("============================");
         std::println("Staging to src timecost: {} ms", elapsedTime[0]);
         std::println("Dispatch timecost: {} ms", elapsedTime[1]);
-        std::println("Staging to dst timecost: {} ms", elapsedTime[2]);
+        std::println("Dst from staging timecost: {} ms", elapsedTime[2]);
     }
 
     Timer downloadTimer;
     downloadTimer.begin();
-    dstImageMgr.downloadTo(dstImage.getImageSpan()) | unwrap;
+    dstImageMgr.downloadTo(dstImage.getPData(), {}) | unwrap;
     downloadTimer.end();
     std::println("Download from staging timecost: {} ms", downloadTimer.durationMs());
 
