@@ -36,21 +36,8 @@ public:
         return std::forward_like<Self>(self).extent_;
     }
 
-    template <typename Self>
-    [[nodiscard]] auto&& getImage(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).image_;
-    }
-
-    template <typename Self>
-    [[nodiscard]] auto&& getImageView(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).imageView_;
-    }
-
-    template <typename Self>
-    [[nodiscard]] auto&& getStagingBuffer(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).stagingBuffer_;
-    }
-
+    [[nodiscard]] vk::Image getImage() const noexcept { return image_; }
+    [[nodiscard]] vk::Buffer getStagingBuffer() const noexcept { return stagingBuffer_; }
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eStorageImage;
     }

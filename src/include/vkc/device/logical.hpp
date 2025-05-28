@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <expected>
-#include <utility>
 #include <vector>
 
 #include "vkc/device/physical.hpp"

@@ -11,12 +11,8 @@ namespace vkc {
 template <typename Self>
 concept CImageManager = requires {
     requires requires(Self& self) {
-        { self.getImage() } noexcept -> std::same_as<vk::Image&>;
-        { self.getStagingBuffer() } noexcept -> std::same_as<vk::Buffer&>;
-    };
-    requires requires(const Self& self) {
-        { self.getImage() } noexcept -> std::same_as<const vk::Image&>;
-        { self.getStagingBuffer() } noexcept -> std::same_as<const vk::Buffer&>;
+        { self.getImage() } noexcept -> std::same_as<vk::Image>;
+        { self.getStagingBuffer() } noexcept -> std::same_as<vk::Buffer>;
     };
 };
 

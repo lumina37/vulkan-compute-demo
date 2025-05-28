@@ -5,7 +5,6 @@
 #include <functional>
 #include <ranges>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "vkc/device/concepts.hpp"

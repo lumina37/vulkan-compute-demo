@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <expected>
 #include <memory>
-#include <utility>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"

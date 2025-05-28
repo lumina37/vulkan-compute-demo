@@ -3,7 +3,6 @@
 #include <expected>
 #include <span>
 #include <string>
-#include <utility>
 
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"

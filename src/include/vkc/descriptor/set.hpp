@@ -4,9 +4,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <functional>
 #include <memory>
 #include <span>
 #include <utility>
+#include <vector>
 
 #include "vkc/descriptor/concepts.hpp"
 #include "vkc/descriptor/layout.hpp"

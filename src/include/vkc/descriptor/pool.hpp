@@ -5,7 +5,6 @@
 #include <memory>
 #include <ranges>
 #include <span>
-#include <utility>
 #include <vector>
 
 #include "vkc/descriptor/concepts.hpp"

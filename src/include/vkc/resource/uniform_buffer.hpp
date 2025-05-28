@@ -4,7 +4,6 @@
 #include <expected>
 #include <memory>
 #include <span>
-#include <utility>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/device/physical.hpp"
@@ -26,17 +25,7 @@ public:
                                                                            vk::DeviceSize size) noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
-
-    template <typename Self>
-    [[nodiscard]] auto&& getMemory(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).memory_;
-    }
-
-    template <typename Self>
-    [[nodiscard]] auto&& getBuffer(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).buffer_;
-    }
-
+    [[nodiscard]] vk::Buffer getBuffer() const noexcept { return buffer_; }
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eUniformBuffer;
     }

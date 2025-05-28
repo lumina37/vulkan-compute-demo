@@ -1,7 +1,6 @@
 #pragma once
 
 #include <expected>
-#include <utility>
 
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"

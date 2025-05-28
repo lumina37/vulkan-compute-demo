@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cstdint>
 #include <expected>
-#include <utility>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"

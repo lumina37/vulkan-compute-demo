@@ -1,8 +1,9 @@
 #pragma once
 
 #include <expected>
+#include <functional>
 #include <memory>
-#include <utility>
+#include <span>
 
 #include "vkc/command/concepts.hpp"
 #include "vkc/command/pool.hpp"

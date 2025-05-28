@@ -1,6 +1,8 @@
 #include <expected>
+#include <functional>
 #include <memory>
 #include <ranges>
+#include <span>
 #include <utility>
 
 #include "vkc/command/concepts.hpp"

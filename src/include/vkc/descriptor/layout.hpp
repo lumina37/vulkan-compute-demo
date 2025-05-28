@@ -3,7 +3,6 @@
 #include <expected>
 #include <memory>
 #include <span>
-#include <utility>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
