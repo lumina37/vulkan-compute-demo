@@ -7,7 +7,6 @@ function(vkc_common_lib_setting name)
     endif ()
 
     target_compile_features(${name} ${__PUB_DEP_SCOPE} cxx_std_23)
-    target_compile_definitions(${name} ${__PUB_DEP_SCOPE} CL_TARGET_OPENCL_VERSION=300)
 
     target_include_directories(${name} ${__PUB_DEP_SCOPE}
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

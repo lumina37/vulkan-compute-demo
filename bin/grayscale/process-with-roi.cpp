@@ -44,7 +44,7 @@ int main() {
     Timer uploadTimer;
     uploadTimer.begin();
     constexpr vkc::Roi roi{100, 200, 300, 400};
-    srcImageMgr.uploadWithRoi(srcImage.getPData() + extent.computeByteOffset(roi.offset()), roi, extent.rowPitch()) |
+    srcImageMgr.uploadWithRoi(srcImage.getPData() + extent.computeBufferOffset(roi.offset()), roi, extent.rowPitch()) |
         unwrap;
     uploadTimer.end();
     std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
@@ -118,7 +118,8 @@ int main() {
 
     Timer downloadTimer;
     downloadTimer.begin();
-    dstImageMgr.downloadWithRoi(dstImage.getPData() + extent.computeByteOffset(roi.offset()), roi, extent.rowPitch()) |
+    dstImageMgr.downloadWithRoi(dstImage.getPData() + extent.computeBufferOffset(roi.offset()), roi,
+                                extent.rowPitch()) |
         unwrap;
     downloadTimer.end();
     std::println("Download from staging timecost: {} ms", downloadTimer.durationMs());
