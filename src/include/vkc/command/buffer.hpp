@@ -11,13 +11,13 @@
 #include "vkc/device/logical.hpp"
 #include "vkc/device/queue.hpp"
 #include "vkc/extent.hpp"
-#include "vkc/fence.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
 #include "vkc/resource.hpp"
+#include "vkc/sync/fence.hpp"
 
 namespace vkc {
 

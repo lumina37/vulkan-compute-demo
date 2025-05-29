@@ -32,5 +32,5 @@ private:
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/fence.cpp"
+#    include "vkc/sync/fence.cpp"
 #endif
