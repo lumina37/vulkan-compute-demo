@@ -25,7 +25,11 @@ foreach (__VKC_GLSL_SRC ${_VKC_GLSL_SRCS})
 endforeach ()
 
 add_custom_target(_vkc-shader DEPENDS ${_VKC_SPIRV_SHADERS})
-add_library(vkc-shader INTERFACE)
+
+file(GLOB_RECURSE _VKC_SHADER_SRCS "*.cpp")
+
+add_library(vkc-shader STATIC ${_VKC_SHADER_SRCS})
 add_dependencies(vkc-shader _vkc-shader)
-target_include_directories(vkc-shader INTERFACE .)
+target_compile_features(vkc-shader PUBLIC cxx_std_23)
+target_include_directories(vkc-shader PUBLIC .)
 add_library(vkc::shader ALIAS vkc-shader)

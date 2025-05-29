@@ -7,21 +7,13 @@ namespace shader::gaussFilter {
 
 namespace v0 {
 
-namespace _detail {
-#include "spirv/gaussFilter/v0.h"
-}
-
-static const std::span code{(std::byte*)_detail::code, sizeof(_detail::code)};
+extern const std::span<std::byte> code;
 
 }  // namespace v0
 
 namespace v1 {
 
-namespace _detail {
-#include "spirv/gaussFilter/v1.h"
-}
-
-static const std::span code{(std::byte*)_detail::code, sizeof(_detail::code)};
+extern const std::span<std::byte> code;
 
 }  // namespace v1
 
