@@ -92,7 +92,7 @@ std::expected<void, Error> CommandBufferManager::begin() noexcept {
 }
 
 void CommandBufferManager::recordDstPrepareShaderWrite(
-    const std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept {
+    const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
     vk::ImageSubresourceRange subresourceRange;
     subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceRange.setLevelCount(1);
@@ -108,7 +108,7 @@ void CommandBufferManager::recordDstPrepareShaderWrite(
     shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     shaderCompatibleBarrierTemplate.setSubresourceRange(subresourceRange);
 
-    const auto fillout = [&shaderCompatibleBarrierTemplate](const TStorageImageMgrCRef mgrRef) {
+    const auto fillout = [&shaderCompatibleBarrierTemplate](const TStorageImageMgrRef mgrRef) {
         vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
         shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
         return shaderCompatibleBarrier;
@@ -128,7 +128,7 @@ void CommandBufferManager::recordDispatch(const vk::Extent2D extent, const Block
 }
 
 void CommandBufferManager::recordDstPrepareTransfer(
-    const std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept {
+    const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier downloadConvBarrierTemplate;
     downloadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite);
     downloadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
@@ -138,7 +138,7 @@ void CommandBufferManager::recordDstPrepareTransfer(
     downloadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     downloadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&downloadConvBarrierTemplate](const TStorageImageMgrCRef mgrRef) {
+    const auto fillout = [&downloadConvBarrierTemplate](const TStorageImageMgrRef mgrRef) {
         vk::ImageMemoryBarrier downloadConvBarrier = downloadConvBarrierTemplate;
         downloadConvBarrier.setImage(mgrRef.get().getImage());
         return downloadConvBarrier;
@@ -211,15 +211,15 @@ void CommandBufferManager::recordCopyStorageToSampledWithRoi(const StorageImageM
 }
 
 void CommandBufferManager::recordWaitDownloadComplete(
-    const std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept {
+    const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
     vk::BufferMemoryBarrier downloadCompleteBarrierTemplate;
     downloadCompleteBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     downloadCompleteBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eHostRead);
     downloadCompleteBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     downloadCompleteBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
 
-    const auto fillout = [&downloadCompleteBarrierTemplate](const TStorageImageMgrCRef mgrRef) {
-        const auto& mgr = mgrRef.get();
+    const auto fillout = [&downloadCompleteBarrierTemplate](const TStorageImageMgrRef mgrRef) {
+        auto& mgr = mgrRef.get();
         vk::BufferMemoryBarrier downloadCompleteBarrier = downloadCompleteBarrierTemplate;
         downloadCompleteBarrier.setBuffer(mgr.getStagingBuffer());
         downloadCompleteBarrier.setSize(mgr.getExtent().size());
@@ -267,12 +267,20 @@ std::expected<void, Error> CommandBufferManager::end() noexcept {
     return {};
 }
 
-std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept {
+std::expected<void, Error> CommandBufferManager::_submit(vk::Queue queue, vk::Semaphore waitSemaphore,
+                                                         vk::PipelineStageFlags waitDstStage,
+                                                         vk::Semaphore signalSemaphore, vk::Fence fence) noexcept {
     vk::SubmitInfo submitInfo;
+    if (waitSemaphore != nullptr) {
+        submitInfo.setWaitSemaphores(waitSemaphore);
+        submitInfo.setWaitDstStageMask(waitDstStage);
+    }
     submitInfo.setCommandBuffers(commandBuffer_);
+    if (signalSemaphore != nullptr) {
+        submitInfo.setSignalSemaphores(signalSemaphore);
+    }
 
-    vk::Queue computeQueue = queueMgr.getComputeQueue();
-    const vk::Result submitRes = computeQueue.submit(submitInfo, fenceMgr.getFence());
+    const vk::Result submitRes = queue.submit(submitInfo, fence);
     if (submitRes != vk::Result::eSuccess) {
         return std::unexpected{Error{submitRes}};
     }
@@ -280,15 +288,41 @@ std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr, 
     return {};
 }
 
+std::expected<void, Error> CommandBufferManager::submitAndWaitPreTask(QueueManager& queueMgr,
+                                                                      const SemaphoreManager& waitSemaphoreMgr,
+                                                                      vk::PipelineStageFlags waitDstStage,
+                                                                      SemaphoreManager& signalSemaphoreMgr) noexcept {
+    return _submit(queueMgr.getComputeQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage,
+                   signalSemaphoreMgr.getSemaphore(), nullptr);
+}
+
+std::expected<void, Error> CommandBufferManager::submitAndWaitPreTask(QueueManager& queueMgr,
+                                                                      const SemaphoreManager& waitSemaphoreMgr,
+                                                                      vk::PipelineStageFlags waitDstStage,
+                                                                      FenceManager& fenceMgr) noexcept {
+    return _submit(queueMgr.getComputeQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage, nullptr,
+                   fenceMgr.getFence());
+}
+
+std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr,
+                                                        SemaphoreManager& signalSemaphoreMgr) noexcept {
+    return _submit(queueMgr.getComputeQueue(), nullptr, vk::PipelineStageFlagBits::eNone,
+                   signalSemaphoreMgr.getSemaphore(), nullptr);
+}
+
+std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept {
+    return _submit(queueMgr.getComputeQueue(), nullptr, vk::PipelineStageFlagBits::eNone, nullptr, fenceMgr.getFence());
+}
+
 template void CommandBufferManager::recordSrcPrepareTranfer<SampledImageManager>(
-    std::span<const std::reference_wrapper<const SampledImageManager>>) noexcept;
+    std::span<const std::reference_wrapper<SampledImageManager>>) noexcept;
 template void CommandBufferManager::recordSrcPrepareTranfer<StorageImageManager>(
-    std::span<const std::reference_wrapper<const StorageImageManager>>) noexcept;
+    std::span<const std::reference_wrapper<StorageImageManager>>) noexcept;
 
 template void CommandBufferManager::recordSrcPrepareShaderRead<SampledImageManager>(
-    std::span<const std::reference_wrapper<const SampledImageManager>>) noexcept;
+    std::span<const std::reference_wrapper<SampledImageManager>>) noexcept;
 template void CommandBufferManager::recordSrcPrepareShaderRead<StorageImageManager>(
-    std::span<const std::reference_wrapper<const StorageImageManager>>) noexcept;
+    std::span<const std::reference_wrapper<StorageImageManager>>) noexcept;
 
 template void CommandBufferManager::recordCopyStagingToSrc<SampledImageManager>(
     const SampledImageManager& srcImageMgr) noexcept;

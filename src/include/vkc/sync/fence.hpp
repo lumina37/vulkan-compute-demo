@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <expected>
+#include <limits>
 #include <memory>
 
 #include "vkc/device/logical.hpp"
@@ -20,7 +22,7 @@ public:
 
     [[nodiscard]] vk::Fence getFence() const noexcept { return fence_; }
 
-    [[nodiscard]] std::expected<void, Error> wait() noexcept;
+    [[nodiscard]] std::expected<void, Error> wait(uint64_t timeout = std::numeric_limits<uint64_t>::max()) noexcept;
     [[nodiscard]] std::expected<void, Error> reset() noexcept;
 
 private:

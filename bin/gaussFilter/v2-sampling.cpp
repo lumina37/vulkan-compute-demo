@@ -37,10 +37,10 @@ int main() {
 
     vkc::SampledImageManager srcImageMgr =
         vkc::SampledImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
-    const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
+    const std::array srcImageMgrRefs{std::ref(srcImageMgr)};
     vkc::StorageImageManager dstImageMgr =
         vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
-    const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
+    const std::array dstImageMgrRefs{std::ref(dstImageMgr)};
 
     Timer uploadTimer;
     uploadTimer.begin();
@@ -89,20 +89,20 @@ int main() {
         gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
-        gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrCRefs);
+        gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrCRefs);
-        gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrRefs);
+        gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordDstPrepareTransfer(dstImageMgrRefs);
         gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
         gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
+        gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
         gaussCmdBufMgr.end() | unwrap;
 
         gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;

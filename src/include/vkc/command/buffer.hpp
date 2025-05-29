@@ -18,6 +18,7 @@
 #include "vkc/query_pool.hpp"
 #include "vkc/resource.hpp"
 #include "vkc/sync/fence.hpp"
+#include "vkc/sync/semaphore.hpp"
 
 namespace vkc {
 
@@ -30,6 +31,10 @@ class CommandBufferManager {
     CommandBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
                          std::shared_ptr<CommandPoolManager>&& pCommandPoolMgr,
                          vk::CommandBuffer commandBuffer) noexcept;
+
+    [[nodiscard]] std::expected<void, Error> _submit(vk::Queue queue, vk::Semaphore waitSemaphore,
+                                                    vk::PipelineStageFlags waitDstStage, vk::Semaphore signalSemaphore,
+                                                    vk::Fence fence) noexcept;
 
 public:
     CommandBufferManager(CommandBufferManager&& rhs) noexcept;
@@ -49,19 +54,17 @@ public:
 
     [[nodiscard]] std::expected<void, Error> begin() noexcept;
 
-    using TSampledImageMgrCRef = std::reference_wrapper<const SampledImageManager>;
-    using TStorageImageMgrCRef = std::reference_wrapper<const StorageImageManager>;
+    using TStorageImageMgrRef = std::reference_wrapper<StorageImageManager>;
 
     template <CImageManager TImageManager>
-    void recordSrcPrepareTranfer(std::span<const std::reference_wrapper<const TImageManager>> srcImageMgrRefs) noexcept;
+    void recordSrcPrepareTranfer(std::span<const std::reference_wrapper<TImageManager>> srcImageMgrRefs) noexcept;
 
     template <CImageManager TImageManager>
-    void recordSrcPrepareShaderRead(
-        std::span<const std::reference_wrapper<const TImageManager>> srcImageMgrRefs) noexcept;
+    void recordSrcPrepareShaderRead(std::span<const std::reference_wrapper<TImageManager>> srcImageMgrRefs) noexcept;
 
-    void recordDstPrepareShaderWrite(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
+    void recordDstPrepareShaderWrite(std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept;
     void recordDispatch(vk::Extent2D extent, BlockSize blockSize) noexcept;
-    void recordDstPrepareTransfer(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
+    void recordDstPrepareTransfer(std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept;
 
     template <CImageManager TImageManager>
     void recordCopyStagingToSrc(const TImageManager& srcImageMgr) noexcept;
@@ -75,7 +78,7 @@ public:
     void recordCopyStorageToSampledWithRoi(const StorageImageManager& srcImageMgr, SampledImageManager& dstImageMgr,
                                            Roi roi) noexcept;
 
-    void recordWaitDownloadComplete(std::span<const TStorageImageMgrCRef> dstImageMgrRefs) noexcept;
+    void recordWaitDownloadComplete(std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept;
 
     template <typename TQueryPoolManager>
         requires CQueryPoolManager<TQueryPoolManager>
@@ -87,6 +90,17 @@ public:
                                                                 vk::PipelineStageFlagBits pipelineStage) noexcept;
 
     [[nodiscard]] std::expected<void, Error> end() noexcept;
+
+    [[nodiscard]] std::expected<void, Error> submitAndWaitPreTask(QueueManager& queueMgr,
+                                                                  const SemaphoreManager& waitSemaphoreMgr,
+                                                                  vk::PipelineStageFlags waitDstStage,
+                                                                  SemaphoreManager& signalSemaphoreMgr) noexcept;
+    [[nodiscard]] std::expected<void, Error> submitAndWaitPreTask(QueueManager& queueMgr,
+                                                                  const SemaphoreManager& waitSemaphoreMgr,
+                                                                  vk::PipelineStageFlags waitDstStage,
+                                                                  FenceManager& fenceMgr) noexcept;
+    [[nodiscard]] std::expected<void, Error> submit(QueueManager& queueMgr,
+                                                    SemaphoreManager& signalSemaphoreMgr) noexcept;
     [[nodiscard]] std::expected<void, Error> submit(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept;
 
 private:
@@ -108,7 +122,7 @@ void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushCons
 
 template <CImageManager TImageManager>
 void CommandBufferManager::recordSrcPrepareTranfer(
-    const std::span<const std::reference_wrapper<const TImageManager>> srcImageMgrRefs) noexcept {
+    const std::span<const std::reference_wrapper<TImageManager>> srcImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier uploadConvBarrierTemplate;
     uploadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
     uploadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
@@ -118,7 +132,7 @@ void CommandBufferManager::recordSrcPrepareTranfer(
     uploadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     uploadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&uploadConvBarrierTemplate](const std::reference_wrapper<const TImageManager> mgrRef) {
+    const auto fillout = [&uploadConvBarrierTemplate](const std::reference_wrapper<TImageManager> mgrRef) {
         vk::ImageMemoryBarrier uploadConvBarrier = uploadConvBarrierTemplate;
         uploadConvBarrier.setImage(mgrRef.get().getImage());
         return uploadConvBarrier;
@@ -133,7 +147,7 @@ void CommandBufferManager::recordSrcPrepareTranfer(
 
 template <CImageManager TImageManager>
 void CommandBufferManager::recordSrcPrepareShaderRead(
-    const std::span<const std::reference_wrapper<const TImageManager>> srcImageMgrRefs) noexcept {
+    const std::span<const std::reference_wrapper<TImageManager>> srcImageMgrRefs) noexcept {
     vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
     shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
     shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
@@ -147,7 +161,7 @@ void CommandBufferManager::recordSrcPrepareShaderRead(
     shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     shaderCompatibleBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&shaderCompatibleBarrierTemplate](const std::reference_wrapper<const TImageManager> mgrRef) {
+    const auto fillout = [&shaderCompatibleBarrierTemplate](const std::reference_wrapper<TImageManager> mgrRef) {
         vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
         shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
         return shaderCompatibleBarrier;

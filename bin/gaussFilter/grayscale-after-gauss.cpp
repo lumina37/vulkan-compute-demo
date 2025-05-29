@@ -37,10 +37,10 @@ int main() {
 
     vkc::SampledImageManager srcImageMgr =
         vkc::SampledImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
-    const std::array srcImageMgrCRefs{std::cref(srcImageMgr)};
+    const std::array srcImageMgrRefs{std::ref(srcImageMgr)};
     vkc::StorageImageManager dstImageMgr =
         vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
-    const std::array dstImageMgrCRefs{std::cref(dstImageMgr)};
+    const std::array dstImageMgrRefs{std::ref(dstImageMgr)};
     srcImageMgr.upload(srcImage.getPData()) | unwrap;
 
     const std::vector descPoolSizes =
@@ -74,6 +74,7 @@ int main() {
     grayDescSetsMgr.updateDescSets(grayWriteDescSetss);
 
     // Command Buffer
+    vkc::SemaphoreManager semaphoreMgr = vkc::SemaphoreManager::create(pDeviceMgr) | unwrap;
     vkc::FenceManager fenceMgr = vkc::FenceManager::create(pDeviceMgr) | unwrap;
     auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
         vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
@@ -101,38 +102,37 @@ int main() {
     gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
     gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
     gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
-    gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrCRefs);
+    gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);
     gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
-    gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrCRefs);
-    gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
+    gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrRefs);
+    gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrRefs);
     gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
     gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     gaussCmdBufMgr.end() | unwrap;
-    gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
-    fenceMgr.wait() | unwrap;
-    fenceMgr.reset() | unwrap;
+    gaussCmdBufMgr.submit(queueMgr, semaphoreMgr) | unwrap;
 
     // Grayscale
     grayCmdBufMgr.begin() | unwrap;
     grayCmdBufMgr.bindPipeline(grayPipelineMgr);
     grayCmdBufMgr.bindDescSets(grayDescSetsMgr, grayPLayoutMgr);
-    grayCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrCRefs);
-    grayCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
+    grayCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);
+    grayCmdBufMgr.recordDstPrepareTransfer(dstImageMgrRefs);
     grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
     grayCmdBufMgr.recordCopyStorageToSampled(dstImageMgr, srcImageMgr);
     grayCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-    grayCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrCRefs);
-    grayCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrCRefs);
+    grayCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrRefs);
+    grayCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrRefs);
     grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     grayCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
     grayCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-    grayCmdBufMgr.recordDstPrepareTransfer(dstImageMgrCRefs);
+    grayCmdBufMgr.recordDstPrepareTransfer(dstImageMgrRefs);
     grayCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
-    grayCmdBufMgr.recordWaitDownloadComplete(dstImageMgrCRefs);
+    grayCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
     grayCmdBufMgr.end() | unwrap;
 
-    grayCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+    grayCmdBufMgr.submitAndWaitPreTask(queueMgr, semaphoreMgr, vk::PipelineStageFlagBits::eComputeShader, fenceMgr) |
+        unwrap;
     fenceMgr.wait() | unwrap;
     fenceMgr.reset() | unwrap;
 

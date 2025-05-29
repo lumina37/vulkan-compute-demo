@@ -1,4 +1,6 @@
+#include <cstdint>
 #include <expected>
+#include <memory>
 #include <utility>
 
 #include "vkc/device/logical.hpp"
@@ -35,9 +37,9 @@ std::expected<FenceManager, Error> FenceManager::create(std::shared_ptr<DeviceMa
     return FenceManager{std::move(pDeviceMgr), fence};
 }
 
-std::expected<void, Error> FenceManager::wait() noexcept {
+std::expected<void, Error> FenceManager::wait(uint64_t timeout) noexcept {
     vk::Device device = pDeviceMgr_->getDevice();
-    const auto waitFenceRes = device.waitForFences(fence_, true, std::numeric_limits<uint64_t>::max());
+    const auto waitFenceRes = device.waitForFences(fence_, true, timeout);
     if (waitFenceRes != vk::Result::eSuccess) {
         return std::unexpected{Error{waitFenceRes}};
     }
