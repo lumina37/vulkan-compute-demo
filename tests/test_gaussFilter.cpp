@@ -86,7 +86,7 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
     }
 }
 
-TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
+TEST_CASE("Gaussian Blur", "glsl::gaussFilter") {
     constexpr int maxValidDiff = 1;
     constexpr float maxValidAvgDiff = 0.001f;
 
