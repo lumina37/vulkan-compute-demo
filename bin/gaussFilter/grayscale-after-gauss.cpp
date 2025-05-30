@@ -131,8 +131,7 @@ int main() {
     grayCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
     grayCmdBufMgr.end() | unwrap;
 
-    grayCmdBufMgr.submitAndWaitPreTask(queueMgr, semaphoreMgr, vk::PipelineStageFlagBits::eComputeShader, fenceMgr) |
-        unwrap;
+    grayCmdBufMgr.submitAndWaitPreTask(queueMgr, semaphoreMgr, vk::PipelineStageFlagBits::eTransfer, fenceMgr) | unwrap;
     fenceMgr.wait() | unwrap;
     fenceMgr.reset() | unwrap;
 
