@@ -80,14 +80,14 @@ int main() {
     constexpr int maxHalfKSize = 128;
     vkc::SpecConstantManager specConstantMgr{blockSize.x, maxHalfKSize};
     vkc::PipelineManager gaussPipelineMgr =
-        vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
+        vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
         unwrap;
 
     // Gaussian Blur
     for (int i = 0; i < 15; i++) {
         gaussCmdBufMgr.begin() | unwrap;
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
+        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr, vk::PipelineBindPoint::eCompute);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);

@@ -160,12 +160,13 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
             vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v0::code) | unwrap;
         vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
         vkc::PipelineManager gaussPipelineMgr =
-            vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
+            vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
+                                                specConstantMgr.getSpecInfo()) |
             unwrap;
 
         gaussCmdBufMgr.begin() | unwrap;
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
+        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr, vk::PipelineBindPoint::eCompute);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);
         gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
@@ -202,12 +203,13 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilterVx") {
             vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v1::code) | unwrap;
         vkc::SpecConstantManager specConstantMgr{blockSize.x};
         vkc::PipelineManager gaussPipelineMgr =
-            vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
+            vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
+                                                specConstantMgr.getSpecInfo()) |
             unwrap;
 
         gaussCmdBufMgr.begin() | unwrap;
         gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
+        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr, vk::PipelineBindPoint::eCompute);
         gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
         gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);
         gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);

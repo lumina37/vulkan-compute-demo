@@ -33,8 +33,8 @@ class CommandBufferManager {
                          vk::CommandBuffer commandBuffer) noexcept;
 
     [[nodiscard]] std::expected<void, Error> _submit(vk::Queue queue, vk::Semaphore waitSemaphore,
-                                                    vk::PipelineStageFlags waitDstStage, vk::Semaphore signalSemaphore,
-                                                    vk::Fence fence) noexcept;
+                                                     vk::PipelineStageFlags waitDstStage, vk::Semaphore signalSemaphore,
+                                                     vk::Fence fence) noexcept;
 
 public:
     CommandBufferManager(CommandBufferManager&& rhs) noexcept;
@@ -46,7 +46,8 @@ public:
     [[nodiscard]] vk::CommandBuffer getCommandBuffer() const noexcept { return commandBuffer_; }
 
     void bindPipeline(PipelineManager& pipelineMgr) noexcept;
-    void bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr) noexcept;
+    void bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr,
+                      vk::PipelineBindPoint bindPoint) noexcept;
 
     template <typename TPc>
     void pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
@@ -116,7 +117,7 @@ template <typename TPc>
 void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
                                         const PipelineLayoutManager& pipelineLayoutMgr) noexcept {
     const auto& piplelineLayout = pipelineLayoutMgr.getPipelineLayout();
-    commandBuffer_.pushConstants(piplelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(TPc),
+    commandBuffer_.pushConstants(piplelineLayout, pushConstantMgr.getPushConstantRange().stageFlags, 0, sizeof(TPc),
                                  pushConstantMgr.getPPushConstant());
 }
 
@@ -194,7 +195,7 @@ void CommandBufferManager::recordCopyStagingToSrcWithRoi(const TImageManager& sr
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
     const auto& imageExtent = srcImageMgr.getExtent();
-    copyRegion.setBufferOffset(imageExtent.computeBufferOffset(roi.offset()));
+    copyRegion.setBufferOffset(imageExtent.calculateBufferOffset(roi.offset()));
     copyRegion.setBufferRowLength(imageExtent.width());
     copyRegion.setBufferImageHeight(imageExtent.height());
     copyRegion.setImageSubresource(subresourceLayers);

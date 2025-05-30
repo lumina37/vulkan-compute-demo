@@ -15,10 +15,18 @@ class PipelineLayoutManager {
     PipelineLayoutManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::PipelineLayout pipelineLayout) noexcept;
 
 public:
-    using TDescSetLayoutMgrCRef = std::reference_wrapper<const DescSetLayoutManager>;
     PipelineLayoutManager(PipelineLayoutManager&& rhs) noexcept;
     ~PipelineLayoutManager() noexcept;
 
+    using TDescSetLayoutMgrCRef = std::reference_wrapper<const DescSetLayoutManager>;
+
+private:
+    [[nodiscard]] static std::expected<PipelineLayoutManager, Error> _create(
+        std::shared_ptr<DeviceManager>&& pDeviceMgr,
+        const std::span<const TDescSetLayoutMgrCRef>& descSetLayoutMgrCRefs,
+        const vk::PushConstantRange* pPushConstantRange) noexcept;
+
+public:
     [[nodiscard]] static std::expected<PipelineLayoutManager, Error> create(
         std::shared_ptr<DeviceManager> pDeviceMgr,
         std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs) noexcept;

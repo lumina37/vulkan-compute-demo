@@ -89,17 +89,19 @@ int main() {
     vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v0::code) | unwrap;
     vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
     vkc::PipelineManager gaussPipelineMgr =
-        vkc::PipelineManager::create(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
+        vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
+                                            specConstantMgr.getSpecInfo()) |
         unwrap;
 
     vkc::ShaderManager grayShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::grayscale::ro::code) | unwrap;
     vkc::PipelineManager grayPipelineMgr =
-        vkc::PipelineManager::create(pDeviceMgr, grayPLayoutMgr, grayShaderMgr, specConstantMgr.getSpecInfo()) | unwrap;
+        vkc::PipelineManager::createCompute(pDeviceMgr, grayPLayoutMgr, grayShaderMgr, specConstantMgr.getSpecInfo()) |
+        unwrap;
 
     // Gaussian Blur
     gaussCmdBufMgr.begin() | unwrap;
     gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-    gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr);
+    gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr, vk::PipelineBindPoint::eCompute);
     gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
     gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
     gaussCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);
@@ -115,7 +117,7 @@ int main() {
     // Grayscale
     grayCmdBufMgr.begin() | unwrap;
     grayCmdBufMgr.bindPipeline(grayPipelineMgr);
-    grayCmdBufMgr.bindDescSets(grayDescSetsMgr, grayPLayoutMgr);
+    grayCmdBufMgr.bindDescSets(grayDescSetsMgr, grayPLayoutMgr, vk::PipelineBindPoint::eCompute);
     grayCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);
     grayCmdBufMgr.recordDstPrepareTransfer(dstImageMgrRefs);
     grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;

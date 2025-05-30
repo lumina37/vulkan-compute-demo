@@ -60,7 +60,7 @@ private:
 constexpr vk::DescriptorSetLayoutBinding SampledImageManager::draftDescSetLayoutBinding() noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
-    binding.setDescriptorType(vk::DescriptorType::eSampledImage);
+    binding.setDescriptorType(getDescType());
     binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
     return binding;
 }

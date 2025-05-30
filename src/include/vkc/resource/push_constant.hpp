@@ -9,7 +9,8 @@ class PushConstantManager {
 public:
     using TPc = TPc_;
 
-    constexpr PushConstantManager(TPc pushConstant) noexcept;
+    constexpr PushConstantManager(TPc pushConstant,
+                                  vk::ShaderStageFlags stage = vk::ShaderStageFlagBits::eCompute) noexcept;
 
     template <typename Self>
     [[nodiscard]] constexpr auto&& getPushConstantRange(this Self&& self) noexcept {
@@ -24,8 +25,10 @@ private:
 };
 
 template <typename TPc>
-constexpr PushConstantManager<TPc>::PushConstantManager(const TPc pushConstant) noexcept : pushConstant_(pushConstant) {
-    pushConstantRange_.setStageFlags(vk::ShaderStageFlagBits::eCompute);
+constexpr PushConstantManager<TPc>::PushConstantManager(const TPc pushConstant,
+                                                        const vk::ShaderStageFlags stage) noexcept
+    : pushConstant_(pushConstant) {
+    pushConstantRange_.setStageFlags(stage);
     pushConstantRange_.setSize(sizeof(TPc));
 }
 

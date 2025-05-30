@@ -65,14 +65,14 @@ std::expected<CommandBufferManager, Error> CommandBufferManager::create(
 }
 
 void CommandBufferManager::bindPipeline(PipelineManager& pipelineMgr) noexcept {
-    commandBuffer_.bindPipeline(vk::PipelineBindPoint::eCompute, pipelineMgr.getPipeline());
+    commandBuffer_.bindPipeline(pipelineMgr.getBindPoint(), pipelineMgr.getPipeline());
 }
 
-void CommandBufferManager::bindDescSets(DescSetsManager& descSetsMgr,
-                                        const PipelineLayoutManager& pipelineLayoutMgr) noexcept {
+void CommandBufferManager::bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr,
+                                        const vk::PipelineBindPoint bindPoint) noexcept {
     auto& descSets = descSetsMgr.getDescSets();
-    commandBuffer_.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayoutMgr.getPipelineLayout(), 0,
-                                      (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
+    commandBuffer_.bindDescriptorSets(bindPoint, pipelineLayoutMgr.getPipelineLayout(), 0, (uint32_t)descSets.size(),
+                                      descSets.data(), 0, nullptr);
 }
 
 std::expected<void, Error> CommandBufferManager::begin() noexcept {
@@ -169,7 +169,7 @@ void CommandBufferManager::recordCopyDstToStagingWithRoi(StorageImageManager& ds
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
     const auto& imageExtent = dstImageMgr.getExtent();
-    copyRegion.setBufferOffset(imageExtent.computeBufferOffset(roi.offset()));
+    copyRegion.setBufferOffset(imageExtent.calculateBufferOffset(roi.offset()));
     copyRegion.setBufferRowLength(imageExtent.width());
     copyRegion.setBufferImageHeight(imageExtent.height());
     copyRegion.setImageSubresource(subresourceLayers);
@@ -292,7 +292,7 @@ std::expected<void, Error> CommandBufferManager::submitAndWaitPreTask(QueueManag
                                                                       const SemaphoreManager& waitSemaphoreMgr,
                                                                       vk::PipelineStageFlags waitDstStage,
                                                                       SemaphoreManager& signalSemaphoreMgr) noexcept {
-    return _submit(queueMgr.getComputeQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage,
+    return _submit(queueMgr.getQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage,
                    signalSemaphoreMgr.getSemaphore(), nullptr);
 }
 
@@ -300,18 +300,17 @@ std::expected<void, Error> CommandBufferManager::submitAndWaitPreTask(QueueManag
                                                                       const SemaphoreManager& waitSemaphoreMgr,
                                                                       vk::PipelineStageFlags waitDstStage,
                                                                       FenceManager& fenceMgr) noexcept {
-    return _submit(queueMgr.getComputeQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage, nullptr,
-                   fenceMgr.getFence());
+    return _submit(queueMgr.getQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage, nullptr, fenceMgr.getFence());
 }
 
 std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr,
                                                         SemaphoreManager& signalSemaphoreMgr) noexcept {
-    return _submit(queueMgr.getComputeQueue(), nullptr, vk::PipelineStageFlagBits::eNone,
-                   signalSemaphoreMgr.getSemaphore(), nullptr);
+    return _submit(queueMgr.getQueue(), nullptr, vk::PipelineStageFlagBits::eNone, signalSemaphoreMgr.getSemaphore(),
+                   nullptr);
 }
 
 std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept {
-    return _submit(queueMgr.getComputeQueue(), nullptr, vk::PipelineStageFlagBits::eNone, nullptr, fenceMgr.getFence());
+    return _submit(queueMgr.getQueue(), nullptr, vk::PipelineStageFlagBits::eNone, nullptr, fenceMgr.getFence());
 }
 
 template void CommandBufferManager::recordSrcPrepareTranfer<SampledImageManager>(

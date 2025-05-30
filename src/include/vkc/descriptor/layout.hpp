@@ -21,6 +21,9 @@ public:
         std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorSetLayoutBinding> bindings) noexcept;
 
     [[nodiscard]] vk::DescriptorSetLayout getDescSetLayout() const noexcept { return descSetlayout_; }
+    [[nodiscard]] static vk::DescriptorSetLayout exposeDescSetLayout(const DescSetLayoutManager& mgr) noexcept {
+        return mgr.getDescSetLayout();
+    }
 
 private:
     std::shared_ptr<DeviceManager> pDdeviceMgr_;

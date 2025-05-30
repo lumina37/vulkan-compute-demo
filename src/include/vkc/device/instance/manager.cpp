@@ -41,7 +41,7 @@ std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
 std::expected<InstanceManager, Error> InstanceManager::createWithExts(
     std::span<const std::string_view> enableExtNames, std::span<const std::string_view> enableLayerNames) noexcept {
     vk::ApplicationInfo appInfo;
-    appInfo.setPApplicationName("vk-compute-demo");
+    appInfo.setPApplicationName("vk-demo");
     appInfo.setApiVersion(vk::ApiVersion11);
 
     vk::InstanceCreateInfo instInfo;

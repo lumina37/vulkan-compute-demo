@@ -72,13 +72,13 @@ int main() {
     vkc::ShaderManager grayShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::grayscale::rw::code) | unwrap;
     vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
     vkc::PipelineManager grayPipelineMgr =
-        vkc::PipelineManager::create(pDeviceMgr, grayPLayoutMgr, grayShaderMgr, specConstantMgr.getSpecInfo()) | unwrap;
+        vkc::PipelineManager::createCompute(pDeviceMgr, grayPLayoutMgr, grayShaderMgr, specConstantMgr.getSpecInfo()) | unwrap;
 
     // Gaussian Blur
     for (int i = 0; i < 15; i++) {
         grayCmdBufMgr.begin() | unwrap;
         grayCmdBufMgr.bindPipeline(grayPipelineMgr);
-        grayCmdBufMgr.bindDescSets(grayDescSetsMgr, grayPLayoutMgr);
+        grayCmdBufMgr.bindDescSets(grayDescSetsMgr, grayPLayoutMgr, vk::PipelineBindPoint::eCompute);
         grayCmdBufMgr.recordResetQueryPool(queryPoolMgr);
         grayCmdBufMgr.recordSrcPrepareTranfer<vkc::StorageImageManager>(srcImageMgrRefs);
         grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;

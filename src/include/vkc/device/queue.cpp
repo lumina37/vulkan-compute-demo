@@ -12,7 +12,7 @@
 
 namespace vkc {
 
-QueueManager::QueueManager(vk::Queue queue) noexcept : computeQueue_(queue) {}
+QueueManager::QueueManager(vk::Queue queue) noexcept : queue_(queue) {}
 
 std::expected<QueueManager, Error> QueueManager::create(DeviceManager& deviceMgr, vk::QueueFlags type) noexcept {
     auto queueRes = deviceMgr.getQueue(type);

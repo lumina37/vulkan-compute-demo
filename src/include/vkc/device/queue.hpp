@@ -15,10 +15,10 @@ public:
     [[nodiscard]] static std::expected<QueueManager, Error> create(DeviceManager& deviceMgr,
                                                                    vk::QueueFlags type) noexcept;
 
-    [[nodiscard]] vk::Queue getComputeQueue() const noexcept { return computeQueue_; }
+    [[nodiscard]] vk::Queue getQueue() const noexcept { return queue_; }
 
 private:
-    vk::Queue computeQueue_;
+    vk::Queue queue_;
 };
 
 }  // namespace vkc

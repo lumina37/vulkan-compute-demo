@@ -44,7 +44,8 @@ int main() {
     Timer uploadTimer;
     uploadTimer.begin();
     constexpr vkc::Roi roi{100, 200, 300, 400};
-    srcImageMgr.uploadWithRoi(srcImage.getPData() + extent.computeBufferOffset(roi.offset()), roi, extent.rowPitch()) |
+    srcImageMgr.uploadWithRoi(srcImage.getPData() + extent.calculateBufferOffset(roi.offset()), roi,
+                              extent.rowPitch()) |
         unwrap;
     uploadTimer.end();
     std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
@@ -80,13 +81,14 @@ int main() {
     vkc::ShaderManager grayShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::grayscale::ro::code) | unwrap;
     vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
     vkc::PipelineManager grayPipelineMgr =
-        vkc::PipelineManager::create(pDeviceMgr, grayPLayoutMgr, grayShaderMgr, specConstantMgr.getSpecInfo()) | unwrap;
+        vkc::PipelineManager::createCompute(pDeviceMgr, grayPLayoutMgr, grayShaderMgr, specConstantMgr.getSpecInfo()) |
+        unwrap;
 
     // Gaussian Blur
     for (int i = 0; i < 15; i++) {
         grayCmdBufMgr.begin() | unwrap;
         grayCmdBufMgr.bindPipeline(grayPipelineMgr);
-        grayCmdBufMgr.bindDescSets(grayDescSetsMgr, grayPLayoutMgr);
+        grayCmdBufMgr.bindDescSets(grayDescSetsMgr, grayPLayoutMgr, vk::PipelineBindPoint::eCompute);
         grayCmdBufMgr.pushConstant(kernelSizePcMgr, grayPLayoutMgr);
         grayCmdBufMgr.recordResetQueryPool(queryPoolMgr);
         grayCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);
@@ -118,7 +120,7 @@ int main() {
 
     Timer downloadTimer;
     downloadTimer.begin();
-    dstImageMgr.downloadWithRoi(dstImage.getPData() + extent.computeBufferOffset(roi.offset()), roi,
+    dstImageMgr.downloadWithRoi(dstImage.getPData() + extent.calculateBufferOffset(roi.offset()), roi,
                                 extent.rowPitch()) |
         unwrap;
     downloadTimer.end();

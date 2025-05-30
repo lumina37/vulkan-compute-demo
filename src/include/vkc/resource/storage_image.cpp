@@ -185,7 +185,7 @@ std::expected<void, Error> StorageImageManager::uploadWithRoi(const std::byte* p
     auto& mmapMgr = mmapRes.value();
 
     size_t srcOffset = 0;
-    size_t dstOffset = extent_.computeBufferOffset(roi.offset());
+    size_t dstOffset = extent_.calculateBufferOffset(roi.offset());
     for (int row = 0; row < (int)roi.extent().height; row++) {
         const std::byte* srcCursor = pSrc + srcOffset;
         std::byte* dstCursor = (std::byte*)mmapMgr.getMapPtr() + dstOffset;
@@ -213,7 +213,7 @@ std::expected<void, Error> StorageImageManager::downloadWithRoi(std::byte* pDst,
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     auto& mmapMgr = mmapRes.value();
 
-    size_t srcOffset = extent_.computeBufferOffset(roi.offset());
+    size_t srcOffset = extent_.calculateBufferOffset(roi.offset());
     size_t dstOffset = 0;
     for (int row = 0; row < (int)roi.extent().height; row++) {
         const std::byte* srcCursor = (std::byte*)mmapMgr.getMapPtr() + srcOffset;
