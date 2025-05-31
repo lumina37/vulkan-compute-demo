@@ -1,10 +1,7 @@
 #include <expected>
-#include <iostream>
 #include <memory>
-#include <print>
 
 #include "vkc/device/logical.hpp"
-#include "vkc/helper/defines.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 #include "vkc/pipeline_layout.hpp"
@@ -53,10 +50,8 @@ std::expected<PipelineManager, Error> PipelineManager::createCompute(std::shared
     // Create Pipeline
     vk::Device device = pDeviceMgr->getDevice();
     auto pipelineResult = device.createComputePipeline(nullptr, pipelineInfo);
-    if constexpr (ENABLE_DEBUG) {
-        if (pipelineResult.result != vk::Result::eSuccess) {
-            std::println(std::cerr, "Failed to create graphics pipeline. err: {}", (int)pipelineResult.result);
-        }
+    if (pipelineResult.result != vk::Result::eSuccess) {
+        return std::unexpected{Error{(int)pipelineResult.result, "failed to create compute pipeline"}};
     }
     vk::Pipeline pipeline = pipelineResult.value;
 

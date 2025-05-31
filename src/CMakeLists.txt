@@ -13,7 +13,10 @@ function(vkc_common_lib_setting name)
             $<BUILD_INTERFACE:${stb_SOURCE_DIR}>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
-    target_link_libraries(${name} ${__PUB_DEP_SCOPE} Vulkan::Vulkan)
+    target_link_libraries(${name} ${__PUB_DEP_SCOPE}
+            Vulkan::Vulkan
+            glfw
+    )
 
     if (VKC_VERBOSE_WARNING)
         if (MSVC)

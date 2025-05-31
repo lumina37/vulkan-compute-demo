@@ -22,6 +22,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
+FetchContent_Declare(
+        glfw
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(glfw)
+
 if (VKC_ENABLE_TESTS)
     include(CTest)
 
