@@ -1,7 +1,7 @@
 #pragma once
 
 #include <expected>
-#include <utility>
+#include <span>
 
 #include <GLFW/glfw3.h>
 
@@ -16,10 +16,10 @@ public:
     WindowManager(WindowManager&& rhs) noexcept;
     ~WindowManager() noexcept;
 
-    static void globalInit() { glfwInit(); }
-    static void globalDestroy() { glfwTerminate(); }
+    static std::expected<void, Error> globalInit() noexcept;
+    static void globalDestroy() noexcept;
 
-    [[nodiscard]] static std::pair<uint32_t, const char**> getExtensions();
+    [[nodiscard]] static std::expected<std::span<const char*>, Error> getExtensions();
 
     [[nodiscard]] static std::expected<WindowManager, Error> create(vk::Extent2D extent) noexcept;
 

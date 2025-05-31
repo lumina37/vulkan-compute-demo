@@ -1,5 +1,6 @@
 #include <expected>
 #include <memory>
+#include <span>
 #include <utility>
 
 #include "vkc/device/logical.hpp"
@@ -21,10 +22,24 @@ WindowManager::~WindowManager() noexcept {
     glfwDestroyWindow(window_);
 }
 
-std::pair<uint32_t, const char**> WindowManager::getExtensions() {
+std::expected<void, Error> WindowManager::globalInit() noexcept {
+    auto initRes = glfwInit();
+    if (initRes == GLFW_FALSE) {
+        return std::unexpected{Error{-1, "failed to init GLFW"}};
+    }
+    return {};
+}
+
+void WindowManager::globalDestroy() noexcept { glfwTerminate(); }
+
+std::expected<std::span<const char*>, Error> WindowManager::getExtensions() {
     uint32_t count;
     const auto pExts = glfwGetRequiredInstanceExtensions(&count);
-    return {count, pExts};
+    if (pExts == nullptr) {
+        return std::unexpected{Error{-1, "failed to get GLFW extensions"}};
+    }
+
+    return std::span{pExts, count};
 }
 
 std::expected<WindowManager, Error> WindowManager::create(const vk::Extent2D extent) noexcept {
