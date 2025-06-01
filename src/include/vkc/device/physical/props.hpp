@@ -29,7 +29,7 @@ public:
     uint32_t maxSharedMemSize;
     float timestampPeriod;
     bool supportFp16;
-    bool supportTimeQueryForAllQueue;
+    bool supportTimeQuery;
 };
 
 template <CPhyDeviceProps TDProps_>

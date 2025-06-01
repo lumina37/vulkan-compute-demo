@@ -35,7 +35,7 @@ std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(
     props.deviceType = phyDeviceProps2.deviceType;
     props.maxSharedMemSize = phyDeviceProps2.limits.maxComputeSharedMemorySize;
     props.timestampPeriod = phyDeviceProps2.limits.timestampPeriod;
-    props.supportTimeQueryForAllQueue = (bool)phyDeviceProps2.limits.timestampComputeAndGraphics;
+    props.supportTimeQuery = (bool)phyDeviceProps2.limits.timestampComputeAndGraphics;
 
     vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceShaderFloat16Int8Features> featureChain;
     phyDevice.getFeatures2(&featureChain.get());
