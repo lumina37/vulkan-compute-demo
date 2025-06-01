@@ -58,7 +58,7 @@ std::expected<StbImageManager, Error> StbImageManager::createWithExtent(const Ex
 
 std::expected<void, Error> StbImageManager::saveTo(const fs::path& path) const noexcept {
     const int stbErr =
-        stbi_write_png(path.string().c_str(), extent_.width(), extent_.height(), (int)extent_.bpp(), image_, 0);
+        stbi_write_png(path.string().c_str(), extent_.width(), extent_.height(), extent_.bpp(), image_, 0);
     if (stbErr == 0) return std::unexpected{Error{-1, "failed to save image"}};
 
     return {};

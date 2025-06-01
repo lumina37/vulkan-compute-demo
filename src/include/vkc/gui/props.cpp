@@ -17,8 +17,8 @@ namespace rgs = std::ranges;
 std::expected<DefaultSurfaceProps, Error> DefaultSurfaceProps::create(const PhyDeviceManager& phyDeviceMgr,
                                                                       const SurfaceManager& surfaceMgr) noexcept {
     DefaultSurfaceProps props;
-    const auto phyDevice = phyDeviceMgr.getPhyDevice();
-    const auto surface = surfaceMgr.getSurface();
+    const vk::PhysicalDevice phyDevice = phyDeviceMgr.getPhyDevice();
+    const vk::SurfaceKHR surface = surfaceMgr.getSurface();
 
     auto surfaceCapsRes = phyDevice.getSurfaceCapabilitiesKHR(surface);
     if (surfaceCapsRes.result != vk::Result::eSuccess) {

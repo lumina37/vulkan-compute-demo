@@ -74,8 +74,8 @@ std::expected<std::vector<float>, Error> TimestampQueryPoolManager::getElaspedTi
     constexpr size_t valueSize = sizeof(decltype(timestamps)::value_type);
 
     vk::Device device = pDeviceMgr_->getDevice();
-    vk::Result queryRes =
-        device.getQueryPoolResults(queryPool_, 0, queryIndex_, timestamps.size() * valueSize, (void*)timestamps.data(),
+    const auto queryRes =
+        device.getQueryPoolResults(queryPool_, 0, queryIndex_, timestamps.size() * valueSize, timestamps.data(),
                                    valueSize, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
     if (queryRes != vk::Result::eSuccess) {
         return std::unexpected{Error{queryRes}};

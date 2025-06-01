@@ -26,8 +26,8 @@ std::expected<DescSetsManager, Error> DescSetsManager::create(
     std::shared_ptr<DeviceManager> pDeviceMgr, DescPoolManager& descPoolMgr,
     std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs) noexcept {
     const auto genDescSetLayout = [](const TDescSetLayoutMgrCRef& mgrRef) {
-        const auto& descSetLayoutMgr = mgrRef.get();
-        const auto& descSetLayout = descSetLayoutMgr.getDescSetLayout();
+        const DescSetLayoutManager& descSetLayoutMgr = mgrRef.get();
+        vk::DescriptorSetLayout descSetLayout = descSetLayoutMgr.getDescSetLayout();
         return descSetLayout;
     };
 
@@ -60,7 +60,7 @@ void DescSetsManager::updateDescSets(
     writeDescSets.reserve(writeDescSetCount);
 
     for (const auto& [idx, writeDescSetTemplates] : rgs::views::enumerate(writeDescSetTemplatesRefs)) {
-        const auto& descSet = descSets_[idx];
+        vk::DescriptorSet descSet = descSets_[idx];
         for (const auto& writeDescSetTemplate : writeDescSetTemplates) {
             vk::WriteDescriptorSet writeDescSet = writeDescSetTemplate;
             writeDescSet.setDstSet(descSet);

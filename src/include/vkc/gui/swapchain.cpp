@@ -25,7 +25,7 @@ SwapChainManager::SwapChainManager(SwapChainManager&& rhs) noexcept
 
 SwapChainManager::~SwapChainManager() noexcept {
     if (swapchain_ == nullptr) return;
-    auto device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceMgr_->getDevice();
     device.destroySwapchainKHR(swapchain_);
     swapchain_ = nullptr;
 }
@@ -54,7 +54,7 @@ std::expected<SwapChainManager, Error> SwapChainManager::create(PhyDeviceManager
         swapchainInfo.setQueueFamilyIndices(queueFamilyIndices);
     }
 
-    auto device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceMgr->getDevice();
     auto swapchainRes = device.createSwapchainKHR(swapchainInfo);
     if (swapchainRes.result != vk::Result::eSuccess) {
         return std::unexpected{Error{swapchainRes.result}};
@@ -82,15 +82,15 @@ std::expected<SwapChainManager, Error> SwapChainManager::create(PhyDeviceManager
 
 std::expected<uint32_t, Error> SwapChainManager::acquireImageIndex(SemaphoreManager& signalSemaphoreMgr,
                                                                    uint64_t timeout) noexcept {
-    const auto signalSemaphore = signalSemaphoreMgr.getSemaphore();
-    const auto device = pDeviceMgr_->getDevice();
-    const auto nextImageIndexRes = device.acquireNextImageKHR(swapchain_, timeout, signalSemaphore);
-    if (nextImageIndexRes.result != vk::Result::eSuccess) {
-        return std::unexpected{Error{nextImageIndexRes.result}};
+    const vk::Semaphore signalSemaphore = signalSemaphoreMgr.getSemaphore();
+    const vk::Device device = pDeviceMgr_->getDevice();
+    const auto imageIndexRes = device.acquireNextImageKHR(swapchain_, timeout, signalSemaphore);
+    if (imageIndexRes.result != vk::Result::eSuccess) {
+        return std::unexpected{Error{imageIndexRes.result}};
     }
-    const auto nextImageIndex = nextImageIndexRes.value;
+    const uint32_t imageIndex = imageIndexRes.value;
 
-    return nextImageIndex;
+    return imageIndex;
 }
 
 std::expected<void, Error> SwapChainManager::present(QueueManager& queueMgr, uint32_t imageIndex) noexcept {

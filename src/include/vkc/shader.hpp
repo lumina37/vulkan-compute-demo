@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <expected>
-#include <filesystem>
 #include <memory>
 #include <span>
 
@@ -11,8 +10,6 @@
 #include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
-
-namespace fs = std::filesystem;
 
 class ShaderManager {
     ShaderManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::ShaderModule shader) noexcept;
@@ -23,8 +20,6 @@ public:
 
     [[nodiscard]] static std::expected<ShaderManager, Error> create(std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                     std::span<const std::byte> code) noexcept;
-    [[nodiscard]] static std::expected<ShaderManager, Error> createFromPath(std::shared_ptr<DeviceManager> pDeviceMgr,
-                                                                            const fs::path& path) noexcept;
 
     [[nodiscard]] vk::ShaderModule getShaderModule() const noexcept { return shader_; }
 

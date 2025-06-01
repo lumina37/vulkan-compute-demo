@@ -113,7 +113,7 @@ std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyD
         _hp::allocImageMemory(phyDeviceMgr, *pDeviceMgr, image, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory);
     if (!allocRes) return std::unexpected{std::move(allocRes.error())};
 
-    const vk::Result bindRes = device.bindImageMemory(image, imageMemory, 0);
+    const auto bindRes = device.bindImageMemory(image, imageMemory, 0);
     if (bindRes != vk::Result::eSuccess) {
         return std::unexpected{Error{bindRes}};
     }
@@ -152,7 +152,7 @@ std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyD
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingMemory);
     if (!allocStagingRes) return std::unexpected{std::move(allocStagingRes.error())};
 
-    const vk::Result bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
+    const auto bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
     if (bindStagingRes != vk::Result::eSuccess) {
         return std::unexpected{Error{bindStagingRes}};
     }

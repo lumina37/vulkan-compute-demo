@@ -44,12 +44,12 @@ std::expected<PipelineManager, Error> PipelineManager::createCompute(std::shared
     pipelineInfo.setStage(shaderStageInfo);
 
     // Pipeline Layout
-    const auto& pipelineLayout = pipelineLayoutMgr.getPipelineLayout();
+    vk::PipelineLayout pipelineLayout = pipelineLayoutMgr.getPipelineLayout();
     pipelineInfo.setLayout(pipelineLayout);
 
     // Create Pipeline
     vk::Device device = pDeviceMgr->getDevice();
-    auto pipelineRes = device.createComputePipeline(nullptr, pipelineInfo);
+    const auto pipelineRes = device.createComputePipeline(nullptr, pipelineInfo);
     if (pipelineRes.result != vk::Result::eSuccess) {
         return std::unexpected{Error{pipelineRes.result}};
     }

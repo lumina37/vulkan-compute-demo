@@ -28,7 +28,7 @@ WindowManager::~WindowManager() noexcept {
 }
 
 std::expected<void, Error> WindowManager::globalInit() noexcept {
-    auto initRes = glfwInit();
+    const int initRes = glfwInit();
     if (initRes == GLFW_FALSE) {
         return std::unexpected{Error{-1, "failed to init GLFW"}};
     }

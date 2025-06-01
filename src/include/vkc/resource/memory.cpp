@@ -18,7 +18,7 @@ namespace rgs = std::ranges;
 
 std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceManager& phyDeviceMgr, const uint32_t supportedMemType,
                                                  const vk::MemoryPropertyFlags memProps) noexcept {
-    const auto& physicalDevice = phyDeviceMgr.getPhyDevice();
+    const vk::PhysicalDevice physicalDevice = phyDeviceMgr.getPhyDevice();
     const vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
 
     for (const auto [idx, memType] : rgs::views::enumerate(memProperties.memoryTypes)) {
@@ -33,7 +33,7 @@ std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceManager& phyDevi
 }
 
 std::expected<void, Error> allocBufferMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
-                                             vk::Buffer& buffer, vk::MemoryPropertyFlags memProps,
+                                             vk::Buffer& buffer, const vk::MemoryPropertyFlags memProps,
                                              vk::DeviceMemory& bufferMemory) noexcept {
     vk::Device device = deviceMgr.getDevice();
 
@@ -54,7 +54,7 @@ std::expected<void, Error> allocBufferMemory(const PhyDeviceManager& phyDeviceMg
 }
 
 std::expected<void, Error> allocImageMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
-                                            vk::Image& image, vk::MemoryPropertyFlags memProps,
+                                            vk::Image& image, const vk::MemoryPropertyFlags memProps,
                                             vk::DeviceMemory& bufferMemory) noexcept {
     vk::Device device = deviceMgr.getDevice();
 
@@ -92,11 +92,11 @@ MemMapManager::~MemMapManager() noexcept {
 }
 
 std::expected<MemMapManager, Error> MemMapManager::create(std::shared_ptr<DeviceManager> pDeviceMgr,
-                                                          vk::DeviceMemory& memory, size_t size) noexcept {
+                                                          vk::DeviceMemory& memory, const size_t size) noexcept {
     vk::Device device = pDeviceMgr->getDevice();
 
     void* mapPtr;
-    auto mapRes = device.mapMemory(memory, 0, size, (vk::MemoryMapFlags)0, &mapPtr);
+    const auto mapRes = device.mapMemory(memory, 0, size, (vk::MemoryMapFlags)0, &mapPtr);
     if (mapRes != vk::Result::eSuccess) {
         return std::unexpected{Error{mapRes}};
     }

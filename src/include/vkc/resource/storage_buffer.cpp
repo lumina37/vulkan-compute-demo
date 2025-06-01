@@ -67,7 +67,7 @@ std::expected<StorageBufferManager, Error> StorageBufferManager::create(PhyDevic
         return std::unexpected{Error{std::move(allocRes.error())}};
     }
 
-    const vk::Result bindRes = device.bindBufferMemory(buffer, memory, 0);
+    const auto bindRes = device.bindBufferMemory(buffer, memory, 0);
     if (bindRes != vk::Result::eSuccess) {
         return std::unexpected{Error{bindRes}};
     }

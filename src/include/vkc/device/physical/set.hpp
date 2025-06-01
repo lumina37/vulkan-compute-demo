@@ -42,7 +42,7 @@ PhyDeviceSet_<TProps>::PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDevic
 
 template <CPhyDeviceProps TProps>
 std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const InstanceManager& instMgr) noexcept {
-    const auto& instance = instMgr.getInstance();
+    const vk::Instance instance = instMgr.getInstance();
 
     const auto [physicalDevicesRes, physicalDevices] = instance.enumeratePhysicalDevices();
     if (physicalDevicesRes != vk::Result::eSuccess) {
@@ -74,7 +74,7 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDev
 
     const auto printDeviceInfo = [](const TPhyDeviceWithProps& deviceWithProps,
                                     const float score) -> std::expected<void, Error> {
-        const auto phyDevice = deviceWithProps.getPhyDeviceMgr().getPhyDevice();
+        const vk::PhysicalDevice phyDevice = deviceWithProps.getPhyDeviceMgr().getPhyDevice();
         const auto& phyDeviceProp = phyDevice.getProperties();
         const uint32_t apiVersion = deviceWithProps.getPhyDeviceProps().apiVersion;
 

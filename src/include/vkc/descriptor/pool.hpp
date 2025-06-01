@@ -21,7 +21,7 @@ template <CSupportGetDescType... TManager>
     std::map<vk::DescriptorType, int> poolSizeMap;
 
     const auto appendPoolSize = [&](const auto& mgr) {
-        auto descType = mgr.getDescType();
+        vk::DescriptorType descType = mgr.getDescType();
         if (!poolSizeMap.contains(descType)) {
             poolSizeMap[descType] = 1;
             return;

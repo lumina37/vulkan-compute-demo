@@ -19,7 +19,7 @@ SurfaceManager::SurfaceManager(SurfaceManager&& rhs) noexcept
 
 SurfaceManager::~SurfaceManager() noexcept {
     if (surface_ == nullptr) return;
-    auto instance = pInstanceMgr_->getInstance();
+    vk::Instance instance = pInstanceMgr_->getInstance();
     instance.destroySurfaceKHR(surface_);
     surface_ = nullptr;
 }

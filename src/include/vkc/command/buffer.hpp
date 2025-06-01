@@ -130,7 +130,7 @@ private:
 template <typename TPc>
 void CommandBufferManager::pushConstant(const PushConstantManager<TPc>& pushConstantMgr,
                                         const PipelineLayoutManager& pipelineLayoutMgr) noexcept {
-    const auto& piplelineLayout = pipelineLayoutMgr.getPipelineLayout();
+    vk::PipelineLayout piplelineLayout = pipelineLayoutMgr.getPipelineLayout();
     commandBuffer_.pushConstants(piplelineLayout, pushConstantMgr.getPushConstantRange().stageFlags, 0, sizeof(TPc),
                                  pushConstantMgr.getPPushConstant());
 }
@@ -258,7 +258,7 @@ void CommandBufferManager::recordCopyStagingToSrcWithRoi(const TImageManager& sr
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
-    const auto& imageExtent = srcImageMgr.getExtent();
+    const Extent& imageExtent = srcImageMgr.getExtent();
     copyRegion.setBufferOffset(imageExtent.calculateBufferOffset(roi.offset()));
     copyRegion.setBufferRowLength(imageExtent.width());
     copyRegion.setBufferImageHeight(imageExtent.height());

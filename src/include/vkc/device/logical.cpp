@@ -76,7 +76,7 @@ std::expected<DeviceManager, Error> DeviceManager::createWithMultiQueueAndExts(
 std::expected<vk::Queue, Error> DeviceManager::getQueue(vk::QueueFlags type) const noexcept {
     constexpr auto exposeType = [](QueueIndex queueIndex) { return queueIndex.type; };
 
-    auto queueIndexIt = rgs::find(queueIndices_, type, exposeType);
+    const auto queueIndexIt = rgs::find(queueIndices_, type, exposeType);
     if (queueIndexIt == queueIndices_.end()) {
         auto errMsg = std::format("no family index for type={}", (uint32_t)type);
         return std::unexpected{Error{-1, std::move(errMsg)}};

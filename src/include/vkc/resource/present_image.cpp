@@ -103,7 +103,7 @@ std::expected<PresentImageManager, Error> PresentImageManager::create(const PhyD
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingMemory);
     if (!allocStagingRes) return std::unexpected{std::move(allocStagingRes.error())};
 
-    const vk::Result bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
+    const auto bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
     if (bindStagingRes != vk::Result::eSuccess) {
         return std::unexpected{Error{bindStagingRes}};
     }

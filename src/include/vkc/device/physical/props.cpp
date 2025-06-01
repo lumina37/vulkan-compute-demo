@@ -16,7 +16,7 @@ namespace rgs = std::ranges;
 std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(
     const PhyDeviceManager& phyDeviceMgr) noexcept {
     DefaultPhyDeviceProps props;
-    const auto phyDevice = phyDeviceMgr.getPhyDevice();
+    const vk::PhysicalDevice phyDevice = phyDeviceMgr.getPhyDevice();
 
     auto [extPropsRes, extProps] = phyDevice.enumerateDeviceExtensionProperties();
     if (extPropsRes != vk::Result::eSuccess) {

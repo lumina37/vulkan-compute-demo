@@ -54,9 +54,17 @@ int main() {
         vkc::TimestampQueryPoolManager::create(pDeviceMgr, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
         unwrap;
 
-    // Gaussian Blur
+    // Main Loop
     while (!glfwWindowShouldClose(windowMgr.getWindow())) {
+        Timer loopTimer;
+        loopTimer.begin();
+
         const uint32_t imageIndex = swapChainMgr.acquireImageIndex(semaphoreMgr) | unwrap;
+
+        loopTimer.end();
+        std::println("Acquire image timecost: {} ms", loopTimer.durationMs());
+        loopTimer.begin();
+
         vkc::PresentImageManager& presentImageMgr = swapChainMgr.getImageMgr((int)imageIndex);
         presentImageMgr.upload(srcImage.getPData()) | unwrap;
         const std::array presentImageMgrRefs{std::ref(presentImageMgr)};
@@ -73,6 +81,9 @@ int main() {
         fenceMgr.reset() | unwrap;
 
         swapChainMgr.present(queueMgr, imageIndex) | unwrap;
+
+        loopTimer.end();
+        std::println("Present timecost: {} ms", loopTimer.durationMs());
 
         glfwPollEvents();
     }

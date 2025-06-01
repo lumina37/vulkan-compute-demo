@@ -28,7 +28,7 @@ namespace rgs = std::ranges;
 
 CommandBufferManager::CommandBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
                                            std::shared_ptr<CommandPoolManager>&& pCommandPoolMgr,
-                                           vk::CommandBuffer commandBuffer) noexcept
+                                           const vk::CommandBuffer commandBuffer) noexcept
     : pDeviceMgr_(std::move(pDeviceMgr)), pCommandPoolMgr_(std::move(pCommandPoolMgr)), commandBuffer_(commandBuffer) {}
 
 CommandBufferManager::CommandBufferManager(CommandBufferManager&& rhs) noexcept
@@ -38,9 +38,8 @@ CommandBufferManager::CommandBufferManager(CommandBufferManager&& rhs) noexcept
 
 CommandBufferManager::~CommandBufferManager() noexcept {
     if (commandBuffer_ == nullptr) return;
-
-    auto device = pDeviceMgr_->getDevice();
-    auto commandPool = pCommandPoolMgr_->getCommandPool();
+    vk::Device device = pDeviceMgr_->getDevice();
+    vk::CommandPool commandPool = pCommandPoolMgr_->getCommandPool();
     device.freeCommandBuffers(commandPool, commandBuffer_);
     commandBuffer_ = nullptr;
 }
@@ -76,14 +75,14 @@ void CommandBufferManager::bindDescSets(DescSetsManager& descSetsMgr, const Pipe
 }
 
 std::expected<void, Error> CommandBufferManager::begin() noexcept {
-    const vk::Result resetRes = commandBuffer_.reset();
+    const auto resetRes = commandBuffer_.reset();
     if (resetRes != vk::Result::eSuccess) {
         return std::unexpected{Error{resetRes}};
     }
 
     vk::CommandBufferBeginInfo cmdBufBeginInfo;
     cmdBufBeginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-    const vk::Result beginRes = commandBuffer_.begin(cmdBufBeginInfo);
+    const auto beginRes = commandBuffer_.begin(cmdBufBeginInfo);
     if (beginRes != vk::Result::eSuccess) {
         return std::unexpected{Error{beginRes}};
     }
@@ -125,8 +124,8 @@ void CommandBufferManager::recordDstPrepareShaderWrite(
 }
 
 void CommandBufferManager::recordDispatch(const vk::Extent2D extent, const BlockSize blockSize) noexcept {
-    uint32_t groupSizeX = (extent.width + (blockSize.x - 1)) / blockSize.x;
-    uint32_t groupSizeY = (extent.height + (blockSize.y - 1)) / blockSize.y;
+    const uint32_t groupSizeX = (extent.width + (blockSize.x - 1)) / blockSize.x;
+    const uint32_t groupSizeY = (extent.height + (blockSize.y - 1)) / blockSize.y;
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);
 }
 
@@ -245,7 +244,7 @@ void CommandBufferManager::recordCopyDstToStagingWithRoi(StorageImageManager& ds
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
-    const auto& imageExtent = dstImageMgr.getExtent();
+    const Extent& imageExtent = dstImageMgr.getExtent();
     copyRegion.setBufferOffset(imageExtent.calculateBufferOffset(roi.offset()));
     copyRegion.setBufferRowLength(imageExtent.width());
     copyRegion.setBufferImageHeight(imageExtent.height());
@@ -313,7 +312,7 @@ std::expected<void, Error> CommandBufferManager::recordTimestampEnd(
 }
 
 std::expected<void, Error> CommandBufferManager::end() noexcept {
-    const vk::Result endRes = commandBuffer_.end();
+    const auto endRes = commandBuffer_.end();
     if (endRes != vk::Result::eSuccess) {
         return std::unexpected{Error{endRes}};
     }
@@ -333,7 +332,7 @@ std::expected<void, Error> CommandBufferManager::_submit(vk::Queue queue, vk::Se
         submitInfo.setSignalSemaphores(signalSemaphore);
     }
 
-    const vk::Result submitRes = queue.submit(submitInfo, fence);
+    const auto submitRes = queue.submit(submitInfo, fence);
     if (submitRes != vk::Result::eSuccess) {
         return std::unexpected{Error{submitRes}};
     }
@@ -343,7 +342,7 @@ std::expected<void, Error> CommandBufferManager::_submit(vk::Queue queue, vk::Se
 
 std::expected<void, Error> CommandBufferManager::submitAndWaitPreTask(QueueManager& queueMgr,
                                                                       const SemaphoreManager& waitSemaphoreMgr,
-                                                                      vk::PipelineStageFlags waitDstStage,
+                                                                      const vk::PipelineStageFlags waitDstStage,
                                                                       SemaphoreManager& signalSemaphoreMgr) noexcept {
     return _submit(queueMgr.getQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage,
                    signalSemaphoreMgr.getSemaphore(), nullptr);
@@ -351,7 +350,7 @@ std::expected<void, Error> CommandBufferManager::submitAndWaitPreTask(QueueManag
 
 std::expected<void, Error> CommandBufferManager::submitAndWaitPreTask(QueueManager& queueMgr,
                                                                       const SemaphoreManager& waitSemaphoreMgr,
-                                                                      vk::PipelineStageFlags waitDstStage,
+                                                                      const vk::PipelineStageFlags waitDstStage,
                                                                       FenceManager& fenceMgr) noexcept {
     return _submit(queueMgr.getQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage, nullptr, fenceMgr.getFence());
 }
