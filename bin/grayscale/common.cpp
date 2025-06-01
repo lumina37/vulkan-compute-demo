@@ -80,7 +80,7 @@ int main() {
         grayCmdBufMgr.bindPipeline(grayPipelineMgr);
         grayCmdBufMgr.bindDescSets(grayDescSetsMgr, grayPLayoutMgr, vk::PipelineBindPoint::eCompute);
         grayCmdBufMgr.recordResetQueryPool(queryPoolMgr);
-        grayCmdBufMgr.recordSrcPrepareTranfer<vkc::SampledImageManager>(srcImageMgrRefs);
+        grayCmdBufMgr.recordPrepareReceiveBeforeDispatch<vkc::SampledImageManager>(srcImageMgrRefs);
         grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         grayCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
         grayCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
@@ -89,7 +89,7 @@ int main() {
         grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         grayCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
         grayCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        grayCmdBufMgr.recordDstPrepareTransfer(dstImageMgrRefs);
+        grayCmdBufMgr.recordPrepareSendAfterDispatch(dstImageMgrRefs);
         grayCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         grayCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
         grayCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;

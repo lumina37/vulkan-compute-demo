@@ -13,4 +13,6 @@ vkc_add_executable(vkc-bin-gaussFilter-grayscale-after-gauss gaussFilter/graysca
 
 vkc_add_executable(vkc-bin-grayscale-common grayscale/common.cpp)
 vkc_add_executable(vkc-bin-grayscale-storage-image-as-input grayscale/storage-image-as-input.cpp)
+
 vkc_add_executable(vkc-bin-grayscale-process-with-roi grayscale/process-with-roi.cpp)
+vkc_add_executable(vkc-bin-gui gui.cpp)

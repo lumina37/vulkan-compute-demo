@@ -93,32 +93,35 @@ std::expected<void, Error> CommandBufferManager::begin() noexcept {
 
 void CommandBufferManager::recordDstPrepareShaderWrite(
     const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
-    vk::ImageSubresourceRange subresourceRange;
-    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceRange.setLevelCount(1);
-    subresourceRange.setLayerCount(1);
+    constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eShaderWrite;
+    constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eGeneral;
 
-    // Shader Compatible Image Layout
-    vk::ImageMemoryBarrier shaderCompatibleBarrierTemplate;
-    shaderCompatibleBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
-    shaderCompatibleBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eShaderWrite);
-    shaderCompatibleBarrierTemplate.setOldLayout(vk::ImageLayout::eUndefined);
-    shaderCompatibleBarrierTemplate.setNewLayout(vk::ImageLayout::eGeneral);
-    shaderCompatibleBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
-    shaderCompatibleBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    shaderCompatibleBarrierTemplate.setSubresourceRange(subresourceRange);
+    vk::ImageMemoryBarrier barrierTemplate;
+    barrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
+    barrierTemplate.setDstAccessMask(newAccessMask);
+    barrierTemplate.setNewLayout(newImageLayout);
+    barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&shaderCompatibleBarrierTemplate](const TStorageImageMgrRef mgrRef) {
-        vk::ImageMemoryBarrier shaderCompatibleBarrier = shaderCompatibleBarrierTemplate;
-        shaderCompatibleBarrier.setImage(mgrRef.get().getImage());
-        return shaderCompatibleBarrier;
+    const auto fillout = [&](const TStorageImageMgrRef mgrRef) {
+        auto& mgr = mgrRef.get();
+
+        vk::ImageMemoryBarrier barrier = barrierTemplate;
+        barrier.setOldLayout(mgr.getImageLayout());
+        barrier.setImage(mgr.getImage());
+
+        mgr.setImageAccessMask(newAccessMask);
+        mgr.setImageLayout(newImageLayout);
+
+        return barrier;
     };
 
-    const auto shaderCompatibleBarriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eComputeShader,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
-                                   (uint32_t)shaderCompatibleBarriers.size(), shaderCompatibleBarriers.data());
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
+                                   barriers.data());
 }
 
 void CommandBufferManager::recordDispatch(const vk::Extent2D extent, const BlockSize blockSize) noexcept {
@@ -127,28 +130,102 @@ void CommandBufferManager::recordDispatch(const vk::Extent2D extent, const Block
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);
 }
 
-void CommandBufferManager::recordDstPrepareTransfer(
+void CommandBufferManager::recordPrepareSendBeforeDispatch(
     const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
-    vk::ImageMemoryBarrier downloadConvBarrierTemplate;
-    downloadConvBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite);
-    downloadConvBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
-    downloadConvBarrierTemplate.setOldLayout(vk::ImageLayout::eGeneral);
-    downloadConvBarrierTemplate.setNewLayout(vk::ImageLayout::eTransferSrcOptimal);
-    downloadConvBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
-    downloadConvBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    downloadConvBarrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+    constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eTransferRead;
+    constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eTransferSrcOptimal;
 
-    const auto fillout = [&downloadConvBarrierTemplate](const TStorageImageMgrRef mgrRef) {
-        vk::ImageMemoryBarrier downloadConvBarrier = downloadConvBarrierTemplate;
-        downloadConvBarrier.setImage(mgrRef.get().getImage());
-        return downloadConvBarrier;
+    vk::ImageMemoryBarrier barrierTemplate;
+    barrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
+    barrierTemplate.setDstAccessMask(newAccessMask);
+    barrierTemplate.setNewLayout(newImageLayout);
+    barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+
+    const auto fillout = [&](const TStorageImageMgrRef mgrRef) {
+        auto& mgr = mgrRef.get();
+
+        vk::ImageMemoryBarrier barrier = barrierTemplate;
+        barrier.setOldLayout(mgr.getImageLayout());
+        barrier.setImage(mgr.getImage());
+
+        mgr.setImageAccessMask(newAccessMask);
+        mgr.setImageLayout(newImageLayout);
+
+        return barrier;
     };
 
-    const auto downloadConvBarriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
+                                   barriers.data());
+}
+
+void CommandBufferManager::recordPrepareSendAfterDispatch(
+    const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
+    constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eTransferRead;
+    constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eTransferSrcOptimal;
+
+    vk::ImageMemoryBarrier barrierTemplate;
+    barrierTemplate.setDstAccessMask(newAccessMask);
+    barrierTemplate.setNewLayout(newImageLayout);
+    barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+
+    const auto fillout = [&](const TStorageImageMgrRef mgrRef) {
+        auto& mgr = mgrRef.get();
+
+        vk::ImageMemoryBarrier barrier = barrierTemplate;
+        barrier.setSrcAccessMask(mgr.getImageAccessMask());
+        barrier.setOldLayout(mgr.getImageLayout());
+        barrier.setImage(mgr.getImage());
+
+        mgr.setImageAccessMask(newAccessMask);
+        mgr.setImageLayout(newImageLayout);
+
+        return barrier;
+    };
+
+    const auto barriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr,
-                                   (uint32_t)downloadConvBarriers.size(), downloadConvBarriers.data());
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
+                                   barriers.data());
+}
+
+void CommandBufferManager::recordPreparePresent(std::span<const TPresentImageMgrRef> imageMgrRefs) noexcept {
+    constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eMemoryRead;
+    constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::ePresentSrcKHR;
+
+    vk::ImageMemoryBarrier barrierTemplate;
+    barrierTemplate.setDstAccessMask(newAccessMask);
+    barrierTemplate.setNewLayout(newImageLayout);
+    barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+
+    const auto fillout = [&](const TPresentImageMgrRef mgrRef) {
+        auto& mgr = mgrRef.get();
+
+        vk::ImageMemoryBarrier barrier = barrierTemplate;
+        barrier.setSrcAccessMask(mgr.getImageAccessMask());
+        barrier.setOldLayout(mgr.getImageLayout());
+        barrier.setImage(mgr.getImage());
+
+        mgr.setImageAccessMask(newAccessMask);
+        mgr.setImageLayout(newImageLayout);
+
+        return barrier;
+    };
+
+    const auto barriers = imageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe,
+                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
+                                   barriers.data());
 }
 
 void CommandBufferManager::recordCopyDstToStaging(StorageImageManager& dstImageMgr) noexcept {
@@ -180,57 +257,33 @@ void CommandBufferManager::recordCopyDstToStagingWithRoi(StorageImageManager& ds
                                      dstImageMgr.getStagingBuffer(), 1, &copyRegion);
 }
 
-void CommandBufferManager::recordCopyStorageToSampled(const StorageImageManager& srcImageMgr,
-                                                      SampledImageManager& dstImageMgr) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
-    vk::ImageCopy copyRegion;
-    copyRegion.setSrcSubresource(subresourceLayers);
-    copyRegion.setDstSubresource(subresourceLayers);
-    copyRegion.setExtent(srcImageMgr.getExtent().extent3D());
-
-    commandBuffer_.copyImage(srcImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageMgr.getImage(),
-                             vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
-}
-
-void CommandBufferManager::recordCopyStorageToSampledWithRoi(const StorageImageManager& srcImageMgr,
-                                                             SampledImageManager& dstImageMgr, const Roi roi) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
-    vk::ImageCopy copyRegion;
-    copyRegion.setSrcSubresource(subresourceLayers);
-    copyRegion.setSrcOffset(roi.offset3D());
-    copyRegion.setDstSubresource(subresourceLayers);
-    copyRegion.setDstOffset(roi.offset3D());
-    copyRegion.setExtent(srcImageMgr.getExtent().extent3D());
-
-    commandBuffer_.copyImage(srcImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageMgr.getImage(),
-                             vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
-}
-
 void CommandBufferManager::recordWaitDownloadComplete(
     const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
-    vk::BufferMemoryBarrier downloadCompleteBarrierTemplate;
-    downloadCompleteBarrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
-    downloadCompleteBarrierTemplate.setDstAccessMask(vk::AccessFlagBits::eHostRead);
-    downloadCompleteBarrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
-    downloadCompleteBarrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+    constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eHostRead;
 
-    const auto fillout = [&downloadCompleteBarrierTemplate](const TStorageImageMgrRef mgrRef) {
+    vk::BufferMemoryBarrier barrierTemplate;
+    barrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
+    barrierTemplate.setDstAccessMask(newAccessMask);
+    barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+
+    const auto fillout = [&](const TStorageImageMgrRef mgrRef) {
         auto& mgr = mgrRef.get();
-        vk::BufferMemoryBarrier downloadCompleteBarrier = downloadCompleteBarrierTemplate;
-        downloadCompleteBarrier.setBuffer(mgr.getStagingBuffer());
-        downloadCompleteBarrier.setSize(mgr.getExtent().size());
-        return downloadCompleteBarrier;
+
+        vk::BufferMemoryBarrier barrier = barrierTemplate;
+        barrier.setBuffer(mgr.getStagingBuffer());
+        barrier.setSize(mgr.getExtent().size());
+
+        mgr.setStagingAccessMask(newAccessMask);
+
+        return barrier;
     };
 
-    const auto downloadCompleteBarriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost,
-                                   (vk::DependencyFlags)0, 0, nullptr, (uint32_t)downloadCompleteBarriers.size(),
-                                   downloadCompleteBarriers.data(), 0, nullptr);
+                                   (vk::DependencyFlags)0, 0, nullptr, (uint32_t)barriers.size(), barriers.data(), 0,
+                                   nullptr);
 }
 
 std::expected<void, Error> CommandBufferManager::recordTimestampStart(
@@ -313,9 +366,9 @@ std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr, 
     return _submit(queueMgr.getQueue(), nullptr, vk::PipelineStageFlagBits::eNone, nullptr, fenceMgr.getFence());
 }
 
-template void CommandBufferManager::recordSrcPrepareTranfer<SampledImageManager>(
+template void CommandBufferManager::recordPrepareReceiveBeforeDispatch<SampledImageManager>(
     std::span<const std::reference_wrapper<SampledImageManager>>) noexcept;
-template void CommandBufferManager::recordSrcPrepareTranfer<StorageImageManager>(
+template void CommandBufferManager::recordPrepareReceiveBeforeDispatch<StorageImageManager>(
     std::span<const std::reference_wrapper<StorageImageManager>>) noexcept;
 
 template void CommandBufferManager::recordSrcPrepareShaderRead<SampledImageManager>(

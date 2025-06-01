@@ -1,7 +1,7 @@
 #pragma once
 
 #include <expected>
-#include <span>
+#include <vector>
 
 #include <GLFW/glfw3.h>
 
@@ -19,7 +19,7 @@ public:
     static std::expected<void, Error> globalInit() noexcept;
     static void globalDestroy() noexcept;
 
-    [[nodiscard]] static std::expected<std::span<const char*>, Error> getExtensions();
+    [[nodiscard]] static std::expected<std::vector<std::string_view>, Error> getExtensions();
 
     [[nodiscard]] static std::expected<WindowManager, Error> create(vk::Extent2D extent) noexcept;
 

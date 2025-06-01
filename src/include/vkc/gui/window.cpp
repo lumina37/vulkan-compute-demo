@@ -1,7 +1,9 @@
 #include <expected>
 #include <memory>
-#include <span>
+#include <ranges>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
@@ -12,6 +14,8 @@
 
 namespace vkc {
 
+namespace rgs = std::ranges;
+
 WindowManager::WindowManager(vk::Extent2D extent, GLFWwindow* window) noexcept : extent_(extent), window_(window) {}
 
 WindowManager::WindowManager(WindowManager&& rhs) noexcept
@@ -20,6 +24,7 @@ WindowManager::WindowManager(WindowManager&& rhs) noexcept
 WindowManager::~WindowManager() noexcept {
     if (window_ == nullptr) return;
     glfwDestroyWindow(window_);
+    window_ = nullptr;
 }
 
 std::expected<void, Error> WindowManager::globalInit() noexcept {
@@ -32,14 +37,18 @@ std::expected<void, Error> WindowManager::globalInit() noexcept {
 
 void WindowManager::globalDestroy() noexcept { glfwTerminate(); }
 
-std::expected<std::span<const char*>, Error> WindowManager::getExtensions() {
+std::expected<std::vector<std::string_view>, Error> WindowManager::getExtensions() {
     uint32_t count;
     const auto pExts = glfwGetRequiredInstanceExtensions(&count);
     if (pExts == nullptr) {
         return std::unexpected{Error{-1, "failed to get GLFW extensions"}};
     }
 
-    return std::span{pExts, count};
+    auto exts = rgs::views::iota(0, (int)count) |
+                rgs::views::transform([pExts](const int i) { return std::string_view{pExts[i]}; }) |
+                rgs::to<std::vector>();
+
+    return exts;
 }
 
 std::expected<WindowManager, Error> WindowManager::create(const vk::Extent2D extent) noexcept {

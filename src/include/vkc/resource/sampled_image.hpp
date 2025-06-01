@@ -32,6 +32,9 @@ public:
 
     [[nodiscard]] vk::Image getImage() const noexcept { return image_; }
     [[nodiscard]] vk::Buffer getStagingBuffer() const noexcept { return stagingBuffer_; }
+    [[nodiscard]] vk::AccessFlags getImageAccessMask() const noexcept { return imageAccessMask_; }
+    [[nodiscard]] vk::ImageLayout getImageLayout() const noexcept { return imageLayout_; }
+    [[nodiscard]] vk::AccessFlags getStagingAccessMask() const noexcept { return stagingAccessMask_; }
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eSampledImage;
     }
@@ -41,6 +44,9 @@ public:
     [[nodiscard]] std::expected<void, Error> upload(const std::byte* pSrc) noexcept;
     [[nodiscard]] std::expected<void, Error> uploadWithRoi(const std::byte* pSrc, Roi roi,
                                                            size_t bufferRowPitch) noexcept;
+    void setImageAccessMask(vk::AccessFlags accessMask) noexcept { imageAccessMask_ = accessMask; }
+    void setImageLayout(vk::ImageLayout imageLayout) noexcept { imageLayout_ = imageLayout; }
+    void setStagingAccessMask(vk::AccessFlags accessMask) noexcept { stagingAccessMask_ = accessMask; }
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;
@@ -55,6 +61,9 @@ private:
     vk::DeviceMemory stagingMemory_;
 
     vk::DescriptorImageInfo descImageInfo_;
+    vk::AccessFlags imageAccessMask_;
+    vk::ImageLayout imageLayout_;
+    vk::AccessFlags stagingAccessMask_;
 };
 
 constexpr vk::DescriptorSetLayoutBinding SampledImageManager::draftDescSetLayoutBinding() noexcept {

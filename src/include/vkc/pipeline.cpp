@@ -49,11 +49,11 @@ std::expected<PipelineManager, Error> PipelineManager::createCompute(std::shared
 
     // Create Pipeline
     vk::Device device = pDeviceMgr->getDevice();
-    auto pipelineResult = device.createComputePipeline(nullptr, pipelineInfo);
-    if (pipelineResult.result != vk::Result::eSuccess) {
-        return std::unexpected{Error{(int)pipelineResult.result, "failed to create compute pipeline"}};
+    auto pipelineRes = device.createComputePipeline(nullptr, pipelineInfo);
+    if (pipelineRes.result != vk::Result::eSuccess) {
+        return std::unexpected{Error{pipelineRes.result}};
     }
-    vk::Pipeline pipeline = pipelineResult.value;
+    vk::Pipeline pipeline = pipelineRes.value;
 
     return PipelineManager{std::move(pDeviceMgr), pipeline, vk::PipelineBindPoint::eCompute};
 }

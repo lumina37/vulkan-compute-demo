@@ -74,11 +74,11 @@ std::expected<std::vector<float>, Error> TimestampQueryPoolManager::getElaspedTi
     constexpr size_t valueSize = sizeof(decltype(timestamps)::value_type);
 
     vk::Device device = pDeviceMgr_->getDevice();
-    vk::Result queryResult =
+    vk::Result queryRes =
         device.getQueryPoolResults(queryPool_, 0, queryIndex_, timestamps.size() * valueSize, (void*)timestamps.data(),
                                    valueSize, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
-    if (queryResult != vk::Result::eSuccess) {
-        return std::unexpected{Error{queryResult}};
+    if (queryRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{queryRes}};
     }
 
     for (const auto [idx, pair] : rgs::views::enumerate(timestamps | rgs::views::chunk(2))) {

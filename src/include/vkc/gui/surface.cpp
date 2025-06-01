@@ -2,7 +2,7 @@
 #include <memory>
 #include <utility>
 
-#include "vkc/device/logical.hpp"
+#include "vkc/device/instance.hpp"
 #include "vkc/helper/error.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
@@ -21,6 +21,7 @@ SurfaceManager::~SurfaceManager() noexcept {
     if (surface_ == nullptr) return;
     auto instance = pInstanceMgr_->getInstance();
     instance.destroySurfaceKHR(surface_);
+    surface_ = nullptr;
 }
 
 std::expected<SurfaceManager, Error> SurfaceManager::create(std::shared_ptr<InstanceManager> pInstanceMgr,

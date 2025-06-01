@@ -26,7 +26,10 @@ StorageImageManager::StorageImageManager(std::shared_ptr<DeviceManager>&& pDevic
       imageMemory_(imageMemory),
       stagingBuffer_(stagingBuffer),
       stagingMemory_(stagingMemory),
-      descImageInfo_(descImageInfo) {}
+      descImageInfo_(descImageInfo),
+      imageAccessMask_(vk::AccessFlagBits::eNone),
+      imageLayout_(vk::ImageLayout::eUndefined),
+      stagingAccessMask_(vk::AccessFlagBits::eNone) {}
 
 StorageImageManager::StorageImageManager(StorageImageManager&& rhs) noexcept
     : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
@@ -36,7 +39,10 @@ StorageImageManager::StorageImageManager(StorageImageManager&& rhs) noexcept
       imageMemory_(std::exchange(rhs.imageMemory_, nullptr)),
       stagingBuffer_(std::exchange(rhs.stagingBuffer_, nullptr)),
       stagingMemory_(std::exchange(rhs.stagingMemory_, nullptr)),
-      descImageInfo_(std::exchange(rhs.descImageInfo_, {})) {}
+      descImageInfo_(std::exchange(rhs.descImageInfo_, {})),
+      imageAccessMask_(rhs.imageAccessMask_),
+      imageLayout_(rhs.imageLayout_),
+      stagingAccessMask_(rhs.stagingAccessMask_) {}
 
 StorageImageManager::~StorageImageManager() noexcept {
     if (pDeviceMgr_ == nullptr) return;
@@ -101,7 +107,7 @@ std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyD
         return std::unexpected{Error{imageRes}};
     }
 
-    // Device Memory
+    // Image Memory
     vk::DeviceMemory imageMemory;
     auto allocRes =
         _hp::allocImageMemory(phyDeviceMgr, *pDeviceMgr, image, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory);
