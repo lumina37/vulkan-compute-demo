@@ -57,7 +57,7 @@ std::expected<WindowManager, Error> WindowManager::create(const vk::Extent2D ext
 
     auto window = glfwCreateWindow((int)extent.width, (int)extent.height, "Vulkan Graphics Demo", nullptr, nullptr);
     if (window == nullptr) {
-        return std::unexpected{Error{-1, "failed to create swapchain"}};
+        return std::unexpected{Error{-1, "failed to create GLFW window"}};
     }
 
     return WindowManager{extent, window};

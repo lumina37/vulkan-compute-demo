@@ -5,7 +5,6 @@
 #include <span>
 #include <utility>
 
-#include "vkc/command/concepts.hpp"
 #include "vkc/command/pool.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device/logical.hpp"
