@@ -82,13 +82,13 @@ std::expected<SwapChainManager, Error> SwapChainManager::create(PhyDeviceManager
 
 std::expected<uint32_t, Error> SwapChainManager::acquireImageIndex(SemaphoreManager& signalSemaphoreMgr,
                                                                    uint64_t timeout) noexcept {
-    auto signalSemaphore = signalSemaphoreMgr.getSemaphore();
-    auto device = pDeviceMgr_->getDevice();
+    const auto signalSemaphore = signalSemaphoreMgr.getSemaphore();
+    const auto device = pDeviceMgr_->getDevice();
     const auto nextImageIndexRes = device.acquireNextImageKHR(swapchain_, timeout, signalSemaphore);
     if (nextImageIndexRes.result != vk::Result::eSuccess) {
         return std::unexpected{Error{nextImageIndexRes.result}};
     }
-    auto nextImageIndex = nextImageIndexRes.value;
+    const auto nextImageIndex = nextImageIndexRes.value;
 
     return nextImageIndex;
 }
@@ -98,7 +98,7 @@ std::expected<void, Error> SwapChainManager::present(QueueManager& queueMgr, uin
     presentInfo.setImageIndices(imageIndex);
     presentInfo.setSwapchains(swapchain_);
 
-    auto presentQueue = queueMgr.getQueue();
+    const auto presentQueue = queueMgr.getQueue();
     const auto presentRes = presentQueue.presentKHR(presentInfo);
     if (presentRes != vk::Result::eSuccess) {
         return std::unexpected{Error{presentRes}};
