@@ -8,7 +8,7 @@
 #include "vkc_bin_helper.hpp"
 
 int main() {
-    vkc::StbImageManager srcImage = vkc::StbImageManager::createFromPath("avatar.png") | unwrap;
+    vkc::StbImageManager srcImage = vkc::StbImageManager::createFromPath("in.png") | unwrap;
 
     // Device
     vkc::DefaultInstanceProps instProps = vkc::DefaultInstanceProps::create() | unwrap;
@@ -87,4 +87,6 @@ int main() {
 
         glfwPollEvents();
     }
+
+    vkc::WindowManager::globalDestroy();
 }
