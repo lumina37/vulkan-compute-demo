@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <expected>
 #include <print>
@@ -40,7 +41,7 @@ std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhyDeviceManager
             continue;
         }
 
-        const float score = -(float)idx;
+        const float score = -(float)std::popcount((uint32_t)queueFamilyProp.queueFlags);
         scores.emplace_back(score, idx);
 
         if constexpr (ENABLE_DEBUG) {
