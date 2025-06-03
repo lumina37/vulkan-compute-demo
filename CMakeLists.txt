@@ -52,7 +52,7 @@ endfunction()
 # Sources
 add_subdirectory(src)
 add_subdirectory(shader)
-add_subdirectory(bin)
+add_subdirectory(samples)
 
 if (VKC_ENABLE_TESTS)
     add_subdirectory(tests)
