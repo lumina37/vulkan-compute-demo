@@ -71,22 +71,22 @@ private:
 
 namespace rgs = std::ranges;
 
-template <CExt TExt_>
-ExtEntry_<TExt_>::ExtEntry_(std::string_view key, std::reference_wrapper<const TExt> extRef) noexcept
+template <CExt TExt>
+ExtEntry_<TExt>::ExtEntry_(std::string_view key, std::reference_wrapper<const TExt> extRef) noexcept
     : key_(key), extRef_(extRef) {}
 
-template <CExt TExt_>
-ExtEntry_<TExt_> ExtEntry_<TExt_>::createWithoutErr(const TExt& ext) noexcept {
+template <CExt TExt>
+ExtEntry_<TExt> ExtEntry_<TExt>::createWithoutErr(const TExt& ext) noexcept {
     const std::string_view key = extractName(ext);
     return ExtEntry_{key, std::cref(ext)};
 }
 
-template <CExt TExt_>
-ExtEntries_<TExt_>::ExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& extEntries) noexcept
+template <CExt TExt>
+ExtEntries_<TExt>::ExtEntries_(std::vector<TExt>&& exts, std::vector<TEntry>&& extEntries) noexcept
     : exts_(std::move(exts)), extEntries_(std::move(extEntries)) {}
 
-template <CExt TExt_>
-auto ExtEntries_<TExt_>::create(std::vector<TExt>&& exts) noexcept -> std::expected<ExtEntries_, Error> {
+template <CExt TExt>
+auto ExtEntries_<TExt>::create(std::vector<TExt>&& exts) noexcept -> std::expected<ExtEntries_, Error> {
     auto extEntries = exts | rgs::views::transform(TEntry::createWithoutErr) | rgs::to<std::vector>();
     rgs::sort(extEntries);
     return ExtEntries_{std::move(exts), std::move(extEntries)};

@@ -15,11 +15,11 @@
 
 namespace vkc {
 
-template <CPhyDeviceProps TProps_>
+template <CPhyDeviceProps TDProps_>
 class PhyDeviceSet_ {
 public:
-    using TProps = TProps_;
-    using TPhyDeviceWithProps = PhyDeviceWithProps_<TProps>;
+    using TDProps = TDProps_;
+    using TPhyDeviceWithProps = PhyDeviceWithProps_<TDProps>;
     using FnJudge = std::expected<float, Error> (*)(const TPhyDeviceWithProps&) noexcept;
 
 private:
@@ -56,7 +56,7 @@ std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const 
         if (!phyDeviceMgrRes) return std::unexpected{std::move(phyDeviceMgrRes.error())};
         auto& phyDeviceMgr = phyDeviceMgrRes.value();
 
-        auto phyDevicePropsRes = TProps::create(phyDeviceMgr);
+        auto phyDevicePropsRes = TDProps::create(phyDeviceMgr);
         if (!phyDevicePropsRes) return std::unexpected{std::move(phyDevicePropsRes.error())};
         auto& phyDeviceProps = phyDevicePropsRes.value();
 
