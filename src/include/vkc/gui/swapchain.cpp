@@ -14,23 +14,23 @@
 
 namespace vkc {
 
-SwapChainManager::SwapChainManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::SwapchainKHR swapchain,
+SwapchainManager::SwapchainManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::SwapchainKHR swapchain,
                                    std::vector<PresentImageManager>&& imageMgrs) noexcept
     : pDeviceMgr_(std::move(pDeviceMgr)), swapchain_(swapchain), imageMgrs_(std::move(imageMgrs)) {}
 
-SwapChainManager::SwapChainManager(SwapChainManager&& rhs) noexcept
+SwapchainManager::SwapchainManager(SwapchainManager&& rhs) noexcept
     : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
       swapchain_(std::exchange(rhs.swapchain_, nullptr)),
       imageMgrs_(std::move(rhs.imageMgrs_)) {}
 
-SwapChainManager::~SwapChainManager() noexcept {
+SwapchainManager::~SwapchainManager() noexcept {
     if (swapchain_ == nullptr) return;
     vk::Device device = pDeviceMgr_->getDevice();
     device.destroySwapchainKHR(swapchain_);
     swapchain_ = nullptr;
 }
 
-std::expected<SwapChainManager, Error> SwapChainManager::create(PhyDeviceManager& phyDeviceMgr,
+std::expected<SwapchainManager, Error> SwapchainManager::create(PhyDeviceManager& phyDeviceMgr,
                                                                 std::shared_ptr<DeviceManager> pDeviceMgr,
                                                                 SurfaceManager& surfaceMgr,
                                                                 const std::span<const uint32_t> queueFamilyIndices,
@@ -77,10 +77,10 @@ std::expected<SwapChainManager, Error> SwapChainManager::create(PhyDeviceManager
         imageMgrs.emplace_back(std::move(imageMgr));
     }
 
-    return SwapChainManager{std::move(pDeviceMgr), swapchain, std::move(imageMgrs)};
+    return SwapchainManager{std::move(pDeviceMgr), swapchain, std::move(imageMgrs)};
 }
 
-std::expected<uint32_t, Error> SwapChainManager::acquireImageIndex(SemaphoreManager& signalSemaphoreMgr,
+std::expected<uint32_t, Error> SwapchainManager::acquireImageIndex(SemaphoreManager& signalSemaphoreMgr,
                                                                    uint64_t timeout) noexcept {
     const vk::Semaphore signalSemaphore = signalSemaphoreMgr.getSemaphore();
     const vk::Device device = pDeviceMgr_->getDevice();
@@ -91,20 +91,6 @@ std::expected<uint32_t, Error> SwapChainManager::acquireImageIndex(SemaphoreMana
     const uint32_t imageIndex = imageIndexRes.value;
 
     return imageIndex;
-}
-
-std::expected<void, Error> SwapChainManager::present(QueueManager& queueMgr, uint32_t imageIndex) noexcept {
-    vk::PresentInfoKHR presentInfo;
-    presentInfo.setImageIndices(imageIndex);
-    presentInfo.setSwapchains(swapchain_);
-
-    const auto presentQueue = queueMgr.getQueue();
-    const auto presentRes = presentQueue.presentKHR(presentInfo);
-    if (presentRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{presentRes}};
-    }
-
-    return {};
 }
 
 }  // namespace vkc

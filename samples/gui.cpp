@@ -39,8 +39,8 @@ int main() {
     vkc::WindowManager windowMgr = vkc::WindowManager::create(srcImage.getExtent().extent()) | unwrap;
     vkc::SurfaceManager surfaceMgr = vkc::SurfaceManager::create(pInstMgr, windowMgr) | unwrap;
     const std::array familyIndices{computeQFamilyIdx};
-    vkc::SwapChainManager swapChainMgr =
-        vkc::SwapChainManager::create(phyDeviceMgr, pDeviceMgr, surfaceMgr, familyIndices, srcImage.getExtent()) |
+    vkc::SwapchainManager swapChainMgr =
+        vkc::SwapchainManager::create(phyDeviceMgr, pDeviceMgr, surfaceMgr, familyIndices, srcImage.getExtent()) |
         unwrap;
 
     // Command Buffer
@@ -75,12 +75,12 @@ int main() {
         presentCmdBufMgr.recordPreparePresent(presentImageMgrRefs);
         presentCmdBufMgr.end() | unwrap;
 
-        presentCmdBufMgr.submitAndWaitPreTask(queueMgr, semaphoreMgr, vk::PipelineStageFlagBits::eTransfer, fenceMgr) |
+        queueMgr.submitAndWaitSemaphore(presentCmdBufMgr, semaphoreMgr, vk::PipelineStageFlagBits::eTransfer, fenceMgr) |
             unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 
-        swapChainMgr.present(queueMgr, imageIndex) | unwrap;
+        queueMgr.present(swapChainMgr, imageIndex) | unwrap;
 
         loopTimer.end();
         std::println("Present timecost: {} ms", loopTimer.durationMs());

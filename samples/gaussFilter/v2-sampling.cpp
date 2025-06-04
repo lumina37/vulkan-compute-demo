@@ -69,8 +69,7 @@ int main() {
     vkc::FenceManager fenceMgr = vkc::FenceManager::create(pDeviceMgr) | unwrap;
     auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
         vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
-    vkc::CommandBufferManager gaussCmdBufMgr =
-        vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
+    vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
     vkc::TimestampQueryPoolManager queryPoolMgr =
         vkc::TimestampQueryPoolManager::create(pDeviceMgr, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
         unwrap;
@@ -107,7 +106,7 @@ int main() {
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
         gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+        queueMgr.submit(gaussCmdBufMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 

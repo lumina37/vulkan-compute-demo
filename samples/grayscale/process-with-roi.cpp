@@ -107,7 +107,7 @@ int main() {
         grayCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
         grayCmdBufMgr.end() | unwrap;
 
-        grayCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+        queueMgr.submit(grayCmdBufMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 

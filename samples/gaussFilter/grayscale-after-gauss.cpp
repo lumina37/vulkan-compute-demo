@@ -112,7 +112,7 @@ int main() {
     gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
     gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     gaussCmdBufMgr.end() | unwrap;
-    gaussCmdBufMgr.submit(queueMgr, semaphoreMgr) | unwrap;
+    queueMgr.submit(gaussCmdBufMgr, semaphoreMgr) | unwrap;
 
     // Grayscale
     grayCmdBufMgr.begin() | unwrap;
@@ -133,7 +133,8 @@ int main() {
     grayCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
     grayCmdBufMgr.end() | unwrap;
 
-    grayCmdBufMgr.submitAndWaitPreTask(queueMgr, semaphoreMgr, vk::PipelineStageFlagBits::eTransfer, fenceMgr) | unwrap;
+    queueMgr.submitAndWaitSemaphore(grayCmdBufMgr, semaphoreMgr, vk::PipelineStageFlagBits::eTransfer, fenceMgr) |
+        unwrap;
     fenceMgr.wait() | unwrap;
     fenceMgr.reset() | unwrap;
 

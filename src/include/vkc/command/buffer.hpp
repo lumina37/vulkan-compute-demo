@@ -9,7 +9,6 @@
 #include "vkc/command/pool.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device/logical.hpp"
-#include "vkc/device/queue.hpp"
 #include "vkc/extent.hpp"
 #include "vkc/gui/swapchain.hpp"
 #include "vkc/helper/error.hpp"
@@ -18,8 +17,6 @@
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
 #include "vkc/resource.hpp"
-#include "vkc/sync/fence.hpp"
-#include "vkc/sync/semaphore.hpp"
 
 namespace vkc {
 
@@ -32,10 +29,6 @@ class CommandBufferManager {
     CommandBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
                          std::shared_ptr<CommandPoolManager>&& pCommandPoolMgr,
                          vk::CommandBuffer commandBuffer) noexcept;
-
-    [[nodiscard]] std::expected<void, Error> _submit(vk::Queue queue, vk::Semaphore waitSemaphore,
-                                                     vk::PipelineStageFlags waitDstStage, vk::Semaphore signalSemaphore,
-                                                     vk::Fence fence) noexcept;
 
 public:
     CommandBufferManager(CommandBufferManager&& rhs) noexcept;
@@ -105,18 +98,6 @@ public:
                                                                 vk::PipelineStageFlagBits pipelineStage) noexcept;
 
     [[nodiscard]] std::expected<void, Error> end() noexcept;
-
-    [[nodiscard]] std::expected<void, Error> submitAndWaitPreTask(QueueManager& queueMgr,
-                                                                  const SemaphoreManager& waitSemaphoreMgr,
-                                                                  vk::PipelineStageFlags waitDstStage,
-                                                                  SemaphoreManager& signalSemaphoreMgr) noexcept;
-    [[nodiscard]] std::expected<void, Error> submitAndWaitPreTask(QueueManager& queueMgr,
-                                                                  const SemaphoreManager& waitSemaphoreMgr,
-                                                                  vk::PipelineStageFlags waitDstStage,
-                                                                  FenceManager& fenceMgr) noexcept;
-    [[nodiscard]] std::expected<void, Error> submit(QueueManager& queueMgr,
-                                                    SemaphoreManager& signalSemaphoreMgr) noexcept;
-    [[nodiscard]] std::expected<void, Error> submit(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept;
 
 private:
     std::shared_ptr<DeviceManager> pDeviceMgr_;

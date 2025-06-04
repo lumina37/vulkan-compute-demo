@@ -80,7 +80,8 @@ int main() {
     constexpr int maxHalfKSize = 128;
     vkc::SpecConstantManager specConstantMgr{blockSize.x, maxHalfKSize};
     vkc::PipelineManager gaussPipelineMgr =
-        vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
+        vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
+                                            specConstantMgr.getSpecInfo()) |
         unwrap;
 
     // Gaussian Blur
@@ -106,7 +107,7 @@ int main() {
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
         gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+        queueMgr.submit(gaussCmdBufMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 

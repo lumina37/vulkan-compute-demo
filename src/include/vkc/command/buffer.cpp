@@ -8,14 +8,12 @@
 #include "vkc/command/pool.hpp"
 #include "vkc/descriptor/set.hpp"
 #include "vkc/device/logical.hpp"
-#include "vkc/device/queue.hpp"
 #include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
-#include "vkc/sync/fence.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/command/buffer.hpp"
@@ -316,52 +314,6 @@ std::expected<void, Error> CommandBufferManager::end() noexcept {
         return std::unexpected{Error{endRes}};
     }
     return {};
-}
-
-std::expected<void, Error> CommandBufferManager::_submit(vk::Queue queue, vk::Semaphore waitSemaphore,
-                                                         vk::PipelineStageFlags waitDstStage,
-                                                         vk::Semaphore signalSemaphore, vk::Fence fence) noexcept {
-    vk::SubmitInfo submitInfo;
-    if (waitSemaphore != nullptr) {
-        submitInfo.setWaitSemaphores(waitSemaphore);
-        submitInfo.setWaitDstStageMask(waitDstStage);
-    }
-    submitInfo.setCommandBuffers(commandBuffer_);
-    if (signalSemaphore != nullptr) {
-        submitInfo.setSignalSemaphores(signalSemaphore);
-    }
-
-    const auto submitRes = queue.submit(submitInfo, fence);
-    if (submitRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{submitRes}};
-    }
-
-    return {};
-}
-
-std::expected<void, Error> CommandBufferManager::submitAndWaitPreTask(QueueManager& queueMgr,
-                                                                      const SemaphoreManager& waitSemaphoreMgr,
-                                                                      const vk::PipelineStageFlags waitDstStage,
-                                                                      SemaphoreManager& signalSemaphoreMgr) noexcept {
-    return _submit(queueMgr.getQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage,
-                   signalSemaphoreMgr.getSemaphore(), nullptr);
-}
-
-std::expected<void, Error> CommandBufferManager::submitAndWaitPreTask(QueueManager& queueMgr,
-                                                                      const SemaphoreManager& waitSemaphoreMgr,
-                                                                      const vk::PipelineStageFlags waitDstStage,
-                                                                      FenceManager& fenceMgr) noexcept {
-    return _submit(queueMgr.getQueue(), waitSemaphoreMgr.getSemaphore(), waitDstStage, nullptr, fenceMgr.getFence());
-}
-
-std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr,
-                                                        SemaphoreManager& signalSemaphoreMgr) noexcept {
-    return _submit(queueMgr.getQueue(), nullptr, vk::PipelineStageFlagBits::eNone, signalSemaphoreMgr.getSemaphore(),
-                   nullptr);
-}
-
-std::expected<void, Error> CommandBufferManager::submit(QueueManager& queueMgr, FenceManager& fenceMgr) noexcept {
-    return _submit(queueMgr.getQueue(), nullptr, vk::PipelineStageFlagBits::eNone, nullptr, fenceMgr.getFence());
 }
 
 template void CommandBufferManager::recordPrepareReceiveBeforeDispatch<SampledImageManager>(

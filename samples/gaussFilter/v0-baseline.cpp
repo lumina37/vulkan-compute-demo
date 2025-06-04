@@ -79,7 +79,8 @@ int main() {
     vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v0::code) | unwrap;
     vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
     vkc::PipelineManager gaussPipelineMgr =
-        vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr, specConstantMgr.getSpecInfo()) |
+        vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
+                                            specConstantMgr.getSpecInfo()) |
         unwrap;
 
     // Gaussian Blur
@@ -105,7 +106,7 @@ int main() {
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
         gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+        queueMgr.submit(gaussCmdBufMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 

@@ -72,7 +72,8 @@ int main() {
     vkc::ShaderManager grayShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::grayscale::rw::code) | unwrap;
     vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
     vkc::PipelineManager grayPipelineMgr =
-        vkc::PipelineManager::createCompute(pDeviceMgr, grayPLayoutMgr, grayShaderMgr, specConstantMgr.getSpecInfo()) | unwrap;
+        vkc::PipelineManager::createCompute(pDeviceMgr, grayPLayoutMgr, grayShaderMgr, specConstantMgr.getSpecInfo()) |
+        unwrap;
 
     // Gaussian Blur
     for (int i = 0; i < 15; i++) {
@@ -96,7 +97,7 @@ int main() {
         grayCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
         grayCmdBufMgr.end() | unwrap;
 
-        grayCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+        queueMgr.submit(grayCmdBufMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 

@@ -178,7 +178,7 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilter") {
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
         gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+        queueMgr.submit(gaussCmdBufMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 
@@ -221,7 +221,7 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilter") {
         gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
         gaussCmdBufMgr.end() | unwrap;
 
-        gaussCmdBufMgr.submit(queueMgr, fenceMgr) | unwrap;
+        queueMgr.submit(gaussCmdBufMgr, fenceMgr) | unwrap;
         fenceMgr.wait() | unwrap;
         fenceMgr.reset() | unwrap;
 
