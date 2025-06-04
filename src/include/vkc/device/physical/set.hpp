@@ -67,8 +67,8 @@ std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const 
 }
 
 template <CPhyDeviceProps TProps>
-std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDeviceSet_<TProps>::select(
-    const FnJudge& judge) noexcept {
+auto PhyDeviceSet_<TProps>::select(const FnJudge& judge) noexcept
+    -> std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> {
     std::vector<Score<std::reference_wrapper<TPhyDeviceWithProps>>> scores;
     scores.reserve(phyDevicesWithProps_.size());
 
@@ -106,8 +106,8 @@ std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error> PhyDev
 }
 
 template <CPhyDeviceProps TProps>
-std::expected<std::reference_wrapper<PhyDeviceWithProps_<TProps>>, Error>
-PhyDeviceSet_<TProps>::selectDefault() noexcept {
+auto PhyDeviceSet_<TProps>::selectDefault() noexcept
+    -> std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> {
     constexpr auto defaultJudge = [](const TPhyDeviceWithProps& phyDeviceWithProps) noexcept {
         return phyDeviceWithProps.getPhyDeviceProps().score();
     };
