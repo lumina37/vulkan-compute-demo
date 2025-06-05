@@ -18,17 +18,17 @@ typedef enum StorageImageType {
     ReadWrite = Read | Write,
 } StorageImageType;
 
-class StorageImageManager {
-    StorageImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, vk::Image image,
+class StorageImageBox {
+    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image,
                         vk::ImageView imageView, vk::DeviceMemory imageMemory, vk::Buffer stagingBuffer,
                         vk::DeviceMemory stagingMemory, vk::DescriptorImageInfo descImageInfo) noexcept;
 
 public:
-    StorageImageManager(StorageImageManager&& rhs) noexcept;
-    ~StorageImageManager() noexcept;
+    StorageImageBox(StorageImageBox&& rhs) noexcept;
+    ~StorageImageBox() noexcept;
 
-    [[nodiscard]] static std::expected<StorageImageManager, Error> create(
-        const PhyDeviceManager& phyDeviceMgr, std::shared_ptr<DeviceManager> pDeviceMgr, const Extent& extent,
+    [[nodiscard]] static std::expected<StorageImageBox, Error> create(
+        const PhyDeviceBox& phyDeviceBox, std::shared_ptr<DeviceBox> pDeviceBox, const Extent& extent,
         StorageImageType imageType = StorageImageType::Write) noexcept;
 
     template <typename Self>
@@ -57,7 +57,7 @@ public:
     void setStagingAccessMask(vk::AccessFlags accessMask) noexcept { stagingAccessMask_ = accessMask; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     Extent extent_;
 
@@ -74,7 +74,7 @@ private:
     vk::AccessFlags stagingAccessMask_;
 };
 
-constexpr vk::DescriptorSetLayoutBinding StorageImageManager::draftDescSetLayoutBinding() noexcept {
+constexpr vk::DescriptorSetLayoutBinding StorageImageBox::draftDescSetLayoutBinding() noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
     binding.setDescriptorType(vk::DescriptorType::eStorageImage);

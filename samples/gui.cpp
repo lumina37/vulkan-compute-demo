@@ -8,7 +8,7 @@
 #include "vkc_bin_helper.hpp"
 
 int main() {
-    vkc::StbImageManager srcImage = vkc::StbImageManager::createFromPath("in.png") | unwrap;
+    vkc::StbImageBox srcImage = vkc::StbImageBox::createFromPath("in.png") | unwrap;
 
     // Device
     vkc::DefaultInstanceProps instProps = vkc::DefaultInstanceProps::create() | unwrap;
@@ -17,70 +17,68 @@ int main() {
         return -1;
     }
 
-    vkc::WindowManager::globalInit() | unwrap;  // only call once
-    auto instExtNames = vkc::WindowManager::getExtensions() | unwrap;
+    vkc::WindowBox::globalInit() | unwrap;  // only call once
+    auto instExtNames = vkc::WindowBox::getExtensions() | unwrap;
     constexpr std::string_view validationLayerName{"VK_LAYER_KHRONOS_validation"};
     constexpr std::array instLayerNames{validationLayerName};
-    auto pInstMgr = std::make_shared<vkc::InstanceManager>(
-        vkc::InstanceManager::createWithExts(instExtNames, instLayerNames) | unwrap);
-    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(*pInstMgr) | unwrap;
+    auto pInstBox =
+        std::make_shared<vkc::InstanceBox>(vkc::InstanceBox::createWithExts(instExtNames, instLayerNames) | unwrap);
+    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(*pInstBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
-    vkc::PhyDeviceManager& phyDeviceMgr = phyDeviceWithProps.getPhyDeviceMgr();
-    const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr) | unwrap;
+    vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
+    const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     constexpr std::string_view swapchainExtName{vk::KHRSwapchainExtensionName};
     constexpr std::array deviceExtNames{swapchainExtName};
-    auto pDeviceMgr = std::make_shared<vkc::DeviceManager>(
-        vkc::DeviceManager::createWithExts(phyDeviceMgr, {vk::QueueFlagBits::eCompute, computeQFamilyIdx},
-                                           deviceExtNames) |
+    auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
+        vkc::DeviceBox::createWithExts(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}, deviceExtNames) |
         unwrap);
-    vkc::QueueManager queueMgr = vkc::QueueManager::create(*pDeviceMgr, vk::QueueFlagBits::eCompute) | unwrap;
+    vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Swapchain
-    vkc::WindowManager windowMgr = vkc::WindowManager::create(srcImage.getExtent().extent()) | unwrap;
-    vkc::SurfaceManager surfaceMgr = vkc::SurfaceManager::create(pInstMgr, windowMgr) | unwrap;
+    vkc::WindowBox windowBox = vkc::WindowBox::create(srcImage.getExtent().extent()) | unwrap;
+    vkc::SurfaceBox surfaceBox = vkc::SurfaceBox::create(pInstBox, windowBox) | unwrap;
     const std::array familyIndices{computeQFamilyIdx};
-    vkc::SwapchainManager swapChainMgr =
-        vkc::SwapchainManager::create(phyDeviceMgr, pDeviceMgr, surfaceMgr, familyIndices, srcImage.getExtent()) |
-        unwrap;
+    vkc::SwapchainBox swapChainBox =
+        vkc::SwapchainBox::create(phyDeviceBox, pDeviceBox, surfaceBox, familyIndices, srcImage.getExtent()) | unwrap;
 
     // Command Buffer
-    vkc::FenceManager fenceMgr = vkc::FenceManager::create(pDeviceMgr) | unwrap;
-    vkc::SemaphoreManager semaphoreMgr = vkc::SemaphoreManager::create(pDeviceMgr) | unwrap;
-    auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
-        vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
-    vkc::CommandBufferManager presentCmdBufMgr =
-        vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
-    vkc::TimestampQueryPoolManager queryPoolMgr =
-        vkc::TimestampQueryPoolManager::create(pDeviceMgr, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
+    vkc::FenceBox fenceBox = vkc::FenceBox::create(pDeviceBox) | unwrap;
+    vkc::SemaphoreBox semaphoreBox = vkc::SemaphoreBox::create(pDeviceBox) | unwrap;
+    auto pCommandPoolBox =
+        std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
+    vkc::CommandBufferBox presentCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
+    vkc::TimestampQueryPoolBox queryPoolBox =
+        vkc::TimestampQueryPoolBox::create(pDeviceBox, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
         unwrap;
 
     // Main Loop
-    while (!glfwWindowShouldClose(windowMgr.getWindow())) {
+    while (!glfwWindowShouldClose(windowBox.getWindow())) {
         Timer loopTimer;
         loopTimer.begin();
 
-        const uint32_t imageIndex = swapChainMgr.acquireImageIndex(semaphoreMgr) | unwrap;
+        const uint32_t imageIndex = swapChainBox.acquireImageIndex(semaphoreBox) | unwrap;
 
         loopTimer.end();
         std::println("Acquire image timecost: {} ms", loopTimer.durationMs());
         loopTimer.begin();
 
-        vkc::PresentImageManager& presentImageMgr = swapChainMgr.getImageMgr((int)imageIndex);
-        presentImageMgr.upload(srcImage.getPData()) | unwrap;
-        const std::array presentImageMgrRefs{std::ref(presentImageMgr)};
+        vkc::PresentImageBox& presentImageBox = swapChainBox.getImageBox((int)imageIndex);
+        presentImageBox.upload(srcImage.getPData()) | unwrap;
+        const std::array presentImageBoxRefs{std::ref(presentImageBox)};
 
-        presentCmdBufMgr.begin() | unwrap;
-        presentCmdBufMgr.recordPrepareReceiveBeforeDispatch<vkc::PresentImageManager>(presentImageMgrRefs);
-        presentCmdBufMgr.recordCopyStagingToSrc(presentImageMgr);
-        presentCmdBufMgr.recordPreparePresent(presentImageMgrRefs);
-        presentCmdBufMgr.end() | unwrap;
+        presentCmdBufBox.begin() | unwrap;
+        presentCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::PresentImageBox>(presentImageBoxRefs);
+        presentCmdBufBox.recordCopyStagingToSrc(presentImageBox);
+        presentCmdBufBox.recordPreparePresent(presentImageBoxRefs);
+        presentCmdBufBox.end() | unwrap;
 
-        queueMgr.submitAndWaitSemaphore(presentCmdBufMgr, semaphoreMgr, vk::PipelineStageFlagBits::eTransfer, fenceMgr) |
+        queueBox.submitAndWaitSemaphore(presentCmdBufBox, semaphoreBox, vk::PipelineStageFlagBits::eTransfer,
+                                        fenceBox) |
             unwrap;
-        fenceMgr.wait() | unwrap;
-        fenceMgr.reset() | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
 
-        queueMgr.present(swapChainMgr, imageIndex) | unwrap;
+        queueBox.present(swapChainBox, imageIndex) | unwrap;
 
         loopTimer.end();
         std::println("Present timecost: {} ms", loopTimer.durationMs());
@@ -88,5 +86,5 @@ int main() {
         glfwPollEvents();
     }
 
-    vkc::WindowManager::globalDestroy();
+    vkc::WindowBox::globalDestroy();
 }

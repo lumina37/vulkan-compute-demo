@@ -19,31 +19,31 @@
 
 namespace vkc {
 
-template <CSupportDraftWriteDescSet... TManager>
-[[nodiscard]] static constexpr auto genWriteDescSets(const TManager&... mgrs) noexcept {
-    constexpr auto genWriteDescSet = [](const auto& mgr, const size_t index) {
-        vk::WriteDescriptorSet writeDescSet = mgr.draftWriteDescSet();
+template <CSupportDraftWriteDescSet... TBox>
+[[nodiscard]] static constexpr auto genWriteDescSets(const TBox&... boxes) noexcept {
+    constexpr auto genWriteDescSet = [](const auto& box, const size_t index) {
+        vk::WriteDescriptorSet writeDescSet = box.draftWriteDescSet();
         writeDescSet.setDstBinding((uint32_t)index);
         return writeDescSet;
     };
 
     const auto genWriteDescSetHelper = [&]<size_t... Is>(std::index_sequence<Is...>) {
-        return std::array{genWriteDescSet(mgrs, Is)...};
+        return std::array{genWriteDescSet(boxes, Is)...};
     };
 
-    return genWriteDescSetHelper(std::index_sequence_for<TManager...>{});
+    return genWriteDescSetHelper(std::index_sequence_for<TBox...>{});
 }
 
-class DescSetsManager {
-    DescSetsManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, std::vector<vk::DescriptorSet>&& descSets) noexcept;
+class DescSetsBox {
+    DescSetsBox(std::shared_ptr<DeviceBox>&& pDeviceBox, std::vector<vk::DescriptorSet>&& descSets) noexcept;
 
 public:
-    using TDescSetLayoutMgrCRef = std::reference_wrapper<const DescSetLayoutManager>;
-    DescSetsManager(DescSetsManager&& rhs) noexcept = default;
+    using TDescSetLayoutBoxCRef = std::reference_wrapper<const DescSetLayoutBox>;
+    DescSetsBox(DescSetsBox&& rhs) noexcept = default;
 
-    [[nodiscard]] static std::expected<DescSetsManager, Error> create(
-        std::shared_ptr<DeviceManager> pDeviceMgr, DescPoolManager& descPoolMgr,
-        std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs) noexcept;
+    [[nodiscard]] static std::expected<DescSetsBox, Error> create(
+        std::shared_ptr<DeviceBox> pDeviceBox, DescPoolBox& descPoolBox,
+        std::span<const TDescSetLayoutBoxCRef> descSetLayoutBoxCRefs) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getDescSets(this Self&& self) noexcept {
@@ -55,7 +55,7 @@ public:
     void updateDescSets(std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs) noexcept;
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     std::vector<vk::DescriptorSet> descSets_;
 };

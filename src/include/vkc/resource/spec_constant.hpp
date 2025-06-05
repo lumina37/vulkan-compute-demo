@@ -9,9 +9,9 @@
 namespace vkc {
 
 template <typename... TSc>
-class SpecConstantManager {
+class SpecConstantBox {
 public:
-    constexpr SpecConstantManager(TSc... specConstants) noexcept;
+    constexpr SpecConstantBox(TSc... specConstants) noexcept;
 
     template <typename Self>
     [[nodiscard]] constexpr auto&& getSpecInfo(this Self&& self) noexcept {
@@ -25,7 +25,7 @@ private:
     vk::SpecializationInfo specInfo_;
 };
 template <typename... TSc>
-constexpr SpecConstantManager<TSc...>::SpecConstantManager(TSc... specConstants) noexcept
+constexpr SpecConstantBox<TSc...>::SpecConstantBox(TSc... specConstants) noexcept
     : specConstants_(specConstants...) {
     const auto genSpecMapEntry = [&]<size_t index>() {
         const auto& specConstant = std::get<index>(specConstants_);

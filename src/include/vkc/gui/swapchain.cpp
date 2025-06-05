@@ -14,30 +14,29 @@
 
 namespace vkc {
 
-SwapchainManager::SwapchainManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::SwapchainKHR swapchain,
-                                   std::vector<PresentImageManager>&& imageMgrs) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), swapchain_(swapchain), imageMgrs_(std::move(imageMgrs)) {}
+SwapchainBox::SwapchainBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::SwapchainKHR swapchain,
+                           std::vector<PresentImageBox>&& imageBoxs) noexcept
+    : pDeviceBox_(std::move(pDeviceBox)), swapchain_(swapchain), imageBoxs_(std::move(imageBoxs)) {}
 
-SwapchainManager::SwapchainManager(SwapchainManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+SwapchainBox::SwapchainBox(SwapchainBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)),
       swapchain_(std::exchange(rhs.swapchain_, nullptr)),
-      imageMgrs_(std::move(rhs.imageMgrs_)) {}
+      imageBoxs_(std::move(rhs.imageBoxs_)) {}
 
-SwapchainManager::~SwapchainManager() noexcept {
+SwapchainBox::~SwapchainBox() noexcept {
     if (swapchain_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceBox_->getDevice();
     device.destroySwapchainKHR(swapchain_);
     swapchain_ = nullptr;
 }
 
-std::expected<SwapchainManager, Error> SwapchainManager::create(PhyDeviceManager& phyDeviceMgr,
-                                                                std::shared_ptr<DeviceManager> pDeviceMgr,
-                                                                SurfaceManager& surfaceMgr,
-                                                                const std::span<const uint32_t> queueFamilyIndices,
-                                                                const Extent& extent,
-                                                                const vk::ColorSpaceKHR colorspace) noexcept {
+std::expected<SwapchainBox, Error> SwapchainBox::create(PhyDeviceBox& phyDeviceBox,
+                                                        std::shared_ptr<DeviceBox> pDeviceBox, SurfaceBox& surfaceBox,
+                                                        const std::span<const uint32_t> queueFamilyIndices,
+                                                        const Extent& extent,
+                                                        const vk::ColorSpaceKHR colorspace) noexcept {
     vk::SwapchainCreateInfoKHR swapchainInfo;
-    swapchainInfo.setSurface(surfaceMgr.getSurface());
+    swapchainInfo.setSurface(surfaceBox.getSurface());
     swapchainInfo.setMinImageCount(2);
     swapchainInfo.setImageFormat(extent.format());
     swapchainInfo.setImageColorSpace(colorspace);
@@ -54,7 +53,7 @@ std::expected<SwapchainManager, Error> SwapchainManager::create(PhyDeviceManager
         swapchainInfo.setQueueFamilyIndices(queueFamilyIndices);
     }
 
-    vk::Device device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceBox->getDevice();
     auto swapchainRes = device.createSwapchainKHR(swapchainInfo);
     if (swapchainRes.result != vk::Result::eSuccess) {
         return std::unexpected{Error{swapchainRes.result}};
@@ -67,23 +66,23 @@ std::expected<SwapchainManager, Error> SwapchainManager::create(PhyDeviceManager
     }
     auto images = std::move(imagesRes.value);
 
-    std::vector<PresentImageManager> imageMgrs;
-    imageMgrs.reserve(images.size());
+    std::vector<PresentImageBox> imageBoxs;
+    imageBoxs.reserve(images.size());
 
     for (auto image : images) {
-        auto imageMgrRes = PresentImageManager::create(phyDeviceMgr, pDeviceMgr, image, extent);
-        if (!imageMgrRes) return std::unexpected{std::move(imageMgrRes.error())};
-        auto& imageMgr = imageMgrRes.value();
-        imageMgrs.emplace_back(std::move(imageMgr));
+        auto imageBoxRes = PresentImageBox::create(phyDeviceBox, pDeviceBox, image, extent);
+        if (!imageBoxRes) return std::unexpected{std::move(imageBoxRes.error())};
+        auto& imageBox = imageBoxRes.value();
+        imageBoxs.emplace_back(std::move(imageBox));
     }
 
-    return SwapchainManager{std::move(pDeviceMgr), swapchain, std::move(imageMgrs)};
+    return SwapchainBox{std::move(pDeviceBox), swapchain, std::move(imageBoxs)};
 }
 
-std::expected<uint32_t, Error> SwapchainManager::acquireImageIndex(SemaphoreManager& signalSemaphoreMgr,
-                                                                   uint64_t timeout) noexcept {
-    const vk::Semaphore signalSemaphore = signalSemaphoreMgr.getSemaphore();
-    const vk::Device device = pDeviceMgr_->getDevice();
+std::expected<uint32_t, Error> SwapchainBox::acquireImageIndex(SemaphoreBox& signalSemaphoreBox,
+                                                               uint64_t timeout) noexcept {
+    const vk::Semaphore signalSemaphore = signalSemaphoreBox.getSemaphore();
+    const vk::Device device = pDeviceBox_->getDevice();
     const auto imageIndexRes = device.acquireNextImageKHR(swapchain_, timeout, signalSemaphore);
     if (imageIndexRes.result != vk::Result::eSuccess) {
         return std::unexpected{Error{imageIndexRes.result}};

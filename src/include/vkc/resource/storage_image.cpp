@@ -15,11 +15,11 @@
 
 namespace vkc {
 
-StorageImageManager::StorageImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, vk::Image image,
+StorageImageBox::StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image,
                                          vk::ImageView imageView, vk::DeviceMemory imageMemory,
                                          vk::Buffer stagingBuffer, vk::DeviceMemory stagingMemory,
                                          vk::DescriptorImageInfo descImageInfo) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)),
+    : pDeviceBox_(std::move(pDeviceBox)),
       extent_(extent),
       image_(image),
       imageView_(imageView),
@@ -31,8 +31,8 @@ StorageImageManager::StorageImageManager(std::shared_ptr<DeviceManager>&& pDevic
       imageLayout_(vk::ImageLayout::eUndefined),
       stagingAccessMask_(vk::AccessFlagBits::eNone) {}
 
-StorageImageManager::StorageImageManager(StorageImageManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+StorageImageBox::StorageImageBox(StorageImageBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)),
       extent_(rhs.extent_),
       image_(std::exchange(rhs.image_, nullptr)),
       imageView_(std::exchange(rhs.imageView_, nullptr)),
@@ -44,9 +44,9 @@ StorageImageManager::StorageImageManager(StorageImageManager&& rhs) noexcept
       imageLayout_(rhs.imageLayout_),
       stagingAccessMask_(rhs.stagingAccessMask_) {}
 
-StorageImageManager::~StorageImageManager() noexcept {
-    if (pDeviceMgr_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
+StorageImageBox::~StorageImageBox() noexcept {
+    if (pDeviceBox_ == nullptr) return;
+    vk::Device device = pDeviceBox_->getDevice();
 
     if (stagingBuffer_ != nullptr) {
         device.destroyBuffer(stagingBuffer_);
@@ -71,11 +71,11 @@ StorageImageManager::~StorageImageManager() noexcept {
     descImageInfo_.setImageView(nullptr);
 }
 
-std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyDeviceManager& phyDeviceMgr,
-                                                                      std::shared_ptr<DeviceManager> pDeviceMgr,
+std::expected<StorageImageBox, Error> StorageImageBox::create(const PhyDeviceBox& phyDeviceBox,
+                                                                      std::shared_ptr<DeviceBox> pDeviceBox,
                                                                       const Extent& extent,
                                                                       StorageImageType imageType) noexcept {
-    vk::Device device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceBox->getDevice();
 
     vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eStorage;
     vk::BufferUsageFlags bufferUsage{};
@@ -110,7 +110,7 @@ std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyD
     // Image Memory
     vk::DeviceMemory imageMemory;
     auto allocRes =
-        _hp::allocImageMemory(phyDeviceMgr, *pDeviceMgr, image, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory);
+        _hp::allocImageMemory(phyDeviceBox, *pDeviceBox, image, vk::MemoryPropertyFlagBits::eDeviceLocal, imageMemory);
     if (!allocRes) return std::unexpected{std::move(allocRes.error())};
 
     const auto bindRes = device.bindImageMemory(image, imageMemory, 0);
@@ -148,7 +148,7 @@ std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyD
 
     vk::DeviceMemory stagingMemory;
     auto allocStagingRes = _hp::allocBufferMemory(
-        phyDeviceMgr, *pDeviceMgr, stagingBuffer,
+        phyDeviceBox, *pDeviceBox, stagingBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingMemory);
     if (!allocStagingRes) return std::unexpected{std::move(allocStagingRes.error())};
 
@@ -162,11 +162,11 @@ std::expected<StorageImageManager, Error> StorageImageManager::create(const PhyD
     descImageInfo.setImageView(imageView);
     descImageInfo.setImageLayout(imageLayout);
 
-    return StorageImageManager{std::move(pDeviceMgr), extent,        image,         imageView,
+    return StorageImageBox{std::move(pDeviceBox), extent,        image,         imageView,
                                imageMemory,           stagingBuffer, stagingMemory, descImageInfo};
 }
 
-vk::WriteDescriptorSet StorageImageManager::draftWriteDescSet() const noexcept {
+vk::WriteDescriptorSet StorageImageBox::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
     writeDescSet.setDescriptorType(vk::DescriptorType::eStorageImage);
@@ -174,27 +174,27 @@ vk::WriteDescriptorSet StorageImageManager::draftWriteDescSet() const noexcept {
     return writeDescSet;
 }
 
-std::expected<void, Error> StorageImageManager::upload(const std::byte* pSrc) noexcept {
-    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
+std::expected<void, Error> StorageImageBox::upload(const std::byte* pSrc) noexcept {
+    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapMgr = mmapRes.value();
+    auto& mmapBox = mmapRes.value();
 
-    std::memcpy(mmapMgr.getMapPtr(), pSrc, extent_.size());
+    std::memcpy(mmapBox.getMapPtr(), pSrc, extent_.size());
 
     return {};
 }
 
-std::expected<void, Error> StorageImageManager::uploadWithRoi(const std::byte* pSrc, const Roi roi,
+std::expected<void, Error> StorageImageBox::uploadWithRoi(const std::byte* pSrc, const Roi roi,
                                                               const size_t bufferRowPitch) noexcept {
-    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
+    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapMgr = mmapRes.value();
+    auto& mmapBox = mmapRes.value();
 
     size_t srcOffset = 0;
     size_t dstOffset = extent_.calculateBufferOffset(roi.offset());
     for (int row = 0; row < (int)roi.extent().height; row++) {
         const std::byte* srcCursor = pSrc + srcOffset;
-        std::byte* dstCursor = (std::byte*)mmapMgr.getMapPtr() + dstOffset;
+        std::byte* dstCursor = (std::byte*)mmapBox.getMapPtr() + dstOffset;
         std::memcpy(dstCursor, srcCursor, roi.extent().width * extent_.bpp());
         srcOffset += bufferRowPitch;
         dstOffset += extent_.rowPitch();
@@ -203,26 +203,26 @@ std::expected<void, Error> StorageImageManager::uploadWithRoi(const std::byte* p
     return {};
 }
 
-std::expected<void, Error> StorageImageManager::download(std::byte* pDst) noexcept {
-    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
+std::expected<void, Error> StorageImageBox::download(std::byte* pDst) noexcept {
+    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapMgr = mmapRes.value();
+    auto& mmapBox = mmapRes.value();
 
-    std::memcpy(pDst, mmapMgr.getMapPtr(), extent_.size());
+    std::memcpy(pDst, mmapBox.getMapPtr(), extent_.size());
 
     return {};
 }
 
-std::expected<void, Error> StorageImageManager::downloadWithRoi(std::byte* pDst, const Roi roi,
+std::expected<void, Error> StorageImageBox::downloadWithRoi(std::byte* pDst, const Roi roi,
                                                                 const size_t bufferRowPitch) noexcept {
-    auto mmapRes = _hp::MemMapManager::create(pDeviceMgr_, stagingMemory_, extent_.size());
+    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, stagingMemory_, extent_.size());
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapMgr = mmapRes.value();
+    auto& mmapBox = mmapRes.value();
 
     size_t srcOffset = extent_.calculateBufferOffset(roi.offset());
     size_t dstOffset = 0;
     for (int row = 0; row < (int)roi.extent().height; row++) {
-        const std::byte* srcCursor = (std::byte*)mmapMgr.getMapPtr() + srcOffset;
+        const std::byte* srcCursor = (std::byte*)mmapBox.getMapPtr() + srcOffset;
         std::byte* dstCursor = pDst + dstOffset;
         std::memcpy(dstCursor, srcCursor, roi.extent().width * extent_.bpp());
         srcOffset += extent_.rowPitch();

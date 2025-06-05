@@ -9,20 +9,20 @@
 
 namespace vkc {
 
-class SemaphoreManager {
-    SemaphoreManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Semaphore semaphore) noexcept;
+class SemaphoreBox {
+    SemaphoreBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Semaphore semaphore) noexcept;
 
 public:
-    SemaphoreManager(SemaphoreManager&& rhs) noexcept;
-    ~SemaphoreManager() noexcept;
+    SemaphoreBox(SemaphoreBox&& rhs) noexcept;
+    ~SemaphoreBox() noexcept;
 
-    [[nodiscard]] static std::expected<SemaphoreManager, Error> create(
-        std::shared_ptr<DeviceManager> pDeviceMgr) noexcept;
+    [[nodiscard]] static std::expected<SemaphoreBox, Error> create(
+        std::shared_ptr<DeviceBox> pDeviceBox) noexcept;
 
     [[nodiscard]] vk::Semaphore getSemaphore() const noexcept { return semaphore_; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::Semaphore semaphore_;
 };

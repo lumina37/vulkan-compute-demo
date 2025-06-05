@@ -19,8 +19,8 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhyDeviceManager& phyDeviceMgr) noexcept {
-    vk::PhysicalDevice physicalDevice = phyDeviceMgr.getPhyDevice();
+std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhyDeviceBox& phyDeviceBox) noexcept {
+    vk::PhysicalDevice physicalDevice = phyDeviceBox.getPhyDevice();
 
     const auto isQueueFamilyOK = [](const vk::QueueFamilyProperties& queueFamilyProp) {
         if (!(queueFamilyProp.queueFlags & vk::QueueFlagBits::eCompute)) return false;

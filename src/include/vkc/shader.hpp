@@ -11,20 +11,20 @@
 
 namespace vkc {
 
-class ShaderManager {
-    ShaderManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::ShaderModule shader) noexcept;
+class ShaderBox {
+    ShaderBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::ShaderModule shader) noexcept;
 
 public:
-    ShaderManager(ShaderManager&& rhs) noexcept;
-    ~ShaderManager() noexcept;
+    ShaderBox(ShaderBox&& rhs) noexcept;
+    ~ShaderBox() noexcept;
 
-    [[nodiscard]] static std::expected<ShaderManager, Error> create(std::shared_ptr<DeviceManager> pDeviceMgr,
+    [[nodiscard]] static std::expected<ShaderBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
                                                                     std::span<const std::byte> code) noexcept;
 
     [[nodiscard]] vk::ShaderModule getShaderModule() const noexcept { return shader_; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::ShaderModule shader_;
 };

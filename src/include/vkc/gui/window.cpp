@@ -16,18 +16,18 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-WindowManager::WindowManager(vk::Extent2D extent, GLFWwindow* window) noexcept : extent_(extent), window_(window) {}
+WindowBox::WindowBox(vk::Extent2D extent, GLFWwindow* window) noexcept : extent_(extent), window_(window) {}
 
-WindowManager::WindowManager(WindowManager&& rhs) noexcept
+WindowBox::WindowBox(WindowBox&& rhs) noexcept
     : extent_(rhs.extent_), window_(std::exchange(rhs.window_, nullptr)) {}
 
-WindowManager::~WindowManager() noexcept {
+WindowBox::~WindowBox() noexcept {
     if (window_ == nullptr) return;
     glfwDestroyWindow(window_);
     window_ = nullptr;
 }
 
-std::expected<void, Error> WindowManager::globalInit() noexcept {
+std::expected<void, Error> WindowBox::globalInit() noexcept {
     const int initRes = glfwInit();
     if (initRes == GLFW_FALSE) {
         return std::unexpected{Error{-1, "failed to init GLFW"}};
@@ -35,9 +35,9 @@ std::expected<void, Error> WindowManager::globalInit() noexcept {
     return {};
 }
 
-void WindowManager::globalDestroy() noexcept { glfwTerminate(); }
+void WindowBox::globalDestroy() noexcept { glfwTerminate(); }
 
-std::expected<std::vector<std::string_view>, Error> WindowManager::getExtensions() {
+std::expected<std::vector<std::string_view>, Error> WindowBox::getExtensions() {
     uint32_t count;
     const auto pExts = glfwGetRequiredInstanceExtensions(&count);
     if (pExts == nullptr) {
@@ -51,7 +51,7 @@ std::expected<std::vector<std::string_view>, Error> WindowManager::getExtensions
     return exts;
 }
 
-std::expected<WindowManager, Error> WindowManager::create(const vk::Extent2D extent) noexcept {
+std::expected<WindowBox, Error> WindowBox::create(const vk::Extent2D extent) noexcept {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
@@ -60,7 +60,7 @@ std::expected<WindowManager, Error> WindowManager::create(const vk::Extent2D ext
         return std::unexpected{Error{-1, "failed to create GLFW window"}};
     }
 
-    return WindowManager{extent, window};
+    return WindowBox{extent, window};
 }
 
 }  // namespace vkc

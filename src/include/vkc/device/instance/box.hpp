@@ -11,15 +11,15 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-class InstanceManager {
-    InstanceManager(vk::Instance instance) noexcept;
+class InstanceBox {
+    InstanceBox(vk::Instance instance) noexcept;
 
 public:
-    InstanceManager(InstanceManager&& rhs) noexcept;
-    ~InstanceManager() noexcept;
+    InstanceBox(InstanceBox&& rhs) noexcept;
+    ~InstanceBox() noexcept;
 
-    [[nodiscard]] static std::expected<InstanceManager, Error> create() noexcept;
-    [[nodiscard]] static std::expected<InstanceManager, Error> createWithExts(
+    [[nodiscard]] static std::expected<InstanceBox, Error> create() noexcept;
+    [[nodiscard]] static std::expected<InstanceBox, Error> createWithExts(
         std::span<const std::string_view> enableExtNames, std::span<const std::string_view> enableLayerNames) noexcept;
 
     [[nodiscard]] vk::Instance getInstance() const noexcept { return instance_; }
@@ -31,5 +31,5 @@ private:
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/device/instance/manager.cpp"
+#    include "vkc/device/instance/box.cpp"
 #endif

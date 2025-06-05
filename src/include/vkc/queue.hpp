@@ -12,32 +12,31 @@
 
 namespace vkc {
 
-class QueueManager {
-    QueueManager(vk::Queue queue) noexcept;
+class QueueBox {
+    QueueBox(vk::Queue queue) noexcept;
 
     [[nodiscard]] std::expected<void, Error> _submit(vk::CommandBuffer commandBuffer, vk::Semaphore waitSemaphore,
                                                      vk::PipelineStageFlags waitDstStage, vk::Semaphore signalSemaphore,
                                                      vk::Fence fence) noexcept;
 
 public:
-    [[nodiscard]] static std::expected<QueueManager, Error> create(DeviceManager& deviceMgr,
-                                                                   vk::QueueFlags type) noexcept;
+    [[nodiscard]] static std::expected<QueueBox, Error> create(DeviceBox& deviceBox, vk::QueueFlags type) noexcept;
 
     [[nodiscard]] vk::Queue getQueue() const noexcept { return queue_; }
 
-    [[nodiscard]] std::expected<void, Error> submitAndWaitSemaphore(CommandBufferManager& queueMgr,
-                                                                    const SemaphoreManager& waitSemaphoreMgr,
+    [[nodiscard]] std::expected<void, Error> submitAndWaitSemaphore(CommandBufferBox& queueBox,
+                                                                    const SemaphoreBox& waitSemaphoreBox,
                                                                     vk::PipelineStageFlags waitDstStage,
-                                                                    SemaphoreManager& signalSemaphoreMgr) noexcept;
-    [[nodiscard]] std::expected<void, Error> submitAndWaitSemaphore(CommandBufferManager& queueMgr,
-                                                                    const SemaphoreManager& waitSemaphoreMgr,
+                                                                    SemaphoreBox& signalSemaphoreBox) noexcept;
+    [[nodiscard]] std::expected<void, Error> submitAndWaitSemaphore(CommandBufferBox& queueBox,
+                                                                    const SemaphoreBox& waitSemaphoreBox,
                                                                     vk::PipelineStageFlags waitDstStage,
-                                                                    FenceManager& fenceMgr) noexcept;
-    [[nodiscard]] std::expected<void, Error> submit(CommandBufferManager& queueMgr,
-                                                    SemaphoreManager& signalSemaphoreMgr) noexcept;
-    [[nodiscard]] std::expected<void, Error> submit(CommandBufferManager& queueMgr, FenceManager& fenceMgr) noexcept;
+                                                                    FenceBox& fenceBox) noexcept;
+    [[nodiscard]] std::expected<void, Error> submit(CommandBufferBox& queueBox,
+                                                    SemaphoreBox& signalSemaphoreBox) noexcept;
+    [[nodiscard]] std::expected<void, Error> submit(CommandBufferBox& queueBox, FenceBox& fenceBox) noexcept;
 
-    [[nodiscard]] std::expected<void, Error> present(SwapchainManager& swapchainMgr, uint32_t imageIndex) noexcept;
+    [[nodiscard]] std::expected<void, Error> present(SwapchainBox& swapchainBox, uint32_t imageIndex) noexcept;
 
 private:
     vk::Queue queue_;

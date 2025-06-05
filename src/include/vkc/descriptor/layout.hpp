@@ -10,23 +10,23 @@
 
 namespace vkc {
 
-class DescSetLayoutManager {
-    DescSetLayoutManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DescriptorSetLayout descSetlayout) noexcept;
+class DescSetLayoutBox {
+    DescSetLayoutBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DescriptorSetLayout descSetlayout) noexcept;
 
 public:
-    DescSetLayoutManager(DescSetLayoutManager&& rhs) noexcept;
-    ~DescSetLayoutManager() noexcept;
+    DescSetLayoutBox(DescSetLayoutBox&& rhs) noexcept;
+    ~DescSetLayoutBox() noexcept;
 
-    [[nodiscard]] static std::expected<DescSetLayoutManager, Error> create(
-        std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorSetLayoutBinding> bindings) noexcept;
+    [[nodiscard]] static std::expected<DescSetLayoutBox, Error> create(
+        std::shared_ptr<DeviceBox> pDeviceBox, std::span<const vk::DescriptorSetLayoutBinding> bindings) noexcept;
 
     [[nodiscard]] vk::DescriptorSetLayout getDescSetLayout() const noexcept { return descSetlayout_; }
-    [[nodiscard]] static vk::DescriptorSetLayout exposeDescSetLayout(const DescSetLayoutManager& mgr) noexcept {
-        return mgr.getDescSetLayout();
+    [[nodiscard]] static vk::DescriptorSetLayout exposeDescSetLayout(const DescSetLayoutBox& box) noexcept {
+        return box.getDescSetLayout();
     }
 
 private:
-    std::shared_ptr<DeviceManager> pDdeviceMgr_;
+    std::shared_ptr<DeviceBox> pDdeviceBox_;
 
     vk::DescriptorSetLayout descSetlayout_;
 };

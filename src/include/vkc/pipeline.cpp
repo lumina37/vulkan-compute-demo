@@ -13,49 +13,49 @@
 
 namespace vkc {
 
-PipelineManager::PipelineManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Pipeline pipeline,
+PipelineBox::PipelineBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Pipeline pipeline,
                                  vk::PipelineBindPoint bindPoint) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), pipeline_(pipeline), bindPoint_(bindPoint) {}
+    : pDeviceBox_(std::move(pDeviceBox)), pipeline_(pipeline), bindPoint_(bindPoint) {}
 
-PipelineManager::PipelineManager(PipelineManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+PipelineBox::PipelineBox(PipelineBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)),
       pipeline_(std::exchange(rhs.pipeline_, nullptr)),
       bindPoint_(rhs.bindPoint_) {}
 
-PipelineManager::~PipelineManager() noexcept {
+PipelineBox::~PipelineBox() noexcept {
     if (pipeline_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceBox_->getDevice();
     device.destroyPipeline(pipeline_);
     pipeline_ = nullptr;
 }
 
-std::expected<PipelineManager, Error> PipelineManager::createCompute(std::shared_ptr<DeviceManager> pDeviceMgr,
-                                                                     const PipelineLayoutManager& pipelineLayoutMgr,
-                                                                     const ShaderManager& shaderMgr,
+std::expected<PipelineBox, Error> PipelineBox::createCompute(std::shared_ptr<DeviceBox> pDeviceBox,
+                                                                     const PipelineLayoutBox& pipelineLayoutBox,
+                                                                     const ShaderBox& shaderBox,
                                                                      const vk::SpecializationInfo& specInfo) noexcept {
     vk::ComputePipelineCreateInfo pipelineInfo;
 
     // Shaders
     vk::PipelineShaderStageCreateInfo shaderStageInfo;
     shaderStageInfo.setStage(vk::ShaderStageFlagBits::eCompute);
-    shaderStageInfo.setModule(shaderMgr.getShaderModule());
+    shaderStageInfo.setModule(shaderBox.getShaderModule());
     shaderStageInfo.setPName("main");
     shaderStageInfo.setPSpecializationInfo(&specInfo);
     pipelineInfo.setStage(shaderStageInfo);
 
     // Pipeline Layout
-    vk::PipelineLayout pipelineLayout = pipelineLayoutMgr.getPipelineLayout();
+    vk::PipelineLayout pipelineLayout = pipelineLayoutBox.getPipelineLayout();
     pipelineInfo.setLayout(pipelineLayout);
 
     // Create Pipeline
-    vk::Device device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceBox->getDevice();
     const auto pipelineRes = device.createComputePipeline(nullptr, pipelineInfo);
     if (pipelineRes.result != vk::Result::eSuccess) {
         return std::unexpected{Error{pipelineRes.result}};
     }
     vk::Pipeline pipeline = pipelineRes.value;
 
-    return PipelineManager{std::move(pDeviceMgr), pipeline, vk::PipelineBindPoint::eCompute};
+    return PipelineBox{std::move(pDeviceBox), pipeline, vk::PipelineBindPoint::eCompute};
 }
 
 }  // namespace vkc

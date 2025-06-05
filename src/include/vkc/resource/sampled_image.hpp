@@ -12,17 +12,17 @@
 
 namespace vkc {
 
-class SampledImageManager {
-    SampledImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, vk::Image image,
+class SampledImageBox {
+    SampledImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image,
                         vk::ImageView imageView, vk::DeviceMemory imageMemory, vk::Buffer stagingBuffer,
                         vk::DeviceMemory stagingMemory, vk::DescriptorImageInfo descImageInfo) noexcept;
 
 public:
-    SampledImageManager(SampledImageManager&& rhs) noexcept;
-    ~SampledImageManager() noexcept;
+    SampledImageBox(SampledImageBox&& rhs) noexcept;
+    ~SampledImageBox() noexcept;
 
-    [[nodiscard]] static std::expected<SampledImageManager, Error> create(const PhyDeviceManager& phyDeviceMgr,
-                                                                          std::shared_ptr<DeviceManager> pDeviceMgr,
+    [[nodiscard]] static std::expected<SampledImageBox, Error> create(const PhyDeviceBox& phyDeviceBox,
+                                                                          std::shared_ptr<DeviceBox> pDeviceBox,
                                                                           const Extent& extent) noexcept;
 
     template <typename Self>
@@ -49,7 +49,7 @@ public:
     void setStagingAccessMask(vk::AccessFlags accessMask) noexcept { stagingAccessMask_ = accessMask; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     Extent extent_;
 
@@ -66,7 +66,7 @@ private:
     vk::AccessFlags stagingAccessMask_;
 };
 
-constexpr vk::DescriptorSetLayoutBinding SampledImageManager::draftDescSetLayoutBinding() noexcept {
+constexpr vk::DescriptorSetLayoutBinding SampledImageBox::draftDescSetLayoutBinding() noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
     binding.setDescriptorType(getDescType());

@@ -16,19 +16,19 @@
 
 namespace vkc {
 
-QueueManager::QueueManager(vk::Queue queue) noexcept : queue_(queue) {}
+QueueBox::QueueBox(vk::Queue queue) noexcept : queue_(queue) {}
 
-std::expected<QueueManager, Error> QueueManager::create(DeviceManager& deviceMgr, vk::QueueFlags type) noexcept {
-    auto queueRes = deviceMgr.getQueue(type);
+std::expected<QueueBox, Error> QueueBox::create(DeviceBox& deviceBox, vk::QueueFlags type) noexcept {
+    auto queueRes = deviceBox.getQueue(type);
     if (!queueRes) return std::unexpected{std::move(queueRes.error())};
     const vk::Queue queue = queueRes.value();
 
-    return QueueManager{queue};
+    return QueueBox{queue};
 }
 
-std::expected<void, Error> QueueManager::_submit(vk::CommandBuffer commandBuffer, vk::Semaphore waitSemaphore,
-                                                 vk::PipelineStageFlags waitDstStage, vk::Semaphore signalSemaphore,
-                                                 vk::Fence fence) noexcept {
+std::expected<void, Error> QueueBox::_submit(vk::CommandBuffer commandBuffer, vk::Semaphore waitSemaphore,
+                                             vk::PipelineStageFlags waitDstStage, vk::Semaphore signalSemaphore,
+                                             vk::Fence fence) noexcept {
     vk::SubmitInfo submitInfo;
     if (waitSemaphore != nullptr) {
         submitInfo.setWaitSemaphores(waitSemaphore);
@@ -47,38 +47,37 @@ std::expected<void, Error> QueueManager::_submit(vk::CommandBuffer commandBuffer
     return {};
 }
 
-std::expected<void, Error> QueueManager::submitAndWaitSemaphore(CommandBufferManager& commandBufferMgr,
-                                                              const SemaphoreManager& waitSemaphoreMgr,
-                                                              const vk::PipelineStageFlags waitDstStage,
-                                                              SemaphoreManager& signalSemaphoreMgr) noexcept {
-    return _submit(commandBufferMgr.getCommandBuffer(), waitSemaphoreMgr.getSemaphore(), waitDstStage,
-                   signalSemaphoreMgr.getSemaphore(), nullptr);
+std::expected<void, Error> QueueBox::submitAndWaitSemaphore(CommandBufferBox& commandBufferBox,
+                                                            const SemaphoreBox& waitSemaphoreBox,
+                                                            const vk::PipelineStageFlags waitDstStage,
+                                                            SemaphoreBox& signalSemaphoreBox) noexcept {
+    return _submit(commandBufferBox.getCommandBuffer(), waitSemaphoreBox.getSemaphore(), waitDstStage,
+                   signalSemaphoreBox.getSemaphore(), nullptr);
 }
 
-std::expected<void, Error> QueueManager::submitAndWaitSemaphore(CommandBufferManager& commandBufferMgr,
-                                                              const SemaphoreManager& waitSemaphoreMgr,
-                                                              const vk::PipelineStageFlags waitDstStage,
-                                                              FenceManager& fenceMgr) noexcept {
-    return _submit(commandBufferMgr.getCommandBuffer(), waitSemaphoreMgr.getSemaphore(), waitDstStage, nullptr,
-                   fenceMgr.getFence());
+std::expected<void, Error> QueueBox::submitAndWaitSemaphore(CommandBufferBox& commandBufferBox,
+                                                            const SemaphoreBox& waitSemaphoreBox,
+                                                            const vk::PipelineStageFlags waitDstStage,
+                                                            FenceBox& fenceBox) noexcept {
+    return _submit(commandBufferBox.getCommandBuffer(), waitSemaphoreBox.getSemaphore(), waitDstStage, nullptr,
+                   fenceBox.getFence());
 }
 
-std::expected<void, Error> QueueManager::submit(CommandBufferManager& commandBufferMgr,
-                                                SemaphoreManager& signalSemaphoreMgr) noexcept {
-    return _submit(commandBufferMgr.getCommandBuffer(), nullptr, vk::PipelineStageFlagBits::eNone,
-                   signalSemaphoreMgr.getSemaphore(), nullptr);
+std::expected<void, Error> QueueBox::submit(CommandBufferBox& commandBufferBox,
+                                            SemaphoreBox& signalSemaphoreBox) noexcept {
+    return _submit(commandBufferBox.getCommandBuffer(), nullptr, vk::PipelineStageFlagBits::eNone,
+                   signalSemaphoreBox.getSemaphore(), nullptr);
 }
 
-std::expected<void, Error> QueueManager::submit(CommandBufferManager& commandBufferMgr,
-                                                FenceManager& fenceMgr) noexcept {
-    return _submit(commandBufferMgr.getCommandBuffer(), nullptr, vk::PipelineStageFlagBits::eNone, nullptr,
-                   fenceMgr.getFence());
+std::expected<void, Error> QueueBox::submit(CommandBufferBox& commandBufferBox, FenceBox& fenceBox) noexcept {
+    return _submit(commandBufferBox.getCommandBuffer(), nullptr, vk::PipelineStageFlagBits::eNone, nullptr,
+                   fenceBox.getFence());
 }
 
-std::expected<void, Error> QueueManager::present(SwapchainManager& swapchainMgr, uint32_t imageIndex) noexcept {
+std::expected<void, Error> QueueBox::present(SwapchainBox& swapchainBox, uint32_t imageIndex) noexcept {
     vk::PresentInfoKHR presentInfo;
     presentInfo.setImageIndices(imageIndex);
-    vk::SwapchainKHR swapchain = swapchainMgr.getSwapchain();
+    vk::SwapchainKHR swapchain = swapchainBox.getSwapchain();
     presentInfo.setSwapchains(swapchain);
 
     const auto presentRes = queue_.presentKHR(presentInfo);

@@ -11,25 +11,25 @@
 
 namespace vkc {
 
-SurfaceManager::SurfaceManager(std::shared_ptr<InstanceManager>&& pInstanceMgr, vk::SurfaceKHR surface) noexcept
-    : pInstanceMgr_(std::move(pInstanceMgr)), surface_(surface) {}
+SurfaceBox::SurfaceBox(std::shared_ptr<InstanceBox>&& pInstanceBox, vk::SurfaceKHR surface) noexcept
+    : pInstanceBox_(std::move(pInstanceBox)), surface_(surface) {}
 
-SurfaceManager::SurfaceManager(SurfaceManager&& rhs) noexcept
-    : pInstanceMgr_(std::move(rhs.pInstanceMgr_)), surface_(std::exchange(rhs.surface_, nullptr)) {}
+SurfaceBox::SurfaceBox(SurfaceBox&& rhs) noexcept
+    : pInstanceBox_(std::move(rhs.pInstanceBox_)), surface_(std::exchange(rhs.surface_, nullptr)) {}
 
-SurfaceManager::~SurfaceManager() noexcept {
+SurfaceBox::~SurfaceBox() noexcept {
     if (surface_ == nullptr) return;
-    vk::Instance instance = pInstanceMgr_->getInstance();
+    vk::Instance instance = pInstanceBox_->getInstance();
     instance.destroySurfaceKHR(surface_);
     surface_ = nullptr;
 }
 
-std::expected<SurfaceManager, Error> SurfaceManager::create(std::shared_ptr<InstanceManager> pInstanceMgr,
-                                                            const WindowManager& windowMgr) noexcept {
+std::expected<SurfaceBox, Error> SurfaceBox::create(std::shared_ptr<InstanceBox> pInstanceBox,
+                                                            const WindowBox& windowBox) noexcept {
     vk::SurfaceKHR surface;
-    glfwCreateWindowSurface(pInstanceMgr->getInstance(), windowMgr.getWindow(), nullptr, (VkSurfaceKHR*)&surface);
+    glfwCreateWindowSurface(pInstanceBox->getInstance(), windowBox.getWindow(), nullptr, (VkSurfaceKHR*)&surface);
 
-    return SurfaceManager{std::move(pInstanceMgr), surface};
+    return SurfaceBox{std::move(pInstanceBox), surface};
 }
 
 }  // namespace vkc

@@ -11,24 +11,24 @@
 #include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/device/instance/manager.hpp"
+#    include "vkc/device/instance/box.hpp"
 #endif
 
 namespace vkc {
 
 namespace rgs = std::ranges;
 
-InstanceManager::InstanceManager(vk::Instance instance) noexcept : instance_(instance) {}
+InstanceBox::InstanceBox(vk::Instance instance) noexcept : instance_(instance) {}
 
-InstanceManager::InstanceManager(InstanceManager&& rhs) noexcept : instance_(std::exchange(rhs.instance_, nullptr)) {}
+InstanceBox::InstanceBox(InstanceBox&& rhs) noexcept : instance_(std::exchange(rhs.instance_, nullptr)) {}
 
-InstanceManager::~InstanceManager() noexcept {
+InstanceBox::~InstanceBox() noexcept {
     if (instance_ == nullptr) return;
     instance_.destroy();
     instance_ = nullptr;
 }
 
-std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
+std::expected<InstanceBox, Error> InstanceBox::create() noexcept {
     constexpr std::string_view validationLayerName{"VK_LAYER_KHRONOS_validation"};
     if constexpr (ENABLE_DEBUG) {
         constexpr std::array enableLayerNames{validationLayerName};
@@ -38,7 +38,7 @@ std::expected<InstanceManager, Error> InstanceManager::create() noexcept {
     }
 }
 
-std::expected<InstanceManager, Error> InstanceManager::createWithExts(
+std::expected<InstanceBox, Error> InstanceBox::createWithExts(
     std::span<const std::string_view> enableExtNames, std::span<const std::string_view> enableLayerNames) noexcept {
     vk::ApplicationInfo appInfo;
     appInfo.setPApplicationName("vk-demo");
@@ -61,7 +61,7 @@ std::expected<InstanceManager, Error> InstanceManager::createWithExts(
         return std::unexpected{Error{instanceRes}};
     }
 
-    return InstanceManager{instance};
+    return InstanceBox{instance};
 }
 
 }  // namespace vkc

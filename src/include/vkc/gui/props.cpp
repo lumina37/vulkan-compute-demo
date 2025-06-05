@@ -2,7 +2,7 @@
 #include <ranges>
 #include <utility>
 
-#include "vkc/device/physical/manager.hpp"
+#include "vkc/device/physical/box.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 
@@ -14,11 +14,11 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-std::expected<DefaultSurfaceProps, Error> DefaultSurfaceProps::create(const PhyDeviceManager& phyDeviceMgr,
-                                                                      const SurfaceManager& surfaceMgr) noexcept {
+std::expected<DefaultSurfaceProps, Error> DefaultSurfaceProps::create(const PhyDeviceBox& phyDeviceBox,
+                                                                      const SurfaceBox& surfaceBox) noexcept {
     DefaultSurfaceProps props;
-    const vk::PhysicalDevice phyDevice = phyDeviceMgr.getPhyDevice();
-    const vk::SurfaceKHR surface = surfaceMgr.getSurface();
+    const vk::PhysicalDevice phyDevice = phyDeviceBox.getPhyDevice();
+    const vk::SurfaceKHR surface = surfaceBox.getSurface();
 
     auto surfaceCapsRes = phyDevice.getSurfaceCapabilitiesKHR(surface);
     if (surfaceCapsRes.result != vk::Result::eSuccess) {

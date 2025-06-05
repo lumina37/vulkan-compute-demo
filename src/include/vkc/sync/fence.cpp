@@ -13,32 +13,32 @@
 
 namespace vkc {
 
-FenceManager::FenceManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Fence fence) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), fence_(fence) {}
+FenceBox::FenceBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Fence fence) noexcept
+    : pDeviceBox_(std::move(pDeviceBox)), fence_(fence) {}
 
-FenceManager::FenceManager(FenceManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)), fence_(std::exchange(rhs.fence_, nullptr)) {}
+FenceBox::FenceBox(FenceBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)), fence_(std::exchange(rhs.fence_, nullptr)) {}
 
-FenceManager::~FenceManager() noexcept {
+FenceBox::~FenceBox() noexcept {
     if (fence_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceBox_->getDevice();
     device.destroyFence(fence_);
     fence_ = nullptr;
 }
 
-std::expected<FenceManager, Error> FenceManager::create(std::shared_ptr<DeviceManager> pDeviceMgr) noexcept {
-    vk::Device device = pDeviceMgr->getDevice();
+std::expected<FenceBox, Error> FenceBox::create(std::shared_ptr<DeviceBox> pDeviceBox) noexcept {
+    vk::Device device = pDeviceBox->getDevice();
     vk::FenceCreateInfo fenceInfo;
     const auto [fenceRes, fence] = device.createFence(fenceInfo);
     if (fenceRes != vk::Result::eSuccess) {
         return std::unexpected{Error{fenceRes}};
     }
 
-    return FenceManager{std::move(pDeviceMgr), fence};
+    return FenceBox{std::move(pDeviceBox), fence};
 }
 
-std::expected<void, Error> FenceManager::wait(uint64_t timeout) noexcept {
-    vk::Device device = pDeviceMgr_->getDevice();
+std::expected<void, Error> FenceBox::wait(uint64_t timeout) noexcept {
+    vk::Device device = pDeviceBox_->getDevice();
     const auto waitFenceRes = device.waitForFences(fence_, true, timeout);
     if (waitFenceRes != vk::Result::eSuccess) {
         return std::unexpected{Error{waitFenceRes}};
@@ -47,8 +47,8 @@ std::expected<void, Error> FenceManager::wait(uint64_t timeout) noexcept {
     return {};
 }
 
-std::expected<void, Error> FenceManager::reset() noexcept {
-    vk::Device device = pDeviceMgr_->getDevice();
+std::expected<void, Error> FenceBox::reset() noexcept {
+    vk::Device device = pDeviceBox_->getDevice();
     const auto resetFenceRes = device.resetFences(fence_);
     if (resetFenceRes != vk::Result::eSuccess) {
         return std::unexpected{Error{resetFenceRes}};

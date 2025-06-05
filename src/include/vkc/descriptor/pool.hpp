@@ -16,12 +16,12 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-template <CSupportGetDescType... TManager>
-[[nodiscard]] static constexpr auto genPoolSizes(const TManager&... mgrs) noexcept {
+template <CSupportGetDescType... TBox>
+[[nodiscard]] static constexpr auto genPoolSizes(const TBox&... boxes) noexcept {
     std::map<vk::DescriptorType, int> poolSizeMap;
 
-    const auto appendPoolSize = [&](const auto& mgr) {
-        vk::DescriptorType descType = mgr.getDescType();
+    const auto appendPoolSize = [&](const auto& box) {
+        vk::DescriptorType descType = box.getDescType();
         if (!poolSizeMap.contains(descType)) {
             poolSizeMap[descType] = 1;
             return;
@@ -29,7 +29,7 @@ template <CSupportGetDescType... TManager>
         poolSizeMap[descType]++;
     };
 
-    (appendPoolSize(mgrs), ...);
+    (appendPoolSize(boxes), ...);
 
     constexpr auto transKV2PoolSize = [](const auto& pair) {
         auto [descType, count] = pair;
@@ -45,20 +45,20 @@ template <CSupportGetDescType... TManager>
     return poolSizes;
 }
 
-class DescPoolManager {
-    DescPoolManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DescriptorPool descPool) noexcept;
+class DescPoolBox {
+    DescPoolBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DescriptorPool descPool) noexcept;
 
 public:
-    DescPoolManager(DescPoolManager&& rhs) noexcept;
-    ~DescPoolManager() noexcept;
+    DescPoolBox(DescPoolBox&& rhs) noexcept;
+    ~DescPoolBox() noexcept;
 
-    [[nodiscard]] static std::expected<DescPoolManager, Error> create(
-        std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorPoolSize> poolSizes) noexcept;
+    [[nodiscard]] static std::expected<DescPoolBox, Error> create(
+        std::shared_ptr<DeviceBox> pDeviceBox, std::span<const vk::DescriptorPoolSize> poolSizes) noexcept;
 
     [[nodiscard]] vk::DescriptorPool getDescPool() const noexcept { return descPool_; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::DescriptorPool descPool_;
 };

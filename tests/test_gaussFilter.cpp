@@ -95,7 +95,7 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilter") {
     constexpr vkc::Extent extent{256, 256, vk::Format::eR8G8B8A8Unorm};
 
     // Src data
-    vkc::StbImageManager srcImage = vkc::StbImageManager::createWithExtent(extent) | unwrap;
+    vkc::StbImageBox srcImage = vkc::StbImageBox::createWithExtent(extent) | unwrap;
     std::default_random_engine rdEngine;
     rdEngine.seed(37);
     for (auto& val : srcImage.getImageSpan()) {
@@ -103,86 +103,83 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilter") {
     }
 
     // CPU Reference
-    vkc::StbImageManager dstImageCpuRef = vkc::StbImageManager::createWithExtent(srcImage.getExtent()) | unwrap;
+    vkc::StbImageBox dstImageCpuRef = vkc::StbImageBox::createWithExtent(srcImage.getExtent()) | unwrap;
     gaussianFilterRefImpl(srcImage.getImageSpan(), dstImageCpuRef.getImageSpan(), srcImage.getExtent(), kernelSize,
                           sigma);
     // dstImageCpuRef.saveTo("ref.png") | unwrap;
 
-    vkc::StbImageManager dstImageVk = vkc::StbImageManager::createWithExtent(srcImage.getExtent()) | unwrap;
+    vkc::StbImageBox dstImageVk = vkc::StbImageBox::createWithExtent(srcImage.getExtent()) | unwrap;
 
     // Device
-    vkc::InstanceManager instMgr = vkc::InstanceManager::create() | unwrap;
-    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instMgr) | unwrap;
+    vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
+    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
-    vkc::PhyDeviceManager& phyDeviceMgr = phyDeviceWithProps.getPhyDeviceMgr();
-    const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr) | unwrap;
-    auto pDeviceMgr = std::make_shared<vkc::DeviceManager>(
-        vkc::DeviceManager::create(phyDeviceMgr, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}) | unwrap);
-    vkc::QueueManager queueMgr = vkc::QueueManager::create(*pDeviceMgr, vk::QueueFlagBits::eCompute) | unwrap;
+    vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
+    const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
+    auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
+        vkc::DeviceBox::create(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}) | unwrap);
+    vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Descriptor & Layouts
-    vkc::SamplerManager samplerMgr = vkc::SamplerManager::create(pDeviceMgr) | unwrap;
-    vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, sigma * sigma * 2.0f}};
-    vkc::SampledImageManager srcImageMgr =
-        vkc::SampledImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
-    const std::array srcImageMgrRefs{std::ref(srcImageMgr)};
-    vkc::StorageImageManager dstImageMgr =
-        vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
-    const std::array dstImageMgrRefs{std::ref(dstImageMgr)};
-    srcImageMgr.upload(srcImage.getPData()) | unwrap;
+    vkc::SamplerBox samplerBox = vkc::SamplerBox::create(pDeviceBox) | unwrap;
+    vkc::PushConstantBox kernelSizePcBox{std::pair{kernelSize, sigma * sigma * 2.0f}};
+    vkc::SampledImageBox srcImageBox =
+        vkc::SampledImageBox::create(phyDeviceBox, pDeviceBox, srcImage.getExtent()) | unwrap;
+    const std::array srcImageBoxRefs{std::ref(srcImageBox)};
+    vkc::StorageImageBox dstImageBox =
+        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcImage.getExtent()) | unwrap;
+    const std::array dstImageBoxRefs{std::ref(dstImageBox)};
+    srcImageBox.upload(srcImage.getPData()) | unwrap;
 
-    const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
-    vkc::DescPoolManager descPoolMgr = vkc::DescPoolManager::create(pDeviceMgr, descPoolSizes) | unwrap;
+    const std::vector descPoolSizes = genPoolSizes(srcImageBox, samplerBox, dstImageBox);
+    vkc::DescPoolBox descPoolBox = vkc::DescPoolBox::create(pDeviceBox, descPoolSizes) | unwrap;
 
-    const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
-    vkc::DescSetLayoutManager gaussDLayoutMgr =
-        vkc::DescSetLayoutManager::create(pDeviceMgr, gaussDLayoutBindings) | unwrap;
-    const std::array gaussDLayoutMgrCRefs{std::cref(gaussDLayoutMgr)};
-    vkc::PipelineLayoutManager gaussPLayoutMgr =
-        vkc::PipelineLayoutManager::createWithPushConstant(pDeviceMgr, gaussDLayoutMgrCRefs,
-                                                           kernelSizePcMgr.getPushConstantRange()) |
+    const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageBox, samplerBox, dstImageBox);
+    vkc::DescSetLayoutBox gaussDLayoutBox = vkc::DescSetLayoutBox::create(pDeviceBox, gaussDLayoutBindings) | unwrap;
+    const std::array gaussDLayoutBoxCRefs{std::cref(gaussDLayoutBox)};
+    vkc::PipelineLayoutBox gaussPLayoutBox =
+        vkc::PipelineLayoutBox::createWithPushConstant(pDeviceBox, gaussDLayoutBoxCRefs,
+                                                       kernelSizePcBox.getPushConstantRange()) |
         unwrap;
-    vkc::DescSetsManager gaussDescSetsMgr =
-        vkc::DescSetsManager::create(pDeviceMgr, descPoolMgr, gaussDLayoutMgrCRefs) | unwrap;
-    const std::array gaussWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr);
+    vkc::DescSetsBox gaussDescSetsBox =
+        vkc::DescSetsBox::create(pDeviceBox, descPoolBox, gaussDLayoutBoxCRefs) | unwrap;
+    const std::array gaussWriteDescSets = genWriteDescSets(srcImageBox, samplerBox, dstImageBox);
     const std::array gaussWriteDescSetss{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
-    gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
+    gaussDescSetsBox.updateDescSets(gaussWriteDescSetss);
 
     // Command Buffer
-    vkc::FenceManager fenceMgr = vkc::FenceManager::create(pDeviceMgr) | unwrap;
-    auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
-        vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
-    vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
+    vkc::FenceBox fenceBox = vkc::FenceBox::create(pDeviceBox) | unwrap;
+    auto pCommandPoolBox =
+        std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
+    vkc::CommandBufferBox gaussCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
 
     SECTION("v0") {
         constexpr vkc::BlockSize blockSize{16, 16, 1};
-        vkc::ShaderManager gaussShaderMgr =
-            vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v0::code) | unwrap;
-        vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
-        vkc::PipelineManager gaussPipelineMgr =
-            vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
-                                                specConstantMgr.getSpecInfo()) |
-            unwrap;
+        vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gaussFilter::v0::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{blockSize.x, blockSize.y};
+        vkc::PipelineBox gaussPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox,
+                                                                            specConstantBox.getSpecInfo()) |
+                                            unwrap;
 
-        gaussCmdBufMgr.begin() | unwrap;
-        gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr, vk::PipelineBindPoint::eCompute);
-        gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
-        gaussCmdBufMgr.recordPrepareReceiveBeforeDispatch<vkc::SampledImageManager>(srcImageMgrRefs);
-        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
-        gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrRefs);
-        gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrRefs);
-        gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
-        gaussCmdBufMgr.recordPrepareSendAfterDispatch(dstImageMgrRefs);
-        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
-        gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
-        gaussCmdBufMgr.end() | unwrap;
+        gaussCmdBufBox.begin() | unwrap;
+        gaussCmdBufBox.bindPipeline(gaussPipelineBox);
+        gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
+        gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
+        gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
+        gaussCmdBufBox.recordCopyStagingToSrc(srcImageBox);
+        gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
+        gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
+        gaussCmdBufBox.recordDispatch(srcImage.getExtent().extent(), blockSize);
+        gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
+        gaussCmdBufBox.recordCopyDstToStaging(dstImageBox);
+        gaussCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);
+        gaussCmdBufBox.end() | unwrap;
 
-        queueMgr.submit(gaussCmdBufMgr, fenceMgr) | unwrap;
-        fenceMgr.wait() | unwrap;
-        fenceMgr.reset() | unwrap;
+        queueBox.submit(gaussCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
 
-        dstImageMgr.download(dstImageVk.getPData()) | unwrap;
+        dstImageBox.download(dstImageVk.getPData()) | unwrap;
         // dstImageVk.saveTo("v0.png") | unwrap;
 
         int diffAcc = 0;
@@ -199,33 +196,31 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilter") {
 
     SECTION("v1") {
         constexpr vkc::BlockSize blockSize{256, 1, 1};
-        vkc::ShaderManager gaussShaderMgr =
-            vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v1::code) | unwrap;
-        vkc::SpecConstantManager specConstantMgr{blockSize.x};
-        vkc::PipelineManager gaussPipelineMgr =
-            vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
-                                                specConstantMgr.getSpecInfo()) |
-            unwrap;
+        vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gaussFilter::v1::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{blockSize.x};
+        vkc::PipelineBox gaussPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox,
+                                                                            specConstantBox.getSpecInfo()) |
+                                            unwrap;
 
-        gaussCmdBufMgr.begin() | unwrap;
-        gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr, vk::PipelineBindPoint::eCompute);
-        gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
-        gaussCmdBufMgr.recordPrepareReceiveBeforeDispatch<vkc::SampledImageManager>(srcImageMgrRefs);
-        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
-        gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrRefs);
-        gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrRefs);
-        gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
-        gaussCmdBufMgr.recordPrepareSendAfterDispatch(dstImageMgrRefs);
-        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
-        gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
-        gaussCmdBufMgr.end() | unwrap;
+        gaussCmdBufBox.begin() | unwrap;
+        gaussCmdBufBox.bindPipeline(gaussPipelineBox);
+        gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
+        gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
+        gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
+        gaussCmdBufBox.recordCopyStagingToSrc(srcImageBox);
+        gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
+        gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
+        gaussCmdBufBox.recordDispatch(srcImage.getExtent().extent(), blockSize);
+        gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
+        gaussCmdBufBox.recordCopyDstToStaging(dstImageBox);
+        gaussCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);
+        gaussCmdBufBox.end() | unwrap;
 
-        queueMgr.submit(gaussCmdBufMgr, fenceMgr) | unwrap;
-        fenceMgr.wait() | unwrap;
-        fenceMgr.reset() | unwrap;
+        queueBox.submit(gaussCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
 
-        dstImageMgr.download(dstImageVk.getPData()) | unwrap;
+        dstImageBox.download(dstImageVk.getPData()) | unwrap;
         // dstImageVk.saveTo("v2.png") | unwrap;
 
         int diffAcc = 0;

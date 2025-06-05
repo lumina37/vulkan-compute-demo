@@ -9,7 +9,7 @@
 namespace vkc {
 
 template <typename Self>
-concept CImageManager = requires {
+concept CImageBox = requires {
     requires requires(const Self& self) {
         { self.getImageAccessMask() } noexcept -> std::same_as<vk::AccessFlags>;
         { self.getImageLayout() } noexcept -> std::same_as<vk::ImageLayout>;
@@ -25,7 +25,7 @@ concept CImageManager = requires {
 };
 
 template <typename Self>
-concept CQueryPoolManager = requires {
+concept CQueryPoolBox = requires {
     requires requires(Self& self) {
         { self.addQueryIndex() } noexcept -> std::same_as<std::expected<void, Error>>;
         { self.resetQueryIndex() } noexcept;

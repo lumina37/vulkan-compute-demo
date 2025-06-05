@@ -16,9 +16,9 @@ namespace vkc::_hp {
 
 namespace rgs = std::ranges;
 
-std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceManager& phyDeviceMgr, const uint32_t supportedMemType,
+std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceBox& phyDeviceBox, const uint32_t supportedMemType,
                                                  const vk::MemoryPropertyFlags memProps) noexcept {
-    const vk::PhysicalDevice physicalDevice = phyDeviceMgr.getPhyDevice();
+    const vk::PhysicalDevice physicalDevice = phyDeviceBox.getPhyDevice();
     const vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
 
     for (const auto [idx, memType] : rgs::views::enumerate(memProperties.memoryTypes)) {
@@ -32,15 +32,15 @@ std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceManager& phyDevi
     return std::unexpected{Error{-1, "no sufficient memory type"}};
 }
 
-std::expected<void, Error> allocBufferMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
+std::expected<void, Error> allocBufferMemory(const PhyDeviceBox& phyDeviceBox, DeviceBox& deviceBox,
                                              vk::Buffer& buffer, const vk::MemoryPropertyFlags memProps,
                                              vk::DeviceMemory& bufferMemory) noexcept {
-    vk::Device device = deviceMgr.getDevice();
+    vk::Device device = deviceBox.getDevice();
 
     vk::MemoryAllocateInfo allocInfo;
     const vk::MemoryRequirements memRequirements = device.getBufferMemoryRequirements(buffer);
     allocInfo.setAllocationSize(memRequirements.size);
-    auto memoryTypeIndexRes = findMemoryTypeIdx(phyDeviceMgr, memRequirements.memoryTypeBits, memProps);
+    auto memoryTypeIndexRes = findMemoryTypeIdx(phyDeviceBox, memRequirements.memoryTypeBits, memProps);
     if (!memoryTypeIndexRes) return std::unexpected{std::move(memoryTypeIndexRes.error())};
     allocInfo.memoryTypeIndex = memoryTypeIndexRes.value();
 
@@ -53,15 +53,15 @@ std::expected<void, Error> allocBufferMemory(const PhyDeviceManager& phyDeviceMg
     return {};
 }
 
-std::expected<void, Error> allocImageMemory(const PhyDeviceManager& phyDeviceMgr, DeviceManager& deviceMgr,
+std::expected<void, Error> allocImageMemory(const PhyDeviceBox& phyDeviceBox, DeviceBox& deviceBox,
                                             vk::Image& image, const vk::MemoryPropertyFlags memProps,
                                             vk::DeviceMemory& bufferMemory) noexcept {
-    vk::Device device = deviceMgr.getDevice();
+    vk::Device device = deviceBox.getDevice();
 
     vk::MemoryAllocateInfo allocInfo;
     const vk::MemoryRequirements memRequirements = device.getImageMemoryRequirements(image);
     allocInfo.setAllocationSize(memRequirements.size);
-    auto memoryTypeIndexRes = findMemoryTypeIdx(phyDeviceMgr, memRequirements.memoryTypeBits, memProps);
+    auto memoryTypeIndexRes = findMemoryTypeIdx(phyDeviceBox, memRequirements.memoryTypeBits, memProps);
     if (!memoryTypeIndexRes) return std::unexpected{std::move(memoryTypeIndexRes.error())};
     allocInfo.memoryTypeIndex = memoryTypeIndexRes.value();
 
@@ -74,26 +74,26 @@ std::expected<void, Error> allocImageMemory(const PhyDeviceManager& phyDeviceMgr
     return {};
 }
 
-MemMapManager::MemMapManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceMemory memory,
+MemMapBox::MemMapBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceMemory memory,
                              void* mapPtr) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), memory_(memory), mapPtr_(mapPtr) {}
+    : pDeviceBox_(std::move(pDeviceBox)), memory_(memory), mapPtr_(mapPtr) {}
 
-MemMapManager::MemMapManager(MemMapManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+MemMapBox::MemMapBox(MemMapBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)),
       memory_(std::exchange(rhs.memory_, nullptr)),
       mapPtr_(std::exchange(rhs.mapPtr_, nullptr)) {}
 
-MemMapManager::~MemMapManager() noexcept {
+MemMapBox::~MemMapBox() noexcept {
     if (mapPtr_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceBox_->getDevice();
     device.unmapMemory(memory_);
     mapPtr_ = nullptr;
     memory_ = nullptr;
 }
 
-std::expected<MemMapManager, Error> MemMapManager::create(std::shared_ptr<DeviceManager> pDeviceMgr,
+std::expected<MemMapBox, Error> MemMapBox::create(std::shared_ptr<DeviceBox> pDeviceBox,
                                                           vk::DeviceMemory& memory, const size_t size) noexcept {
-    vk::Device device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceBox->getDevice();
 
     void* mapPtr;
     const auto mapRes = device.mapMemory(memory, 0, size, (vk::MemoryMapFlags)0, &mapPtr);
@@ -101,7 +101,7 @@ std::expected<MemMapManager, Error> MemMapManager::create(std::shared_ptr<Device
         return std::unexpected{Error{mapRes}};
     }
 
-    return MemMapManager{std::move(pDeviceMgr), memory, mapPtr};
+    return MemMapBox{std::move(pDeviceBox), memory, mapPtr};
 }
 
 }  // namespace vkc::_hp

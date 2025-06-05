@@ -11,14 +11,14 @@
 
 namespace vkc {
 
-class FenceManager {
-    FenceManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Fence fence) noexcept;
+class FenceBox {
+    FenceBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Fence fence) noexcept;
 
 public:
-    FenceManager(FenceManager&& rhs) noexcept;
-    ~FenceManager() noexcept;
+    FenceBox(FenceBox&& rhs) noexcept;
+    ~FenceBox() noexcept;
 
-    [[nodiscard]] static std::expected<FenceManager, Error> create(std::shared_ptr<DeviceManager> pDeviceMgr) noexcept;
+    [[nodiscard]] static std::expected<FenceBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox) noexcept;
 
     [[nodiscard]] vk::Fence getFence() const noexcept { return fence_; }
 
@@ -26,7 +26,7 @@ public:
     [[nodiscard]] std::expected<void, Error> reset() noexcept;
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::Fence fence_;
 };

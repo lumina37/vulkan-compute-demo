@@ -5,11 +5,11 @@
 namespace vkc {
 
 template <typename TPc_>
-class PushConstantManager {
+class PushConstantBox {
 public:
     using TPc = TPc_;
 
-    constexpr PushConstantManager(TPc pushConstant,
+    constexpr PushConstantBox(TPc pushConstant,
                                   vk::ShaderStageFlags stage = vk::ShaderStageFlagBits::eCompute) noexcept;
 
     template <typename Self>
@@ -25,7 +25,7 @@ private:
 };
 
 template <typename TPc>
-constexpr PushConstantManager<TPc>::PushConstantManager(const TPc pushConstant,
+constexpr PushConstantBox<TPc>::PushConstantBox(const TPc pushConstant,
                                                         const vk::ShaderStageFlags stage) noexcept
     : pushConstant_(pushConstant) {
     pushConstantRange_.setStageFlags(stage);

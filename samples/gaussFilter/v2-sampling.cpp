@@ -10,8 +10,8 @@
 #include "vkc.hpp"
 
 int main() {
-    vkc::StbImageManager srcImage = vkc::StbImageManager::createFromPath("in.png") | unwrap;
-    vkc::StbImageManager dstImage = vkc::StbImageManager::createWithExtent(srcImage.getExtent()) | unwrap;
+    vkc::StbImageBox srcImage = vkc::StbImageBox::createFromPath("in.png") | unwrap;
+    vkc::StbImageBox dstImage = vkc::StbImageBox::createWithExtent(srcImage.getExtent()) | unwrap;
 
     // Device
     vkc::DefaultInstanceProps instProps = vkc::DefaultInstanceProps::create() | unwrap;
@@ -19,98 +19,96 @@ int main() {
         std::println(std::cerr, "VK_LAYER_KHRONOS_validation not supported");
         return -1;
     }
-    vkc::InstanceManager instMgr = vkc::InstanceManager::create() | unwrap;
-    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instMgr) | unwrap;
+    vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
+    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
-    vkc::PhyDeviceManager& phyDeviceMgr = phyDeviceWithProps.getPhyDeviceMgr();
-    const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceMgr) | unwrap;
-    auto pDeviceMgr = std::make_shared<vkc::DeviceManager>(
-        vkc::DeviceManager::create(phyDeviceMgr, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}) | unwrap);
-    vkc::QueueManager queueMgr = vkc::QueueManager::create(*pDeviceMgr, vk::QueueFlagBits::eCompute) | unwrap;
+    vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
+    const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
+    auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
+        vkc::DeviceBox::create(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}) | unwrap);
+    vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Descriptor & Layouts
-    vkc::SamplerManager samplerMgr = vkc::SamplerManager::create(pDeviceMgr) | unwrap;
+    vkc::SamplerBox samplerBox = vkc::SamplerBox::create(pDeviceBox) | unwrap;
 
     constexpr int kernelSize = 23;
     constexpr float sigma = 10.0f;
-    vkc::PushConstantManager kernelSizePcMgr{std::pair{kernelSize, sigma * sigma * 2.0f}};
+    vkc::PushConstantBox kernelSizePcBox{std::pair{kernelSize, sigma * sigma * 2.0f}};
 
-    vkc::SampledImageManager srcImageMgr =
-        vkc::SampledImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
-    const std::array srcImageMgrRefs{std::ref(srcImageMgr)};
-    vkc::StorageImageManager dstImageMgr =
-        vkc::StorageImageManager::create(phyDeviceMgr, pDeviceMgr, srcImage.getExtent()) | unwrap;
-    const std::array dstImageMgrRefs{std::ref(dstImageMgr)};
+    vkc::SampledImageBox srcImageBox =
+        vkc::SampledImageBox::create(phyDeviceBox, pDeviceBox, srcImage.getExtent()) | unwrap;
+    const std::array srcImageBoxRefs{std::ref(srcImageBox)};
+    vkc::StorageImageBox dstImageBox =
+        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcImage.getExtent()) | unwrap;
+    const std::array dstImageBoxRefs{std::ref(dstImageBox)};
 
     Timer uploadTimer;
     uploadTimer.begin();
-    srcImageMgr.upload(srcImage.getPData()) | unwrap;
+    srcImageBox.upload(srcImage.getPData()) | unwrap;
     uploadTimer.end();
     std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
 
-    const std::vector descPoolSizes = genPoolSizes(srcImageMgr, samplerMgr, dstImageMgr);
-    vkc::DescPoolManager descPoolMgr = vkc::DescPoolManager::create(pDeviceMgr, descPoolSizes) | unwrap;
+    const std::vector descPoolSizes = genPoolSizes(srcImageBox, samplerBox, dstImageBox);
+    vkc::DescPoolBox descPoolBox = vkc::DescPoolBox::create(pDeviceBox, descPoolSizes) | unwrap;
 
-    const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageMgr, samplerMgr, dstImageMgr);
-    vkc::DescSetLayoutManager gaussDLayoutMgr =
-        vkc::DescSetLayoutManager::create(pDeviceMgr, gaussDLayoutBindings) | unwrap;
-    const std::array gaussDLayoutMgrCRefs{std::cref(gaussDLayoutMgr)};
-    vkc::PipelineLayoutManager gaussPLayoutMgr =
-        vkc::PipelineLayoutManager::createWithPushConstant(pDeviceMgr, gaussDLayoutMgrCRefs,
-                                                           kernelSizePcMgr.getPushConstantRange()) |
+    const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcImageBox, samplerBox, dstImageBox);
+    vkc::DescSetLayoutBox gaussDLayoutBox = vkc::DescSetLayoutBox::create(pDeviceBox, gaussDLayoutBindings) | unwrap;
+    const std::array gaussDLayoutBoxCRefs{std::cref(gaussDLayoutBox)};
+    vkc::PipelineLayoutBox gaussPLayoutBox =
+        vkc::PipelineLayoutBox::createWithPushConstant(pDeviceBox, gaussDLayoutBoxCRefs,
+                                                       kernelSizePcBox.getPushConstantRange()) |
         unwrap;
-    vkc::DescSetsManager gaussDescSetsMgr =
-        vkc::DescSetsManager::create(pDeviceMgr, descPoolMgr, gaussDLayoutMgrCRefs) | unwrap;
-    const std::array gaussWriteDescSets = genWriteDescSets(srcImageMgr, samplerMgr, dstImageMgr);
+    vkc::DescSetsBox gaussDescSetsBox =
+        vkc::DescSetsBox::create(pDeviceBox, descPoolBox, gaussDLayoutBoxCRefs) | unwrap;
+    const std::array gaussWriteDescSets = genWriteDescSets(srcImageBox, samplerBox, dstImageBox);
     const std::array gaussWriteDescSetss{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
-    gaussDescSetsMgr.updateDescSets(gaussWriteDescSetss);
+    gaussDescSetsBox.updateDescSets(gaussWriteDescSetss);
 
     // Command Buffer
-    vkc::FenceManager fenceMgr = vkc::FenceManager::create(pDeviceMgr) | unwrap;
-    auto pCommandPoolMgr = std::make_shared<vkc::CommandPoolManager>(
-        vkc::CommandPoolManager::create(pDeviceMgr, computeQFamilyIdx) | unwrap);
-    vkc::CommandBufferManager gaussCmdBufMgr = vkc::CommandBufferManager::create(pDeviceMgr, pCommandPoolMgr) | unwrap;
-    vkc::TimestampQueryPoolManager queryPoolMgr =
-        vkc::TimestampQueryPoolManager::create(pDeviceMgr, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
+    vkc::FenceBox fenceBox = vkc::FenceBox::create(pDeviceBox) | unwrap;
+    auto pCommandPoolBox =
+        std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
+    vkc::CommandBufferBox gaussCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
+    vkc::TimestampQueryPoolBox queryPoolBox =
+        vkc::TimestampQueryPoolBox::create(pDeviceBox, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
         unwrap;
 
     // Pipeline
     constexpr vkc::BlockSize blockSize{16, 16, 1};
-    vkc::ShaderManager gaussShaderMgr = vkc::ShaderManager::create(pDeviceMgr, shader::gaussFilter::v0::code) | unwrap;
-    vkc::SpecConstantManager specConstantMgr{blockSize.x, blockSize.y};
-    vkc::PipelineManager gaussPipelineMgr =
-        vkc::PipelineManager::createCompute(pDeviceMgr, gaussPLayoutMgr, gaussShaderMgr,
-                                            specConstantMgr.getSpecInfo()) |
+    vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gaussFilter::v0::code) | unwrap;
+    vkc::SpecConstantBox specConstantBox{blockSize.x, blockSize.y};
+    vkc::PipelineBox gaussPipelineBox =
+        vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
 
     // Gaussian Blur
     for (int i = 0; i < 15; i++) {
-        gaussCmdBufMgr.begin() | unwrap;
-        gaussCmdBufMgr.bindPipeline(gaussPipelineMgr);
-        gaussCmdBufMgr.bindDescSets(gaussDescSetsMgr, gaussPLayoutMgr, vk::PipelineBindPoint::eCompute);
-        gaussCmdBufMgr.pushConstant(kernelSizePcMgr, gaussPLayoutMgr);
-        gaussCmdBufMgr.recordResetQueryPool(queryPoolMgr);
-        gaussCmdBufMgr.recordPrepareReceiveBeforeDispatch<vkc::SampledImageManager>(srcImageMgrRefs);
-        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordCopyStagingToSrc(srcImageMgr);
-        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordSrcPrepareShaderRead<vkc::SampledImageManager>(srcImageMgrRefs);
-        gaussCmdBufMgr.recordDstPrepareShaderWrite(dstImageMgrRefs);
-        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufMgr.recordDispatch(srcImage.getExtent().extent(), blockSize);
-        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufMgr.recordPrepareSendAfterDispatch(dstImageMgrRefs);
-        gaussCmdBufMgr.recordTimestampStart(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordCopyDstToStaging(dstImageMgr);
-        gaussCmdBufMgr.recordTimestampEnd(queryPoolMgr, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufMgr.recordWaitDownloadComplete(dstImageMgrRefs);
-        gaussCmdBufMgr.end() | unwrap;
+        gaussCmdBufBox.begin() | unwrap;
+        gaussCmdBufBox.bindPipeline(gaussPipelineBox);
+        gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
+        gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
+        gaussCmdBufBox.recordResetQueryPool(queryPoolBox);
+        gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
+        gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+        gaussCmdBufBox.recordCopyStagingToSrc(srcImageBox);
+        gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+        gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
+        gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
+        gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+        gaussCmdBufBox.recordDispatch(srcImage.getExtent().extent(), blockSize);
+        gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+        gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
+        gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+        gaussCmdBufBox.recordCopyDstToStaging(dstImageBox);
+        gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+        gaussCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);
+        gaussCmdBufBox.end() | unwrap;
 
-        queueMgr.submit(gaussCmdBufMgr, fenceMgr) | unwrap;
-        fenceMgr.wait() | unwrap;
-        fenceMgr.reset() | unwrap;
+        queueBox.submit(gaussCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
 
-        auto elapsedTime = queryPoolMgr.getElaspedTimes() | unwrap;
+        auto elapsedTime = queryPoolBox.getElaspedTimes() | unwrap;
         std::println("============================");
         std::println("Staging to src timecost: {} ms", elapsedTime[0]);
         std::println("Dispatch timecost: {} ms", elapsedTime[1]);
@@ -119,7 +117,7 @@ int main() {
 
     Timer downloadTimer;
     downloadTimer.begin();
-    dstImageMgr.download(dstImage.getPData()) | unwrap;
+    dstImageBox.download(dstImage.getPData()) | unwrap;
     downloadTimer.end();
     std::println("Download from staging timecost: {} ms", downloadTimer.durationMs());
 

@@ -11,20 +11,20 @@
 
 namespace vkc {
 
-class SurfaceManager {
-    SurfaceManager(std::shared_ptr<InstanceManager>&& pInstanceMgr, vk::SurfaceKHR surface) noexcept;
+class SurfaceBox {
+    SurfaceBox(std::shared_ptr<InstanceBox>&& pInstanceBox, vk::SurfaceKHR surface) noexcept;
 
 public:
-    SurfaceManager(SurfaceManager&& rhs) noexcept;
-    ~SurfaceManager() noexcept;
+    SurfaceBox(SurfaceBox&& rhs) noexcept;
+    ~SurfaceBox() noexcept;
 
-    [[nodiscard]] static std::expected<SurfaceManager, Error> create(std::shared_ptr<InstanceManager> pInstanceMgr,
-                                                                     const WindowManager& windowMgr) noexcept;
+    [[nodiscard]] static std::expected<SurfaceBox, Error> create(std::shared_ptr<InstanceBox> pInstanceBox,
+                                                                 const WindowBox& windowBox) noexcept;
 
     [[nodiscard]] vk::SurfaceKHR getSurface() const noexcept { return surface_; }
 
 private:
-    std::shared_ptr<InstanceManager> pInstanceMgr_;
+    std::shared_ptr<InstanceBox> pInstanceBox_;
 
     vk::SurfaceKHR surface_;
 };

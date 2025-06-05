@@ -10,22 +10,22 @@
 
 namespace vkc {
 
-class CommandPoolManager {
-    CommandPoolManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::CommandPool commandPool,
-                       uint32_t queueFamilyIdx) noexcept;
+class CommandPoolBox {
+    CommandPoolBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::CommandPool commandPool,
+                   uint32_t queueFamilyIdx) noexcept;
 
 public:
-    CommandPoolManager(CommandPoolManager&& rhs) noexcept;
-    ~CommandPoolManager() noexcept;
+    CommandPoolBox(CommandPoolBox&& rhs) noexcept;
+    ~CommandPoolBox() noexcept;
 
-    [[nodiscard]] static std::expected<CommandPoolManager, Error> create(std::shared_ptr<DeviceManager> pDeviceMgr,
-                                                                         uint32_t queueFamilyIdx) noexcept;
+    [[nodiscard]] static std::expected<CommandPoolBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
+                                                                     uint32_t queueFamilyIdx) noexcept;
 
     [[nodiscard]] vk::CommandPool getCommandPool() const noexcept { return commandPool_; }
     [[nodiscard]] uint32_t getQueueFamilyIdx() const noexcept { return queueFamilyIdx_; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::CommandPool commandPool_;
     uint32_t queueFamilyIdx_;

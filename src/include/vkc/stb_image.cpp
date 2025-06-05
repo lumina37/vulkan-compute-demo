@@ -24,20 +24,20 @@ namespace vkc {
 
 namespace fs = std::filesystem;
 
-StbImageManager::StbImageManager(std::byte* image, Extent extent) noexcept : image_(image), extent_(extent) {}
+StbImageBox::StbImageBox(std::byte* image, Extent extent) noexcept : image_(image), extent_(extent) {}
 
-StbImageManager::StbImageManager(StbImageManager&& rhs) noexcept {
+StbImageBox::StbImageBox(StbImageBox&& rhs) noexcept {
     image_ = std::exchange(rhs.image_, nullptr);
     std::swap(extent_, rhs.extent_);
 }
 
-StbImageManager::~StbImageManager() noexcept {
+StbImageBox::~StbImageBox() noexcept {
     if (image_ == nullptr) return;
     STBI_FREE(image_);
     image_ = nullptr;
 }
 
-std::expected<StbImageManager, Error> StbImageManager::createFromPath(const fs::path& path) noexcept {
+std::expected<StbImageBox, Error> StbImageBox::createFromPath(const fs::path& path) noexcept {
     int width, height, oriComps;
     constexpr int comps = 4;
 
@@ -46,17 +46,17 @@ std::expected<StbImageManager, Error> StbImageManager::createFromPath(const fs::
 
     Extent extent{width, height, mapStbCompsToVkFormat(comps)};
 
-    return StbImageManager{image, extent};
+    return StbImageBox{image, extent};
 }
 
-std::expected<StbImageManager, Error> StbImageManager::createWithExtent(const Extent extent) noexcept {
+std::expected<StbImageBox, Error> StbImageBox::createWithExtent(const Extent extent) noexcept {
     std::byte* image = (std::byte*)STBI_MALLOC(extent.size());
     if (image == nullptr) return std::unexpected{Error{-1}};
 
-    return StbImageManager{image, extent};
+    return StbImageBox{image, extent};
 }
 
-std::expected<void, Error> StbImageManager::saveTo(const fs::path& path) const noexcept {
+std::expected<void, Error> StbImageBox::saveTo(const fs::path& path) const noexcept {
     const int stbErr =
         stbi_write_png(path.string().c_str(), extent_.width(), extent_.height(), extent_.bpp(), image_, 0);
     if (stbErr == 0) return std::unexpected{Error{-1, "failed to save image"}};
@@ -64,7 +64,7 @@ std::expected<void, Error> StbImageManager::saveTo(const fs::path& path) const n
     return {};
 }
 
-constexpr vk::Format StbImageManager::mapStbCompsToVkFormat(const int comps) noexcept {
+constexpr vk::Format StbImageBox::mapStbCompsToVkFormat(const int comps) noexcept {
     switch (comps) {
         case 1:
             return vk::Format::eR8Unorm;

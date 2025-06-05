@@ -11,23 +11,23 @@
 
 namespace vkc {
 
-class PipelineManager {
-    PipelineManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Pipeline pipeline,
-                    vk::PipelineBindPoint bindPoint) noexcept;
+class PipelineBox {
+    PipelineBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Pipeline pipeline,
+                vk::PipelineBindPoint bindPoint) noexcept;
 
 public:
-    PipelineManager(PipelineManager&& rhs) noexcept;
-    ~PipelineManager() noexcept;
+    PipelineBox(PipelineBox&& rhs) noexcept;
+    ~PipelineBox() noexcept;
 
-    [[nodiscard]] static std::expected<PipelineManager, Error> createCompute(
-        std::shared_ptr<DeviceManager> pDeviceMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-        const ShaderManager& shaderMgr, const vk::SpecializationInfo& specInfo) noexcept;
+    [[nodiscard]] static std::expected<PipelineBox, Error> createCompute(
+        std::shared_ptr<DeviceBox> pDeviceBox, const PipelineLayoutBox& pipelineLayoutBox, const ShaderBox& shaderBox,
+        const vk::SpecializationInfo& specInfo) noexcept;
 
     [[nodiscard]] vk::Pipeline getPipeline() const noexcept { return pipeline_; }
     [[nodiscard]] vk::PipelineBindPoint getBindPoint() const noexcept { return bindPoint_; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::Pipeline pipeline_;
     vk::PipelineBindPoint bindPoint_;

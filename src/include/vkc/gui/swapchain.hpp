@@ -19,34 +19,34 @@
 
 namespace vkc {
 
-class SwapchainManager {
-    SwapchainManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::SwapchainKHR swapchain,
-                     std::vector<PresentImageManager>&& imageMgrs) noexcept;
+class SwapchainBox {
+    SwapchainBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::SwapchainKHR swapchain,
+                 std::vector<PresentImageBox>&& imageBoxs) noexcept;
 
 public:
-    SwapchainManager(SwapchainManager&& rhs) noexcept;
-    ~SwapchainManager() noexcept;
+    SwapchainBox(SwapchainBox&& rhs) noexcept;
+    ~SwapchainBox() noexcept;
 
-    [[nodiscard]] static std::expected<SwapchainManager, Error> create(
-        PhyDeviceManager& phyDeviceMgr, std::shared_ptr<DeviceManager> pDeviceMgr, SurfaceManager& surfaceMgr,
+    [[nodiscard]] static std::expected<SwapchainBox, Error> create(
+        PhyDeviceBox& phyDeviceBox, std::shared_ptr<DeviceBox> pDeviceBox, SurfaceBox& surfaceBox,
         std::span<const uint32_t> queueFamilyIndices, const Extent& extent,
         vk::ColorSpaceKHR colorspace = vk::ColorSpaceKHR::eSrgbNonlinear) noexcept;
 
     [[nodiscard]] vk::SwapchainKHR getSwapchain() const noexcept { return swapchain_; }
 
     template <typename Self>
-    [[nodiscard]] auto&& getImageMgr(this Self&& self, int i) noexcept {
-        return std::forward_like<Self>(self).imageMgrs_[i];
+    [[nodiscard]] auto&& getImageBox(this Self&& self, int i) noexcept {
+        return std::forward_like<Self>(self).imageBoxs_[i];
     }
 
     [[nodiscard]] std::expected<uint32_t, Error> acquireImageIndex(
-        SemaphoreManager& signalSemaphoreMgr, uint64_t timeout = std::numeric_limits<uint64_t>::max()) noexcept;
+        SemaphoreBox& signalSemaphoreBox, uint64_t timeout = std::numeric_limits<uint64_t>::max()) noexcept;
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::SwapchainKHR swapchain_;
-    std::vector<PresentImageManager> imageMgrs_;
+    std::vector<PresentImageBox> imageBoxs_;
 };
 
 }  // namespace vkc

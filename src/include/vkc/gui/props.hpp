@@ -3,7 +3,7 @@
 #include <expected>
 #include <vector>
 
-#include "vkc/device/physical/manager.hpp"
+#include "vkc/device/physical/box.hpp"
 #include "vkc/gui/surface.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
@@ -16,8 +16,8 @@ public:
     DefaultSurfaceProps(const DefaultSurfaceProps&) = delete;
     DefaultSurfaceProps(DefaultSurfaceProps&&) noexcept = default;
 
-    [[nodiscard]] static std::expected<DefaultSurfaceProps, Error> create(const PhyDeviceManager& phyDeviceMgr,
-                                                                          const SurfaceManager& surfaceMgr) noexcept;
+    [[nodiscard]] static std::expected<DefaultSurfaceProps, Error> create(const PhyDeviceBox& phyDeviceBox,
+                                                                          const SurfaceBox& surfaceBox) noexcept;
 
     // Members
     vk::Extent2D minExtent;

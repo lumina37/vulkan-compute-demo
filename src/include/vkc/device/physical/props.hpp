@@ -6,7 +6,7 @@
 
 #include "vkc/device/extensions.hpp"
 #include "vkc/device/physical/concepts.hpp"
-#include "vkc/device/physical/manager.hpp"
+#include "vkc/device/physical/box.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 
@@ -19,7 +19,7 @@ public:
     DefaultPhyDeviceProps(DefaultPhyDeviceProps&&) noexcept = default;
 
     [[nodiscard]] static std::expected<DefaultPhyDeviceProps, Error> create(
-        const PhyDeviceManager& phyDeviceMgr) noexcept;
+        const PhyDeviceBox& phyDeviceBox) noexcept;
     [[nodiscard]] std::expected<float, Error> score() const noexcept;
 
     // Members
@@ -37,22 +37,22 @@ class PhyDeviceWithProps_ {
 public:
     using TDProps = TDProps_;
 
-    PhyDeviceWithProps_(PhyDeviceManager&& phyDeviceMgr, TDProps&& phyDeviceProps) noexcept;
+    PhyDeviceWithProps_(PhyDeviceBox&& phyDeviceBox, TDProps&& phyDeviceProps) noexcept;
 
     template <typename Self>
-    [[nodiscard]] auto&& getPhyDeviceMgr(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).phyDeviceMgr_;
+    [[nodiscard]] auto&& getPhyDeviceBox(this Self&& self) noexcept {
+        return std::forward_like<Self>(self).phyDeviceBox_;
     }
     [[nodiscard]] const TDProps& getPhyDeviceProps() const noexcept { return phyDeviceProps_; }
 
 private:
-    PhyDeviceManager phyDeviceMgr_;
+    PhyDeviceBox phyDeviceBox_;
     TDProps phyDeviceProps_;
 };
 
 template <CPhyDeviceProps TDProps>
-PhyDeviceWithProps_<TDProps>::PhyDeviceWithProps_(PhyDeviceManager&& phyDeviceMgr, TDProps&& phyDeviceProps) noexcept
-    : phyDeviceMgr_(std::move(phyDeviceMgr)), phyDeviceProps_(std::move(phyDeviceProps)) {}
+PhyDeviceWithProps_<TDProps>::PhyDeviceWithProps_(PhyDeviceBox&& phyDeviceBox, TDProps&& phyDeviceProps) noexcept
+    : phyDeviceBox_(std::move(phyDeviceBox)), phyDeviceProps_(std::move(phyDeviceProps)) {}
 
 }  // namespace vkc
 

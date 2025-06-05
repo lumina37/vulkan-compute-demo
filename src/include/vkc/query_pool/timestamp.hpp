@@ -9,16 +9,16 @@
 
 namespace vkc {
 
-class TimestampQueryPoolManager {
-    TimestampQueryPoolManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::QueryPool queryPool, int queryCount,
+class TimestampQueryPoolBox {
+    TimestampQueryPoolBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::QueryPool queryPool, int queryCount,
                               float timestampPeriod) noexcept;
 
 public:
-    TimestampQueryPoolManager(TimestampQueryPoolManager&& rhs) noexcept;
-    ~TimestampQueryPoolManager() noexcept;
+    TimestampQueryPoolBox(TimestampQueryPoolBox&& rhs) noexcept;
+    ~TimestampQueryPoolBox() noexcept;
 
-    [[nodiscard]] static std::expected<TimestampQueryPoolManager, Error> create(
-        std::shared_ptr<DeviceManager> pDeviceMgr, int queryCount, float timestampPeriod) noexcept;
+    [[nodiscard]] static std::expected<TimestampQueryPoolBox, Error> create(
+        std::shared_ptr<DeviceBox> pDeviceBox, int queryCount, float timestampPeriod) noexcept;
 
     [[nodiscard]] int getQueryIndex() const noexcept { return queryIndex_; }
     [[nodiscard]] std::expected<void, Error> addQueryIndex() noexcept;
@@ -31,7 +31,7 @@ public:
     [[nodiscard]] std::expected<std::vector<float>, Error> getElaspedTimes() const noexcept;
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::QueryPool queryPool_;
     int queryCount_;

@@ -13,32 +13,32 @@
 
 namespace vkc {
 
-DescSetLayoutManager::DescSetLayoutManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
+DescSetLayoutBox::DescSetLayoutBox(std::shared_ptr<DeviceBox>&& pDeviceBox,
                                            vk::DescriptorSetLayout descSetlayout) noexcept
-    : pDdeviceMgr_(std::move(pDeviceMgr)), descSetlayout_(descSetlayout) {}
+    : pDdeviceBox_(std::move(pDeviceBox)), descSetlayout_(descSetlayout) {}
 
-DescSetLayoutManager::DescSetLayoutManager(DescSetLayoutManager&& rhs) noexcept
-    : pDdeviceMgr_(std::move(rhs.pDdeviceMgr_)), descSetlayout_(std::exchange(rhs.descSetlayout_, nullptr)) {}
+DescSetLayoutBox::DescSetLayoutBox(DescSetLayoutBox&& rhs) noexcept
+    : pDdeviceBox_(std::move(rhs.pDdeviceBox_)), descSetlayout_(std::exchange(rhs.descSetlayout_, nullptr)) {}
 
-DescSetLayoutManager::~DescSetLayoutManager() noexcept {
+DescSetLayoutBox::~DescSetLayoutBox() noexcept {
     if (descSetlayout_ == nullptr) return;
-    vk::Device device = pDdeviceMgr_->getDevice();
+    vk::Device device = pDdeviceBox_->getDevice();
     device.destroyDescriptorSetLayout(descSetlayout_);
     descSetlayout_ = nullptr;
 }
 
-std::expected<DescSetLayoutManager, Error> DescSetLayoutManager::create(
-    std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorSetLayoutBinding> bindings) noexcept {
+std::expected<DescSetLayoutBox, Error> DescSetLayoutBox::create(
+    std::shared_ptr<DeviceBox> pDeviceBox, std::span<const vk::DescriptorSetLayoutBinding> bindings) noexcept {
     vk::DescriptorSetLayoutCreateInfo layoutInfo;
     layoutInfo.setBindings(bindings);
 
-    vk::Device device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceBox->getDevice();
     const auto [descSetlayoutRes, descSetlayout] = device.createDescriptorSetLayout(layoutInfo);
     if (descSetlayoutRes != vk::Result::eSuccess) {
         return std::unexpected{Error{descSetlayoutRes}};
     }
 
-    return DescSetLayoutManager{std::move(pDeviceMgr), descSetlayout};
+    return DescSetLayoutBox{std::move(pDeviceBox), descSetlayout};
 }
 
 }  // namespace vkc

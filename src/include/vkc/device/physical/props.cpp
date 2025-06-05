@@ -1,7 +1,7 @@
 #include <expected>
 #include <ranges>
 
-#include "vkc/device/physical/manager.hpp"
+#include "vkc/device/physical/box.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 
@@ -14,9 +14,9 @@ namespace vkc {
 namespace rgs = std::ranges;
 
 std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(
-    const PhyDeviceManager& phyDeviceMgr) noexcept {
+    const PhyDeviceBox& phyDeviceBox) noexcept {
     DefaultPhyDeviceProps props;
-    const vk::PhysicalDevice phyDevice = phyDeviceMgr.getPhyDevice();
+    const vk::PhysicalDevice phyDevice = phyDeviceBox.getPhyDevice();
 
     auto [extPropsRes, extProps] = phyDevice.enumerateDeviceExtensionProperties();
     if (extPropsRes != vk::Result::eSuccess) {

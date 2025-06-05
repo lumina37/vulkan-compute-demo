@@ -10,34 +10,34 @@
 
 namespace vkc::_hp {
 
-[[nodiscard]] std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceManager& phyDeviceMgr,
+[[nodiscard]] std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceBox& phyDeviceBox,
                                                                uint32_t supportedMemType,
                                                                vk::MemoryPropertyFlags memProps) noexcept;
 
-[[nodiscard]] std::expected<void, Error> allocBufferMemory(const PhyDeviceManager& phyDeviceMgr,
-                                                           DeviceManager& deviceMgr, vk::Buffer& buffer,
+[[nodiscard]] std::expected<void, Error> allocBufferMemory(const PhyDeviceBox& phyDeviceBox,
+                                                           DeviceBox& deviceBox, vk::Buffer& buffer,
                                                            vk::MemoryPropertyFlags memProps,
                                                            vk::DeviceMemory& bufferMemory) noexcept;
 
-[[nodiscard]] std::expected<void, Error> allocImageMemory(const PhyDeviceManager& phyDeviceMgr,
-                                                          DeviceManager& deviceMgr, vk::Image& image,
+[[nodiscard]] std::expected<void, Error> allocImageMemory(const PhyDeviceBox& phyDeviceBox,
+                                                          DeviceBox& deviceBox, vk::Image& image,
                                                           vk::MemoryPropertyFlags memProps,
                                                           vk::DeviceMemory& bufferMemory) noexcept;
 
-class MemMapManager {
-    MemMapManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceMemory memory, void* mapPtr) noexcept;
+class MemMapBox {
+    MemMapBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceMemory memory, void* mapPtr) noexcept;
 
 public:
-    MemMapManager(MemMapManager&& rhs) noexcept;
-    ~MemMapManager() noexcept;
+    MemMapBox(MemMapBox&& rhs) noexcept;
+    ~MemMapBox() noexcept;
 
-    [[nodiscard]] static std::expected<MemMapManager, Error> create(std::shared_ptr<DeviceManager> pDeviceMgr,
+    [[nodiscard]] static std::expected<MemMapBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
                                                                     vk::DeviceMemory& memory, size_t size) noexcept;
 
     [[nodiscard]] void* getMapPtr() const noexcept { return mapPtr_; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::DeviceMemory memory_;
     void* mapPtr_;

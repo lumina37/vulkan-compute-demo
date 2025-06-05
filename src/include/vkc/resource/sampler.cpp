@@ -14,24 +14,24 @@
 
 namespace vkc {
 
-SamplerManager::SamplerManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Sampler sampler,
+SamplerBox::SamplerBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Sampler sampler,
                                vk::DescriptorImageInfo samplerInfo) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), sampler_(sampler), descSamplerInfo_(samplerInfo) {}
+    : pDeviceBox_(std::move(pDeviceBox)), sampler_(sampler), descSamplerInfo_(samplerInfo) {}
 
-SamplerManager::SamplerManager(SamplerManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
+SamplerBox::SamplerBox(SamplerBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)),
       sampler_(std::exchange(rhs.sampler_, nullptr)),
       descSamplerInfo_(std::exchange(rhs.descSamplerInfo_, {})) {}
 
-SamplerManager::~SamplerManager() noexcept {
+SamplerBox::~SamplerBox() noexcept {
     if (sampler_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceBox_->getDevice();
     device.destroySampler(sampler_);
     sampler_ = nullptr;
     descSamplerInfo_.setSampler(nullptr);
 }
 
-std::expected<SamplerManager, Error> SamplerManager::create(std::shared_ptr<DeviceManager> pDeviceMgr) noexcept {
+std::expected<SamplerBox, Error> SamplerBox::create(std::shared_ptr<DeviceBox> pDeviceBox) noexcept {
     vk::SamplerCreateInfo samplerCreateInfo;
     samplerCreateInfo.setMagFilter(vk::Filter::eLinear);
     samplerCreateInfo.setMinFilter(vk::Filter::eLinear);
@@ -39,7 +39,7 @@ std::expected<SamplerManager, Error> SamplerManager::create(std::shared_ptr<Devi
     samplerCreateInfo.setAddressModeV(vk::SamplerAddressMode::eMirroredRepeat);
     samplerCreateInfo.setAddressModeW(vk::SamplerAddressMode::eMirroredRepeat);
 
-    vk::Device device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceBox->getDevice();
     const auto [samplerRes, sampler] = device.createSampler(samplerCreateInfo);
     if (samplerRes != vk::Result::eSuccess) {
         return std::unexpected{Error{samplerRes}};
@@ -49,10 +49,10 @@ std::expected<SamplerManager, Error> SamplerManager::create(std::shared_ptr<Devi
     vk::DescriptorImageInfo samplerInfo;
     samplerInfo.setSampler(sampler);
 
-    return SamplerManager{std::move(pDeviceMgr), sampler, samplerInfo};
+    return SamplerBox{std::move(pDeviceBox), sampler, samplerInfo};
 }
 
-vk::WriteDescriptorSet SamplerManager::draftWriteDescSet() const noexcept {
+vk::WriteDescriptorSet SamplerBox::draftWriteDescSet() const noexcept {
     vk::WriteDescriptorSet writeDescSet;
     writeDescSet.setDescriptorCount(1);
     writeDescSet.setDescriptorType(vk::DescriptorType::eSampler);

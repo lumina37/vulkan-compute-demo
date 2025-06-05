@@ -13,15 +13,15 @@ namespace vkc {
 
 namespace fs = std::filesystem;
 
-class StbImageManager {
-    StbImageManager(std::byte* image, Extent extent) noexcept;
+class StbImageBox {
+    StbImageBox(std::byte* image, Extent extent) noexcept;
 
 public:
-    StbImageManager(StbImageManager&& rhs) noexcept;
-    ~StbImageManager() noexcept;
+    StbImageBox(StbImageBox&& rhs) noexcept;
+    ~StbImageBox() noexcept;
 
-    [[nodiscard]] static std::expected<StbImageManager, Error> createFromPath(const fs::path& path) noexcept;
-    [[nodiscard]] static std::expected<StbImageManager, Error> createWithExtent(Extent extent) noexcept;
+    [[nodiscard]] static std::expected<StbImageBox, Error> createFromPath(const fs::path& path) noexcept;
+    [[nodiscard]] static std::expected<StbImageBox, Error> createWithExtent(Extent extent) noexcept;
 
     [[nodiscard]] std::span<std::byte> getImageSpan() const noexcept { return {image_, extent_.size()}; }
     [[nodiscard]] std::byte* getPData() const noexcept { return image_; }

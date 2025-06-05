@@ -11,16 +11,16 @@
 
 namespace vkc {
 
-class StorageBufferManager {
-    StorageBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceSize size, vk::DeviceMemory memory,
+class StorageBufferBox {
+    StorageBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceSize size, vk::DeviceMemory memory,
                          vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
 
 public:
-    StorageBufferManager(StorageBufferManager&& rhs) noexcept;
-    ~StorageBufferManager() noexcept;
+    StorageBufferBox(StorageBufferBox&& rhs) noexcept;
+    ~StorageBufferBox() noexcept;
 
-    [[nodiscard]] static std::expected<StorageBufferManager, Error> create(PhyDeviceManager& phyDeviceMgr,
-                                                                           std::shared_ptr<DeviceManager> pDeviceMgr,
+    [[nodiscard]] static std::expected<StorageBufferBox, Error> create(PhyDeviceBox& phyDeviceBox,
+                                                                           std::shared_ptr<DeviceBox> pDeviceBox,
                                                                            vk::DeviceSize size) noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
@@ -36,7 +36,7 @@ public:
     [[nodiscard]] std::expected<void, Error> download(std::byte* pDst) noexcept;
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::DeviceSize size_;
     vk::DeviceMemory memory_;
@@ -44,7 +44,7 @@ private:
     vk::DescriptorBufferInfo descBufferInfo_;
 };
 
-constexpr vk::DescriptorSetLayoutBinding StorageBufferManager::draftDescSetLayoutBinding() noexcept {
+constexpr vk::DescriptorSetLayoutBinding StorageBufferBox::draftDescSetLayoutBinding() noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
     binding.setDescriptorType(getDescType());

@@ -13,32 +13,32 @@
 
 namespace vkc {
 
-DescPoolManager::DescPoolManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DescriptorPool descPool) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), descPool_(descPool) {}
+DescPoolBox::DescPoolBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DescriptorPool descPool) noexcept
+    : pDeviceBox_(std::move(pDeviceBox)), descPool_(descPool) {}
 
-DescPoolManager::DescPoolManager(DescPoolManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)), descPool_(std::exchange(rhs.descPool_, nullptr)) {}
+DescPoolBox::DescPoolBox(DescPoolBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)), descPool_(std::exchange(rhs.descPool_, nullptr)) {}
 
-DescPoolManager::~DescPoolManager() noexcept {
+DescPoolBox::~DescPoolBox() noexcept {
     if (descPool_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceBox_->getDevice();
     device.destroyDescriptorPool(descPool_);
     descPool_ = nullptr;
 }
 
-std::expected<DescPoolManager, Error> DescPoolManager::create(
-    std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const vk::DescriptorPoolSize> poolSizes) noexcept {
+std::expected<DescPoolBox, Error> DescPoolBox::create(
+    std::shared_ptr<DeviceBox> pDeviceBox, std::span<const vk::DescriptorPoolSize> poolSizes) noexcept {
     vk::DescriptorPoolCreateInfo poolInfo;
     poolInfo.setMaxSets((uint32_t)poolSizes.size());
     poolInfo.setPoolSizes(poolSizes);
 
-    vk::Device device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceBox->getDevice();
     const auto [descPoolRes, descPool] = device.createDescriptorPool(poolInfo);
     if (descPoolRes != vk::Result::eSuccess) {
         return std::unexpected{Error{descPoolRes}};
     }
 
-    return DescPoolManager{std::move(pDeviceMgr), descPool};
+    return DescPoolBox{std::move(pDeviceBox), descPool};
 }
 
 }  // namespace vkc

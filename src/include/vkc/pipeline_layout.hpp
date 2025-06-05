@@ -11,34 +11,34 @@
 
 namespace vkc {
 
-class PipelineLayoutManager {
-    PipelineLayoutManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::PipelineLayout pipelineLayout) noexcept;
+class PipelineLayoutBox {
+    PipelineLayoutBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::PipelineLayout pipelineLayout) noexcept;
 
 public:
-    PipelineLayoutManager(PipelineLayoutManager&& rhs) noexcept;
-    ~PipelineLayoutManager() noexcept;
+    PipelineLayoutBox(PipelineLayoutBox&& rhs) noexcept;
+    ~PipelineLayoutBox() noexcept;
 
-    using TDescSetLayoutMgrCRef = std::reference_wrapper<const DescSetLayoutManager>;
+    using TDescSetLayoutBoxCRef = std::reference_wrapper<const DescSetLayoutBox>;
 
 private:
-    [[nodiscard]] static std::expected<PipelineLayoutManager, Error> _create(
-        std::shared_ptr<DeviceManager>&& pDeviceMgr,
-        const std::span<const TDescSetLayoutMgrCRef>& descSetLayoutMgrCRefs,
+    [[nodiscard]] static std::expected<PipelineLayoutBox, Error> _create(
+        std::shared_ptr<DeviceBox>&& pDeviceBox,
+        const std::span<const TDescSetLayoutBoxCRef>& descSetLayoutBoxCRefs,
         const vk::PushConstantRange* pPushConstantRange) noexcept;
 
 public:
-    [[nodiscard]] static std::expected<PipelineLayoutManager, Error> create(
-        std::shared_ptr<DeviceManager> pDeviceMgr,
-        std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs) noexcept;
+    [[nodiscard]] static std::expected<PipelineLayoutBox, Error> create(
+        std::shared_ptr<DeviceBox> pDeviceBox,
+        std::span<const TDescSetLayoutBoxCRef> descSetLayoutBoxCRefs) noexcept;
 
-    [[nodiscard]] static std::expected<PipelineLayoutManager, Error> createWithPushConstant(
-        std::shared_ptr<DeviceManager> pDeviceMgr, std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs,
+    [[nodiscard]] static std::expected<PipelineLayoutBox, Error> createWithPushConstant(
+        std::shared_ptr<DeviceBox> pDeviceBox, std::span<const TDescSetLayoutBoxCRef> descSetLayoutBoxCRefs,
         const vk::PushConstantRange& pushConstantRange) noexcept;
 
     [[nodiscard]] vk::PipelineLayout getPipelineLayout() const noexcept { return pipelineLayout_; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::PipelineLayout pipelineLayout_;
 };

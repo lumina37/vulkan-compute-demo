@@ -18,38 +18,38 @@
 
 namespace vkc {
 
-DescSetsManager::DescSetsManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
+DescSetsBox::DescSetsBox(std::shared_ptr<DeviceBox>&& pDeviceBox,
                                  std::vector<vk::DescriptorSet>&& descSets) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), descSets_(std::move(descSets)) {}
+    : pDeviceBox_(std::move(pDeviceBox)), descSets_(std::move(descSets)) {}
 
-std::expected<DescSetsManager, Error> DescSetsManager::create(
-    std::shared_ptr<DeviceManager> pDeviceMgr, DescPoolManager& descPoolMgr,
-    std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs) noexcept {
-    const auto genDescSetLayout = [](const TDescSetLayoutMgrCRef& mgrRef) {
-        const DescSetLayoutManager& descSetLayoutMgr = mgrRef.get();
-        vk::DescriptorSetLayout descSetLayout = descSetLayoutMgr.getDescSetLayout();
+std::expected<DescSetsBox, Error> DescSetsBox::create(
+    std::shared_ptr<DeviceBox> pDeviceBox, DescPoolBox& descPoolBox,
+    std::span<const TDescSetLayoutBoxCRef> descSetLayoutBoxCRefs) noexcept {
+    const auto genDescSetLayout = [](const TDescSetLayoutBoxCRef& boxRef) {
+        const DescSetLayoutBox& descSetLayoutBox = boxRef.get();
+        vk::DescriptorSetLayout descSetLayout = descSetLayoutBox.getDescSetLayout();
         return descSetLayout;
     };
 
     const auto descSetLayouts =
-        descSetLayoutMgrCRefs | rgs::views::transform(genDescSetLayout) | rgs::to<std::vector>();
+        descSetLayoutBoxCRefs | rgs::views::transform(genDescSetLayout) | rgs::to<std::vector>();
 
     vk::DescriptorSetAllocateInfo descSetAllocInfo;
-    vk::DescriptorPool descPool = descPoolMgr.getDescPool();
+    vk::DescriptorPool descPool = descPoolBox.getDescPool();
     descSetAllocInfo.setDescriptorPool(descPool);
-    descSetAllocInfo.setDescriptorSetCount((uint32_t)descSetLayoutMgrCRefs.size());
+    descSetAllocInfo.setDescriptorSetCount((uint32_t)descSetLayoutBoxCRefs.size());
     descSetAllocInfo.setSetLayouts(descSetLayouts);
 
-    vk::Device device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceBox->getDevice();
     auto [descSetsRes, descSets] = device.allocateDescriptorSets(descSetAllocInfo);
     if (descSetsRes != vk::Result::eSuccess) {
         return std::unexpected{Error{descSetsRes}};
     }
 
-    return DescSetsManager{std::move(pDeviceMgr), std::move(descSets)};
+    return DescSetsBox{std::move(pDeviceBox), std::move(descSets)};
 }
 
-void DescSetsManager::updateDescSets(
+void DescSetsBox::updateDescSets(
     std::span<const std::span<const vk::WriteDescriptorSet>> writeDescSetTemplatesRefs) noexcept {
     int writeDescSetCount = 0;
     for (const auto& writeDescSetTemplates : writeDescSetTemplatesRefs) {
@@ -68,7 +68,7 @@ void DescSetsManager::updateDescSets(
         }
     }
 
-    vk::Device device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceBox_->getDevice();
     device.updateDescriptorSets(writeDescSets, nullptr);
 }
 

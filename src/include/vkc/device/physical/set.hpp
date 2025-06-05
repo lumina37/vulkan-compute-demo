@@ -5,8 +5,8 @@
 #include <print>
 
 #include "vkc/device/instance.hpp"
+#include "vkc/device/physical/box.hpp"
 #include "vkc/device/physical/concepts.hpp"
-#include "vkc/device/physical/manager.hpp"
 #include "vkc/device/physical/props.hpp"
 #include "vkc/device/score.hpp"
 #include "vkc/helper/defines.hpp"
@@ -26,7 +26,7 @@ private:
     PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDevicesWithProps) noexcept;
 
 public:
-    [[nodiscard]] static std::expected<PhyDeviceSet_, Error> create(const InstanceManager& instMgr) noexcept;
+    [[nodiscard]] static std::expected<PhyDeviceSet_, Error> create(const InstanceBox& instBox) noexcept;
 
     [[nodiscard]] std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> select(
         const FnJudge& judge) noexcept;
@@ -41,8 +41,8 @@ PhyDeviceSet_<TProps>::PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDevic
     : phyDevicesWithProps_(std::move(phyDevicesWithProps)) {}
 
 template <CPhyDeviceProps TProps>
-std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const InstanceManager& instMgr) noexcept {
-    const vk::Instance instance = instMgr.getInstance();
+std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const InstanceBox& instBox) noexcept {
+    const vk::Instance instance = instBox.getInstance();
 
     const auto [physicalDevicesRes, physicalDevices] = instance.enumeratePhysicalDevices();
     if (physicalDevicesRes != vk::Result::eSuccess) {
@@ -52,15 +52,15 @@ std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const 
     std::vector<TPhyDeviceWithProps> phyDevicesWithProps;
     phyDevicesWithProps.reserve(physicalDevices.size());
     for (const auto& physicalDevice : physicalDevices) {
-        auto phyDeviceMgrRes = PhyDeviceManager::create(physicalDevice);
-        if (!phyDeviceMgrRes) return std::unexpected{std::move(phyDeviceMgrRes.error())};
-        auto& phyDeviceMgr = phyDeviceMgrRes.value();
+        auto phyDeviceBoxRes = PhyDeviceBox::create(physicalDevice);
+        if (!phyDeviceBoxRes) return std::unexpected{std::move(phyDeviceBoxRes.error())};
+        auto& phyDeviceBox = phyDeviceBoxRes.value();
 
-        auto phyDevicePropsRes = TDProps::create(phyDeviceMgr);
+        auto phyDevicePropsRes = TDProps::create(phyDeviceBox);
         if (!phyDevicePropsRes) return std::unexpected{std::move(phyDevicePropsRes.error())};
         auto& phyDeviceProps = phyDevicePropsRes.value();
 
-        phyDevicesWithProps.emplace_back(std::move(phyDeviceMgr), std::move(phyDeviceProps));
+        phyDevicesWithProps.emplace_back(std::move(phyDeviceBox), std::move(phyDeviceProps));
     }
 
     return PhyDeviceSet_{std::move(phyDevicesWithProps)};
@@ -74,7 +74,7 @@ auto PhyDeviceSet_<TProps>::select(const FnJudge& judge) noexcept
 
     const auto printDeviceInfo = [](const TPhyDeviceWithProps& deviceWithProps,
                                     const float score) -> std::expected<void, Error> {
-        const vk::PhysicalDevice phyDevice = deviceWithProps.getPhyDeviceMgr().getPhyDevice();
+        const vk::PhysicalDevice phyDevice = deviceWithProps.getPhyDeviceBox().getPhyDevice();
         const auto& phyDeviceProp = phyDevice.getProperties();
         const uint32_t apiVersion = deviceWithProps.getPhyDeviceProps().apiVersion;
 

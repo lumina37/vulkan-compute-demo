@@ -17,25 +17,25 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-PipelineLayoutManager::PipelineLayoutManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
+PipelineLayoutBox::PipelineLayoutBox(std::shared_ptr<DeviceBox>&& pDeviceBox,
                                              vk::PipelineLayout pipelineLayout) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), pipelineLayout_(pipelineLayout) {}
+    : pDeviceBox_(std::move(pDeviceBox)), pipelineLayout_(pipelineLayout) {}
 
-PipelineLayoutManager::PipelineLayoutManager(PipelineLayoutManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)), pipelineLayout_(std::exchange(rhs.pipelineLayout_, nullptr)) {}
+PipelineLayoutBox::PipelineLayoutBox(PipelineLayoutBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)), pipelineLayout_(std::exchange(rhs.pipelineLayout_, nullptr)) {}
 
-PipelineLayoutManager::~PipelineLayoutManager() noexcept {
+PipelineLayoutBox::~PipelineLayoutBox() noexcept {
     if (pipelineLayout_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceBox_->getDevice();
     device.destroyPipelineLayout(pipelineLayout_);
     pipelineLayout_ = nullptr;
 }
 
-std::expected<PipelineLayoutManager, Error> PipelineLayoutManager::_create(
-    std::shared_ptr<DeviceManager>&& pDeviceMgr, const std::span<const TDescSetLayoutMgrCRef>& descSetLayoutMgrCRefs,
+std::expected<PipelineLayoutBox, Error> PipelineLayoutBox::_create(
+    std::shared_ptr<DeviceBox>&& pDeviceBox, const std::span<const TDescSetLayoutBoxCRef>& descSetLayoutBoxCRefs,
     const vk::PushConstantRange* pPushConstantRange) noexcept {
-    const auto descSetLayouts = descSetLayoutMgrCRefs |
-                                rgs::views::transform(DescSetLayoutManager::exposeDescSetLayout) |
+    const auto descSetLayouts = descSetLayoutBoxCRefs |
+                                rgs::views::transform(DescSetLayoutBox::exposeDescSetLayout) |
                                 rgs::to<std::vector>();
 
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
@@ -45,25 +45,25 @@ std::expected<PipelineLayoutManager, Error> PipelineLayoutManager::_create(
         pipelineLayoutInfo.setPushConstantRangeCount(1);
     }
 
-    vk::Device device = pDeviceMgr->getDevice();
+    vk::Device device = pDeviceBox->getDevice();
     const auto [pipelineLayoutRes, pipelineLayout] = device.createPipelineLayout(pipelineLayoutInfo);
     if (pipelineLayoutRes != vk::Result::eSuccess) {
         return std::unexpected{Error{pipelineLayoutRes}};
     }
 
-    return PipelineLayoutManager{std::move(pDeviceMgr), pipelineLayout};
+    return PipelineLayoutBox{std::move(pDeviceBox), pipelineLayout};
 }
 
-std::expected<PipelineLayoutManager, Error> PipelineLayoutManager::create(
-    std::shared_ptr<DeviceManager> pDeviceMgr,
-    const std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs) noexcept {
-    return _create(std::move(pDeviceMgr), descSetLayoutMgrCRefs, nullptr);
+std::expected<PipelineLayoutBox, Error> PipelineLayoutBox::create(
+    std::shared_ptr<DeviceBox> pDeviceBox,
+    const std::span<const TDescSetLayoutBoxCRef> descSetLayoutBoxCRefs) noexcept {
+    return _create(std::move(pDeviceBox), descSetLayoutBoxCRefs, nullptr);
 }
 
-std::expected<PipelineLayoutManager, Error> PipelineLayoutManager::createWithPushConstant(
-    std::shared_ptr<DeviceManager> pDeviceMgr, const std::span<const TDescSetLayoutMgrCRef> descSetLayoutMgrCRefs,
+std::expected<PipelineLayoutBox, Error> PipelineLayoutBox::createWithPushConstant(
+    std::shared_ptr<DeviceBox> pDeviceBox, const std::span<const TDescSetLayoutBoxCRef> descSetLayoutBoxCRefs,
     const vk::PushConstantRange& pushConstantRange) noexcept {
-    return _create(std::move(pDeviceMgr), descSetLayoutMgrCRefs, &pushConstantRange);
+    return _create(std::move(pDeviceBox), descSetLayoutBoxCRefs, &pushConstantRange);
 }
 
 }  // namespace vkc

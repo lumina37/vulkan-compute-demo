@@ -9,29 +9,29 @@
 
 namespace vkc {
 
-class SamplerManager {
-    SamplerManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Sampler sampler,
+class SamplerBox {
+    SamplerBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Sampler sampler,
                    vk::DescriptorImageInfo samplerInfo) noexcept;
 
 public:
-    SamplerManager(SamplerManager&& rhs) noexcept;
-    ~SamplerManager() noexcept;
+    SamplerBox(SamplerBox&& rhs) noexcept;
+    ~SamplerBox() noexcept;
 
-    [[nodiscard]] static std::expected<SamplerManager, Error> create(
-        std::shared_ptr<DeviceManager> pDeviceMgr) noexcept;
+    [[nodiscard]] static std::expected<SamplerBox, Error> create(
+        std::shared_ptr<DeviceBox> pDeviceBox) noexcept;
 
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept { return vk::DescriptorType::eSampler; }
     [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;
     [[nodiscard]] static constexpr vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() noexcept;
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::Sampler sampler_;
     vk::DescriptorImageInfo descSamplerInfo_;
 };
 
-constexpr vk::DescriptorSetLayoutBinding SamplerManager::draftDescSetLayoutBinding() noexcept {
+constexpr vk::DescriptorSetLayoutBinding SamplerBox::draftDescSetLayoutBinding() noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
     binding.setDescriptorType(getDescType());

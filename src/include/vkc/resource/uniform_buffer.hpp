@@ -11,16 +11,16 @@
 
 namespace vkc {
 
-class UniformBufferManager {
-    UniformBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::DeviceSize size, vk::DeviceMemory memory,
+class UniformBufferBox {
+    UniformBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceSize size, vk::DeviceMemory memory,
                          vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
 
 public:
-    UniformBufferManager(UniformBufferManager&& rhs) noexcept;
-    ~UniformBufferManager() noexcept;
+    UniformBufferBox(UniformBufferBox&& rhs) noexcept;
+    ~UniformBufferBox() noexcept;
 
-    [[nodiscard]] static std::expected<UniformBufferManager, Error> create(PhyDeviceManager& phyDeviceMgr,
-                                                                           std::shared_ptr<DeviceManager> pDeviceMgr,
+    [[nodiscard]] static std::expected<UniformBufferBox, Error> create(PhyDeviceBox& phyDeviceBox,
+                                                                           std::shared_ptr<DeviceBox> pDeviceBox,
                                                                            vk::DeviceSize size) noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
@@ -34,7 +34,7 @@ public:
     [[nodiscard]] std::expected<void, Error> upload(const std::byte* pSrc) noexcept;
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::DeviceSize size_;
     vk::DeviceMemory memory_;
@@ -42,7 +42,7 @@ private:
     vk::DescriptorBufferInfo descBufferInfo_;
 };
 
-constexpr vk::DescriptorSetLayoutBinding UniformBufferManager::draftDescSetLayoutBinding() noexcept {
+constexpr vk::DescriptorSetLayoutBinding UniformBufferBox::draftDescSetLayoutBinding() noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
     binding.setDescriptorType(getDescType());

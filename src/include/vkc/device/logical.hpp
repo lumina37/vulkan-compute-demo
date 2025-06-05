@@ -15,22 +15,22 @@ struct QueueIndex {
     uint32_t familyIndex;
 };
 
-class DeviceManager {
-    DeviceManager(vk::Device device, std::vector<QueueIndex>&& queueIndices) noexcept;
+class DeviceBox {
+    DeviceBox(vk::Device device, std::vector<QueueIndex>&& queueIndices) noexcept;
 
 public:
-    DeviceManager(DeviceManager&& rhs) noexcept;
-    ~DeviceManager() noexcept;
+    DeviceBox(DeviceBox&& rhs) noexcept;
+    ~DeviceBox() noexcept;
 
-    [[nodiscard]] static std::expected<DeviceManager, Error> create(PhyDeviceManager& phyDeviceMgr,
-                                                                    QueueIndex requiredQueueIndex) noexcept;
+    [[nodiscard]] static std::expected<DeviceBox, Error> create(PhyDeviceBox& phyDeviceBox,
+                                                                QueueIndex requiredQueueIndex) noexcept;
 
-    [[nodiscard]] static std::expected<DeviceManager, Error> createWithExts(
-        PhyDeviceManager& phyDeviceMgr, QueueIndex requiredQueueIndex,
+    [[nodiscard]] static std::expected<DeviceBox, Error> createWithExts(
+        PhyDeviceBox& phyDeviceBox, QueueIndex requiredQueueIndex,
         std::span<const std::string_view> enableExtNames) noexcept;
 
-    [[nodiscard]] static std::expected<DeviceManager, Error> createWithMultiQueueAndExts(
-        PhyDeviceManager& phyDeviceMgr, std::span<const QueueIndex> requiredQueueIndices,
+    [[nodiscard]] static std::expected<DeviceBox, Error> createWithMultiQueueAndExts(
+        PhyDeviceBox& phyDeviceBox, std::span<const QueueIndex> requiredQueueIndices,
         std::span<const std::string_view> enableExtNames) noexcept;
 
     [[nodiscard]] vk::Device getDevice() const noexcept { return device_; }

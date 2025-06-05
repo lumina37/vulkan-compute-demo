@@ -12,17 +12,17 @@
 
 namespace vkc {
 
-class PresentImageManager {
-    PresentImageManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, Extent extent, vk::Image image,
+class PresentImageBox {
+    PresentImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image,
                         vk::ImageView imageView, vk::Buffer stagingBuffer, vk::DeviceMemory stagingMemory,
                         vk::DescriptorImageInfo descImageInfo) noexcept;
 
 public:
-    PresentImageManager(PresentImageManager&& rhs) noexcept;
-    ~PresentImageManager() noexcept;
+    PresentImageBox(PresentImageBox&& rhs) noexcept;
+    ~PresentImageBox() noexcept;
 
-    [[nodiscard]] static std::expected<PresentImageManager, Error> create(const PhyDeviceManager& phyDeviceMgr,
-                                                                          std::shared_ptr<DeviceManager> pDeviceMgr,
+    [[nodiscard]] static std::expected<PresentImageBox, Error> create(const PhyDeviceBox& phyDeviceBox,
+                                                                          std::shared_ptr<DeviceBox> pDeviceBox,
                                                                           vk::Image image,
                                                                           const Extent& extent) noexcept;
 
@@ -45,7 +45,7 @@ public:
     void setStagingAccessMask(vk::AccessFlags accessMask) noexcept { stagingAccessMask_ = accessMask; }
 
 private:
-    std::shared_ptr<DeviceManager> pDeviceMgr_;
+    std::shared_ptr<DeviceBox> pDeviceBox_;
 
     Extent extent_;
 

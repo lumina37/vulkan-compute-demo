@@ -7,13 +7,13 @@
 
 namespace vkc {
 
-class PhyDeviceManager {
-    PhyDeviceManager(vk::PhysicalDevice phyDevice) noexcept;
+class PhyDeviceBox {
+    PhyDeviceBox(vk::PhysicalDevice phyDevice) noexcept;
 
 public:
-    PhyDeviceManager(PhyDeviceManager&& rhs) noexcept = default;
+    PhyDeviceBox(PhyDeviceBox&& rhs) noexcept = default;
 
-    [[nodiscard]] static std::expected<PhyDeviceManager, Error> create(vk::PhysicalDevice phyDevice) noexcept;
+    [[nodiscard]] static std::expected<PhyDeviceBox, Error> create(vk::PhysicalDevice phyDevice) noexcept;
 
     [[nodiscard]] vk::PhysicalDevice getPhyDevice() const noexcept { return phyDevice_; }
 
@@ -24,5 +24,5 @@ private:
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/device/physical/manager.cpp"
+#    include "vkc/device/physical/box.cpp"
 #endif

@@ -23,28 +23,28 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-CommandBufferManager::CommandBufferManager(std::shared_ptr<DeviceManager>&& pDeviceMgr,
-                                           std::shared_ptr<CommandPoolManager>&& pCommandPoolMgr,
-                                           const vk::CommandBuffer commandBuffer) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), pCommandPoolMgr_(std::move(pCommandPoolMgr)), commandBuffer_(commandBuffer) {}
+CommandBufferBox::CommandBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox,
+                                   std::shared_ptr<CommandPoolBox>&& pCommandPoolBox,
+                                   const vk::CommandBuffer commandBuffer) noexcept
+    : pDeviceBox_(std::move(pDeviceBox)), pCommandPoolBox_(std::move(pCommandPoolBox)), commandBuffer_(commandBuffer) {}
 
-CommandBufferManager::CommandBufferManager(CommandBufferManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)),
-      pCommandPoolMgr_(std::move(rhs.pCommandPoolMgr_)),
+CommandBufferBox::CommandBufferBox(CommandBufferBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)),
+      pCommandPoolBox_(std::move(rhs.pCommandPoolBox_)),
       commandBuffer_(std::exchange(rhs.commandBuffer_, nullptr)) {}
 
-CommandBufferManager::~CommandBufferManager() noexcept {
+CommandBufferBox::~CommandBufferBox() noexcept {
     if (commandBuffer_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
-    vk::CommandPool commandPool = pCommandPoolMgr_->getCommandPool();
+    vk::Device device = pDeviceBox_->getDevice();
+    vk::CommandPool commandPool = pCommandPoolBox_->getCommandPool();
     device.freeCommandBuffers(commandPool, commandBuffer_);
     commandBuffer_ = nullptr;
 }
 
-std::expected<CommandBufferManager, Error> CommandBufferManager::create(
-    std::shared_ptr<DeviceManager> pDeviceMgr, std::shared_ptr<CommandPoolManager> pCommandPoolMgr) noexcept {
-    vk::Device device = pDeviceMgr->getDevice();
-    vk::CommandPool commandPool = pCommandPoolMgr->getCommandPool();
+std::expected<CommandBufferBox, Error> CommandBufferBox::create(
+    std::shared_ptr<DeviceBox> pDeviceBox, std::shared_ptr<CommandPoolBox> pCommandPoolBox) noexcept {
+    vk::Device device = pDeviceBox->getDevice();
+    vk::CommandPool commandPool = pCommandPoolBox->getCommandPool();
 
     vk::CommandBufferAllocateInfo allocInfo;
     allocInfo.setCommandPool(commandPool);
@@ -57,21 +57,21 @@ std::expected<CommandBufferManager, Error> CommandBufferManager::create(
     }
     vk::CommandBuffer commandBuffer = commandBuffers[0];
 
-    return CommandBufferManager{std::move(pDeviceMgr), std::move(pCommandPoolMgr), commandBuffer};
+    return CommandBufferBox{std::move(pDeviceBox), std::move(pCommandPoolBox), commandBuffer};
 }
 
-void CommandBufferManager::bindPipeline(PipelineManager& pipelineMgr) noexcept {
-    commandBuffer_.bindPipeline(pipelineMgr.getBindPoint(), pipelineMgr.getPipeline());
+void CommandBufferBox::bindPipeline(PipelineBox& pipelineBox) noexcept {
+    commandBuffer_.bindPipeline(pipelineBox.getBindPoint(), pipelineBox.getPipeline());
 }
 
-void CommandBufferManager::bindDescSets(DescSetsManager& descSetsMgr, const PipelineLayoutManager& pipelineLayoutMgr,
-                                        const vk::PipelineBindPoint bindPoint) noexcept {
-    auto& descSets = descSetsMgr.getDescSets();
-    commandBuffer_.bindDescriptorSets(bindPoint, pipelineLayoutMgr.getPipelineLayout(), 0, (uint32_t)descSets.size(),
+void CommandBufferBox::bindDescSets(DescSetsBox& descSetsBox, const PipelineLayoutBox& pipelineLayoutBox,
+                                    const vk::PipelineBindPoint bindPoint) noexcept {
+    auto& descSets = descSetsBox.getDescSets();
+    commandBuffer_.bindDescriptorSets(bindPoint, pipelineLayoutBox.getPipelineLayout(), 0, (uint32_t)descSets.size(),
                                       descSets.data(), 0, nullptr);
 }
 
-std::expected<void, Error> CommandBufferManager::begin() noexcept {
+std::expected<void, Error> CommandBufferBox::begin() noexcept {
     const auto resetRes = commandBuffer_.reset();
     if (resetRes != vk::Result::eSuccess) {
         return std::unexpected{Error{resetRes}};
@@ -87,8 +87,8 @@ std::expected<void, Error> CommandBufferManager::begin() noexcept {
     return {};
 }
 
-void CommandBufferManager::recordDstPrepareShaderWrite(
-    const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
+void CommandBufferBox::recordDstPrepareShaderWrite(
+    const std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eShaderWrite;
     constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eGeneral;
 
@@ -100,34 +100,34 @@ void CommandBufferManager::recordDstPrepareShaderWrite(
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&](const TStorageImageMgrRef mgrRef) {
-        auto& mgr = mgrRef.get();
+    const auto fillout = [&](const TStorageImageBoxRef boxRef) {
+        auto& box = boxRef.get();
 
         vk::ImageMemoryBarrier barrier = barrierTemplate;
-        barrier.setOldLayout(mgr.getImageLayout());
-        barrier.setImage(mgr.getImage());
+        barrier.setOldLayout(box.getImageLayout());
+        barrier.setImage(box.getImage());
 
-        mgr.setImageAccessMask(newAccessMask);
-        mgr.setImageLayout(newImageLayout);
+        box.setImageAccessMask(newAccessMask);
+        box.setImageLayout(newImageLayout);
 
         return barrier;
     };
 
-    const auto barriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = dstImageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eComputeShader,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
                                    barriers.data());
 }
 
-void CommandBufferManager::recordDispatch(const vk::Extent2D extent, const BlockSize blockSize) noexcept {
+void CommandBufferBox::recordDispatch(const vk::Extent2D extent, const BlockSize blockSize) noexcept {
     const uint32_t groupSizeX = (extent.width + (blockSize.x - 1)) / blockSize.x;
     const uint32_t groupSizeY = (extent.height + (blockSize.y - 1)) / blockSize.y;
     commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);
 }
 
-void CommandBufferManager::recordPrepareSendBeforeDispatch(
-    const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
+void CommandBufferBox::recordPrepareSendBeforeDispatch(
+    const std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eTransferRead;
     constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eTransferSrcOptimal;
 
@@ -139,28 +139,28 @@ void CommandBufferManager::recordPrepareSendBeforeDispatch(
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&](const TStorageImageMgrRef mgrRef) {
-        auto& mgr = mgrRef.get();
+    const auto fillout = [&](const TStorageImageBoxRef boxRef) {
+        auto& box = boxRef.get();
 
         vk::ImageMemoryBarrier barrier = barrierTemplate;
-        barrier.setOldLayout(mgr.getImageLayout());
-        barrier.setImage(mgr.getImage());
+        barrier.setOldLayout(box.getImageLayout());
+        barrier.setImage(box.getImage());
 
-        mgr.setImageAccessMask(newAccessMask);
-        mgr.setImageLayout(newImageLayout);
+        box.setImageAccessMask(newAccessMask);
+        box.setImageLayout(newImageLayout);
 
         return barrier;
     };
 
-    const auto barriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = dstImageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
                                    barriers.data());
 }
 
-void CommandBufferManager::recordPrepareSendAfterDispatch(
-    const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
+void CommandBufferBox::recordPrepareSendAfterDispatch(
+    const std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eTransferRead;
     constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eTransferSrcOptimal;
 
@@ -171,28 +171,28 @@ void CommandBufferManager::recordPrepareSendAfterDispatch(
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&](const TStorageImageMgrRef mgrRef) {
-        auto& mgr = mgrRef.get();
+    const auto fillout = [&](const TStorageImageBoxRef boxRef) {
+        auto& box = boxRef.get();
 
         vk::ImageMemoryBarrier barrier = barrierTemplate;
-        barrier.setSrcAccessMask(mgr.getImageAccessMask());
-        barrier.setOldLayout(mgr.getImageLayout());
-        barrier.setImage(mgr.getImage());
+        barrier.setSrcAccessMask(box.getImageAccessMask());
+        barrier.setOldLayout(box.getImageLayout());
+        barrier.setImage(box.getImage());
 
-        mgr.setImageAccessMask(newAccessMask);
-        mgr.setImageLayout(newImageLayout);
+        box.setImageAccessMask(newAccessMask);
+        box.setImageLayout(newImageLayout);
 
         return barrier;
     };
 
-    const auto barriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = dstImageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
                                    barriers.data());
 }
 
-void CommandBufferManager::recordPreparePresent(std::span<const TPresentImageMgrRef> imageMgrRefs) noexcept {
+void CommandBufferBox::recordPreparePresent(std::span<const TPresentImageBoxRef> imageBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eMemoryRead;
     constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::ePresentSrcKHR;
 
@@ -203,45 +203,45 @@ void CommandBufferManager::recordPreparePresent(std::span<const TPresentImageMgr
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
 
-    const auto fillout = [&](const TPresentImageMgrRef mgrRef) {
-        auto& mgr = mgrRef.get();
+    const auto fillout = [&](const TPresentImageBoxRef boxRef) {
+        auto& box = boxRef.get();
 
         vk::ImageMemoryBarrier barrier = barrierTemplate;
-        barrier.setSrcAccessMask(mgr.getImageAccessMask());
-        barrier.setOldLayout(mgr.getImageLayout());
-        barrier.setImage(mgr.getImage());
+        barrier.setSrcAccessMask(box.getImageAccessMask());
+        barrier.setOldLayout(box.getImageLayout());
+        barrier.setImage(box.getImage());
 
-        mgr.setImageAccessMask(newAccessMask);
-        mgr.setImageLayout(newImageLayout);
+        box.setImageAccessMask(newAccessMask);
+        box.setImageLayout(newImageLayout);
 
         return barrier;
     };
 
-    const auto barriers = imageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = imageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
                                    barriers.data());
 }
 
-void CommandBufferManager::recordCopyDstToStaging(StorageImageManager& dstImageMgr) noexcept {
+void CommandBufferBox::recordCopyDstToStaging(StorageImageBox& dstImageBox) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
     copyRegion.setImageSubresource(subresourceLayers);
-    copyRegion.setImageExtent(dstImageMgr.getExtent().extent3D());
+    copyRegion.setImageExtent(dstImageBox.getExtent().extent3D());
 
-    commandBuffer_.copyImageToBuffer(dstImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal,
-                                     dstImageMgr.getStagingBuffer(), 1, &copyRegion);
+    commandBuffer_.copyImageToBuffer(dstImageBox.getImage(), vk::ImageLayout::eTransferSrcOptimal,
+                                     dstImageBox.getStagingBuffer(), 1, &copyRegion);
 }
 
-void CommandBufferManager::recordCopyDstToStagingWithRoi(StorageImageManager& dstImageMgr, const Roi roi) noexcept {
+void CommandBufferBox::recordCopyDstToStagingWithRoi(StorageImageBox& dstImageBox, const Roi roi) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
-    const Extent& imageExtent = dstImageMgr.getExtent();
+    const Extent& imageExtent = dstImageBox.getExtent();
     copyRegion.setBufferOffset(imageExtent.calculateBufferOffset(roi.offset()));
     copyRegion.setBufferRowLength(imageExtent.width());
     copyRegion.setBufferImageHeight(imageExtent.height());
@@ -249,12 +249,11 @@ void CommandBufferManager::recordCopyDstToStagingWithRoi(StorageImageManager& ds
     copyRegion.setImageOffset(roi.offset3D());
     copyRegion.setImageExtent(roi.extent3D());
 
-    commandBuffer_.copyImageToBuffer(dstImageMgr.getImage(), vk::ImageLayout::eTransferSrcOptimal,
-                                     dstImageMgr.getStagingBuffer(), 1, &copyRegion);
+    commandBuffer_.copyImageToBuffer(dstImageBox.getImage(), vk::ImageLayout::eTransferSrcOptimal,
+                                     dstImageBox.getStagingBuffer(), 1, &copyRegion);
 }
 
-void CommandBufferManager::recordWaitDownloadComplete(
-    const std::span<const TStorageImageMgrRef> dstImageMgrRefs) noexcept {
+void CommandBufferBox::recordWaitDownloadComplete(const std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eHostRead;
 
     vk::BufferMemoryBarrier barrierTemplate;
@@ -263,31 +262,31 @@ void CommandBufferManager::recordWaitDownloadComplete(
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
 
-    const auto fillout = [&](const TStorageImageMgrRef mgrRef) {
-        auto& mgr = mgrRef.get();
+    const auto fillout = [&](const TStorageImageBoxRef boxRef) {
+        auto& box = boxRef.get();
 
         vk::BufferMemoryBarrier barrier = barrierTemplate;
-        barrier.setBuffer(mgr.getStagingBuffer());
-        barrier.setSize(mgr.getExtent().size());
+        barrier.setBuffer(box.getStagingBuffer());
+        barrier.setSize(box.getExtent().size());
 
-        mgr.setStagingAccessMask(newAccessMask);
+        box.setStagingAccessMask(newAccessMask);
 
         return barrier;
     };
 
-    const auto barriers = dstImageMgrRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = dstImageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost,
                                    (vk::DependencyFlags)0, 0, nullptr, (uint32_t)barriers.size(), barriers.data(), 0,
                                    nullptr);
 }
 
-std::expected<void, Error> CommandBufferManager::recordTimestampStart(
-    TimestampQueryPoolManager& queryPoolMgr, const vk::PipelineStageFlagBits pipelineStage) noexcept {
-    vk::QueryPool queryPool = queryPoolMgr.getQueryPool();
-    const int queryIndex = queryPoolMgr.getQueryIndex();
+std::expected<void, Error> CommandBufferBox::recordTimestampStart(
+    TimestampQueryPoolBox& queryPoolBox, const vk::PipelineStageFlagBits pipelineStage) noexcept {
+    vk::QueryPool queryPool = queryPoolBox.getQueryPool();
+    const int queryIndex = queryPoolBox.getQueryIndex();
 
-    auto addIndexRes = queryPoolMgr.addQueryIndex();
+    auto addIndexRes = queryPoolBox.addQueryIndex();
     if (!addIndexRes) return std::unexpected{std::move(addIndexRes.error())};
 
     commandBuffer_.writeTimestamp(pipelineStage, queryPool, queryIndex);
@@ -295,12 +294,12 @@ std::expected<void, Error> CommandBufferManager::recordTimestampStart(
     return {};
 }
 
-std::expected<void, Error> CommandBufferManager::recordTimestampEnd(
-    TimestampQueryPoolManager& queryPoolMgr, const vk::PipelineStageFlagBits pipelineStage) noexcept {
-    vk::QueryPool queryPool = queryPoolMgr.getQueryPool();
-    const int queryIndex = queryPoolMgr.getQueryIndex();
+std::expected<void, Error> CommandBufferBox::recordTimestampEnd(
+    TimestampQueryPoolBox& queryPoolBox, const vk::PipelineStageFlagBits pipelineStage) noexcept {
+    vk::QueryPool queryPool = queryPoolBox.getQueryPool();
+    const int queryIndex = queryPoolBox.getQueryIndex();
 
-    auto addIndexRes = queryPoolMgr.addQueryIndex();
+    auto addIndexRes = queryPoolBox.addQueryIndex();
     if (!addIndexRes) return std::unexpected{std::move(addIndexRes.error())};
 
     commandBuffer_.writeTimestamp(pipelineStage, queryPool, queryIndex);
@@ -308,7 +307,7 @@ std::expected<void, Error> CommandBufferManager::recordTimestampEnd(
     return {};
 }
 
-std::expected<void, Error> CommandBufferManager::end() noexcept {
+std::expected<void, Error> CommandBufferBox::end() noexcept {
     const auto endRes = commandBuffer_.end();
     if (endRes != vk::Result::eSuccess) {
         return std::unexpected{Error{endRes}};
@@ -316,19 +315,17 @@ std::expected<void, Error> CommandBufferManager::end() noexcept {
     return {};
 }
 
-template void CommandBufferManager::recordPrepareReceiveBeforeDispatch<SampledImageManager>(
-    std::span<const std::reference_wrapper<SampledImageManager>>) noexcept;
-template void CommandBufferManager::recordPrepareReceiveBeforeDispatch<StorageImageManager>(
-    std::span<const std::reference_wrapper<StorageImageManager>>) noexcept;
+template void CommandBufferBox::recordPrepareReceiveBeforeDispatch<SampledImageBox>(
+    std::span<const std::reference_wrapper<SampledImageBox>>) noexcept;
+template void CommandBufferBox::recordPrepareReceiveBeforeDispatch<StorageImageBox>(
+    std::span<const std::reference_wrapper<StorageImageBox>>) noexcept;
 
-template void CommandBufferManager::recordSrcPrepareShaderRead<SampledImageManager>(
-    std::span<const std::reference_wrapper<SampledImageManager>>) noexcept;
-template void CommandBufferManager::recordSrcPrepareShaderRead<StorageImageManager>(
-    std::span<const std::reference_wrapper<StorageImageManager>>) noexcept;
+template void CommandBufferBox::recordSrcPrepareShaderRead<SampledImageBox>(
+    std::span<const std::reference_wrapper<SampledImageBox>>) noexcept;
+template void CommandBufferBox::recordSrcPrepareShaderRead<StorageImageBox>(
+    std::span<const std::reference_wrapper<StorageImageBox>>) noexcept;
 
-template void CommandBufferManager::recordCopyStagingToSrc<SampledImageManager>(
-    const SampledImageManager& srcImageMgr) noexcept;
-template void CommandBufferManager::recordCopyStagingToSrc<StorageImageManager>(
-    const StorageImageManager& srcImageMgr) noexcept;
+template void CommandBufferBox::recordCopyStagingToSrc<SampledImageBox>(const SampledImageBox& srcImageBox) noexcept;
+template void CommandBufferBox::recordCopyStagingToSrc<StorageImageBox>(const StorageImageBox& srcImageBox) noexcept;
 
 }  // namespace vkc

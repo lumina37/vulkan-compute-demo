@@ -12,28 +12,28 @@
 
 namespace vkc {
 
-SemaphoreManager::SemaphoreManager(std::shared_ptr<DeviceManager>&& pDeviceMgr, vk::Semaphore semaphore) noexcept
-    : pDeviceMgr_(std::move(pDeviceMgr)), semaphore_(semaphore) {}
+SemaphoreBox::SemaphoreBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Semaphore semaphore) noexcept
+    : pDeviceBox_(std::move(pDeviceBox)), semaphore_(semaphore) {}
 
-SemaphoreManager::SemaphoreManager(SemaphoreManager&& rhs) noexcept
-    : pDeviceMgr_(std::move(rhs.pDeviceMgr_)), semaphore_(std::exchange(rhs.semaphore_, nullptr)) {}
+SemaphoreBox::SemaphoreBox(SemaphoreBox&& rhs) noexcept
+    : pDeviceBox_(std::move(rhs.pDeviceBox_)), semaphore_(std::exchange(rhs.semaphore_, nullptr)) {}
 
-SemaphoreManager::~SemaphoreManager() noexcept {
+SemaphoreBox::~SemaphoreBox() noexcept {
     if (semaphore_ == nullptr) return;
-    vk::Device device = pDeviceMgr_->getDevice();
+    vk::Device device = pDeviceBox_->getDevice();
     device.destroySemaphore(semaphore_);
     semaphore_ = nullptr;
 }
 
-std::expected<SemaphoreManager, Error> SemaphoreManager::create(std::shared_ptr<DeviceManager> pDeviceMgr) noexcept {
-    vk::Device device = pDeviceMgr->getDevice();
+std::expected<SemaphoreBox, Error> SemaphoreBox::create(std::shared_ptr<DeviceBox> pDeviceBox) noexcept {
+    vk::Device device = pDeviceBox->getDevice();
     vk::SemaphoreCreateInfo semaphoreInfo;
     const auto [semaphoreRes, semaphore] = device.createSemaphore(semaphoreInfo);
     if (semaphoreRes != vk::Result::eSuccess) {
         return std::unexpected{Error{semaphoreRes}};
     }
 
-    return SemaphoreManager{std::move(pDeviceMgr), semaphore};
+    return SemaphoreBox{std::move(pDeviceBox), semaphore};
 }
 
 }  // namespace vkc

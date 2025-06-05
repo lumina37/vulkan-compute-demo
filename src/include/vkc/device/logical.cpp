@@ -17,32 +17,32 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-DeviceManager::DeviceManager(vk::Device device, std::vector<QueueIndex>&& queueIndices) noexcept
+DeviceBox::DeviceBox(vk::Device device, std::vector<QueueIndex>&& queueIndices) noexcept
     : device_(device), queueIndices_(queueIndices) {}
 
-DeviceManager::DeviceManager(DeviceManager&& rhs) noexcept
+DeviceBox::DeviceBox(DeviceBox&& rhs) noexcept
     : device_(std::exchange(rhs.device_, nullptr)), queueIndices_(std::move(rhs.queueIndices_)) {}
 
-DeviceManager::~DeviceManager() noexcept {
+DeviceBox::~DeviceBox() noexcept {
     if (device_ == nullptr) return;
     device_.destroy();
     device_ = nullptr;
 }
 
-std::expected<DeviceManager, Error> DeviceManager::create(PhyDeviceManager& phyDeviceMgr,
+std::expected<DeviceBox, Error> DeviceBox::create(PhyDeviceBox& phyDeviceBox,
                                                           QueueIndex requiredQueueIndex) noexcept {
-    return createWithExts(phyDeviceMgr, requiredQueueIndex, {});
+    return createWithExts(phyDeviceBox, requiredQueueIndex, {});
 }
 
-std::expected<DeviceManager, Error> DeviceManager::createWithExts(
-    PhyDeviceManager& phyDeviceMgr, QueueIndex requiredQueueIndex,
+std::expected<DeviceBox, Error> DeviceBox::createWithExts(
+    PhyDeviceBox& phyDeviceBox, QueueIndex requiredQueueIndex,
     std::span<const std::string_view> enableExtNames) noexcept {
     const std::array requiredQueueIndices{requiredQueueIndex};
-    return createWithMultiQueueAndExts(phyDeviceMgr, requiredQueueIndices, enableExtNames);
+    return createWithMultiQueueAndExts(phyDeviceBox, requiredQueueIndices, enableExtNames);
 }
 
-std::expected<DeviceManager, Error> DeviceManager::createWithMultiQueueAndExts(
-    PhyDeviceManager& phyDeviceMgr, std::span<const QueueIndex> requiredQueueIndices,
+std::expected<DeviceBox, Error> DeviceBox::createWithMultiQueueAndExts(
+    PhyDeviceBox& phyDeviceBox, std::span<const QueueIndex> requiredQueueIndices,
     std::span<const std::string_view> enableExtNames) noexcept {
     vk::DeviceCreateInfo deviceInfo;
 
@@ -62,7 +62,7 @@ std::expected<DeviceManager, Error> DeviceManager::createWithMultiQueueAndExts(
                             rgs::to<std::vector>();
     deviceInfo.setPEnabledExtensionNames(enabledPExtNames);
 
-    vk::PhysicalDevice phyDevice = phyDeviceMgr.getPhyDevice();
+    vk::PhysicalDevice phyDevice = phyDeviceBox.getPhyDevice();
     const auto [deviceRes, device] = phyDevice.createDevice(deviceInfo);
     if (deviceRes != vk::Result::eSuccess) {
         return std::unexpected{Error{deviceRes}};
@@ -70,10 +70,10 @@ std::expected<DeviceManager, Error> DeviceManager::createWithMultiQueueAndExts(
 
     auto copiedQueueIndices = requiredQueueIndices | rgs::to<std::vector>();
 
-    return DeviceManager{device, std::move(copiedQueueIndices)};
+    return DeviceBox{device, std::move(copiedQueueIndices)};
 }
 
-std::expected<vk::Queue, Error> DeviceManager::getQueue(vk::QueueFlags type) const noexcept {
+std::expected<vk::Queue, Error> DeviceBox::getQueue(vk::QueueFlags type) const noexcept {
     constexpr auto exposeType = [](QueueIndex queueIndex) { return queueIndex.type; };
 
     const auto queueIndexIt = rgs::find(queueIndices_, type, exposeType);

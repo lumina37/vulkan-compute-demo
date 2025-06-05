@@ -2,7 +2,7 @@
 
 #include <concepts>
 
-#include "vkc/device/physical/manager.hpp"
+#include "vkc/device/physical/box.hpp"
 
 namespace vkc {
 
