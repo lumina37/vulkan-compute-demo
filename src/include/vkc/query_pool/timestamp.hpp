@@ -11,14 +11,16 @@ namespace vkc {
 
 class TimestampQueryPoolBox {
     TimestampQueryPoolBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::QueryPool queryPool, int queryCount,
-                              float timestampPeriod) noexcept;
+                          float timestampPeriod) noexcept;
 
 public:
+    TimestampQueryPoolBox(const TimestampQueryPoolBox&) = delete;
     TimestampQueryPoolBox(TimestampQueryPoolBox&& rhs) noexcept;
     ~TimestampQueryPoolBox() noexcept;
 
-    [[nodiscard]] static std::expected<TimestampQueryPoolBox, Error> create(
-        std::shared_ptr<DeviceBox> pDeviceBox, int queryCount, float timestampPeriod) noexcept;
+    [[nodiscard]] static std::expected<TimestampQueryPoolBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
+                                                                            int queryCount,
+                                                                            float timestampPeriod) noexcept;
 
     [[nodiscard]] int getQueryIndex() const noexcept { return queryIndex_; }
     [[nodiscard]] std::expected<void, Error> addQueryIndex() noexcept;

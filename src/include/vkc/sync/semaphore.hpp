@@ -13,11 +13,11 @@ class SemaphoreBox {
     SemaphoreBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Semaphore semaphore) noexcept;
 
 public:
+    SemaphoreBox(const SemaphoreBox&) = delete;
     SemaphoreBox(SemaphoreBox&& rhs) noexcept;
     ~SemaphoreBox() noexcept;
 
-    [[nodiscard]] static std::expected<SemaphoreBox, Error> create(
-        std::shared_ptr<DeviceBox> pDeviceBox) noexcept;
+    [[nodiscard]] static std::expected<SemaphoreBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox) noexcept;
 
     [[nodiscard]] vk::Semaphore getSemaphore() const noexcept { return semaphore_; }
 

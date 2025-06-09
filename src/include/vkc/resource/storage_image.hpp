@@ -24,6 +24,7 @@ class StorageImageBox {
                         vk::DeviceMemory stagingMemory, vk::DescriptorImageInfo descImageInfo) noexcept;
 
 public:
+    StorageImageBox(const StorageImageBox&) = delete;
     StorageImageBox(StorageImageBox&& rhs) noexcept;
     ~StorageImageBox() noexcept;
 

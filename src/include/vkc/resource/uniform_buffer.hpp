@@ -13,15 +13,16 @@ namespace vkc {
 
 class UniformBufferBox {
     UniformBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceSize size, vk::DeviceMemory memory,
-                         vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
+                     vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
 
 public:
+    UniformBufferBox(const UniformBufferBox&) = delete;
     UniformBufferBox(UniformBufferBox&& rhs) noexcept;
     ~UniformBufferBox() noexcept;
 
     [[nodiscard]] static std::expected<UniformBufferBox, Error> create(PhyDeviceBox& phyDeviceBox,
-                                                                           std::shared_ptr<DeviceBox> pDeviceBox,
-                                                                           vk::DeviceSize size) noexcept;
+                                                                       std::shared_ptr<DeviceBox> pDeviceBox,
+                                                                       vk::DeviceSize size) noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
     [[nodiscard]] vk::Buffer getBuffer() const noexcept { return buffer_; }

@@ -15,6 +15,7 @@ class CommandPoolBox {
                    uint32_t queueFamilyIdx) noexcept;
 
 public:
+    CommandPoolBox(const CommandPoolBox&) = delete;
     CommandPoolBox(CommandPoolBox&& rhs) noexcept;
     ~CommandPoolBox() noexcept;
 

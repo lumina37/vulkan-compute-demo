@@ -14,14 +14,12 @@ namespace vkc::_hp {
                                                                uint32_t supportedMemType,
                                                                vk::MemoryPropertyFlags memProps) noexcept;
 
-[[nodiscard]] std::expected<void, Error> allocBufferMemory(const PhyDeviceBox& phyDeviceBox,
-                                                           DeviceBox& deviceBox, vk::Buffer& buffer,
-                                                           vk::MemoryPropertyFlags memProps,
+[[nodiscard]] std::expected<void, Error> allocBufferMemory(const PhyDeviceBox& phyDeviceBox, DeviceBox& deviceBox,
+                                                           vk::Buffer& buffer, vk::MemoryPropertyFlags memProps,
                                                            vk::DeviceMemory& bufferMemory) noexcept;
 
-[[nodiscard]] std::expected<void, Error> allocImageMemory(const PhyDeviceBox& phyDeviceBox,
-                                                          DeviceBox& deviceBox, vk::Image& image,
-                                                          vk::MemoryPropertyFlags memProps,
+[[nodiscard]] std::expected<void, Error> allocImageMemory(const PhyDeviceBox& phyDeviceBox, DeviceBox& deviceBox,
+                                                          vk::Image& image, vk::MemoryPropertyFlags memProps,
                                                           vk::DeviceMemory& bufferMemory) noexcept;
 
 class MemMapBox {
@@ -32,7 +30,7 @@ public:
     ~MemMapBox() noexcept;
 
     [[nodiscard]] static std::expected<MemMapBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
-                                                                    vk::DeviceMemory& memory, size_t size) noexcept;
+                                                                vk::DeviceMemory& memory, size_t size) noexcept;
 
     [[nodiscard]] void* getMapPtr() const noexcept { return mapPtr_; }
 

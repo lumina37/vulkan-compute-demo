@@ -16,6 +16,7 @@ class StorageBufferBox {
                          vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
 
 public:
+    StorageBufferBox(const StorageBufferBox&) = delete;
     StorageBufferBox(StorageBufferBox&& rhs) noexcept;
     ~StorageBufferBox() noexcept;
 

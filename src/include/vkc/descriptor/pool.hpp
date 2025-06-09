@@ -49,6 +49,7 @@ class DescPoolBox {
     DescPoolBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DescriptorPool descPool) noexcept;
 
 public:
+    DescPoolBox(const DescPoolBox&) = delete;
     DescPoolBox(DescPoolBox&& rhs) noexcept;
     ~DescPoolBox() noexcept;
 

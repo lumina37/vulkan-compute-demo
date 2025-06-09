@@ -30,6 +30,7 @@ class CommandBufferBox {
                      vk::CommandBuffer commandBuffer) noexcept;
 
 public:
+    CommandBufferBox(const CommandBufferBox&) = delete;
     CommandBufferBox(CommandBufferBox&& rhs) noexcept;
     ~CommandBufferBox() noexcept;
 

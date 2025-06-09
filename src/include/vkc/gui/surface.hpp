@@ -15,6 +15,7 @@ class SurfaceBox {
     SurfaceBox(std::shared_ptr<InstanceBox>&& pInstanceBox, vk::SurfaceKHR surface) noexcept;
 
 public:
+    SurfaceBox(const SurfaceBox&) = delete;
     SurfaceBox(SurfaceBox&& rhs) noexcept;
     ~SurfaceBox() noexcept;
 

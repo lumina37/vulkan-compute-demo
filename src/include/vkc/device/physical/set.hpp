@@ -26,6 +26,9 @@ private:
     PhyDeviceSet_(std::vector<TPhyDeviceWithProps>&& phyDevicesWithProps) noexcept;
 
 public:
+    PhyDeviceSet_(const PhyDeviceSet_&) = delete;
+    PhyDeviceSet_(PhyDeviceSet_&&) noexcept = default;
+
     [[nodiscard]] static std::expected<PhyDeviceSet_, Error> create(const InstanceBox& instBox) noexcept;
 
     [[nodiscard]] std::expected<std::reference_wrapper<TPhyDeviceWithProps>, Error> select(

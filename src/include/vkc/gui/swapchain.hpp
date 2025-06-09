@@ -24,6 +24,7 @@ class SwapchainBox {
                  std::vector<PresentImageBox>&& imageBoxs) noexcept;
 
 public:
+    SwapchainBox(const SwapchainBox&) = delete;
     SwapchainBox(SwapchainBox&& rhs) noexcept;
     ~SwapchainBox() noexcept;
 

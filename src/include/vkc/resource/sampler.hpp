@@ -14,6 +14,7 @@ class SamplerBox {
                    vk::DescriptorImageInfo samplerInfo) noexcept;
 
 public:
+    SamplerBox(const SamplerBox&) = delete;
     SamplerBox(SamplerBox&& rhs) noexcept;
     ~SamplerBox() noexcept;
 

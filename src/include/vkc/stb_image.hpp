@@ -17,6 +17,7 @@ class StbImageBox {
     StbImageBox(std::byte* image, Extent extent) noexcept;
 
 public:
+    StbImageBox(const StbImageBox&) = delete;
     StbImageBox(StbImageBox&& rhs) noexcept;
     ~StbImageBox() noexcept;
 

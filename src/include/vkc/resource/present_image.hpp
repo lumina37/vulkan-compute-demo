@@ -18,6 +18,7 @@ class PresentImageBox {
                         vk::DescriptorImageInfo descImageInfo) noexcept;
 
 public:
+    PresentImageBox(const PresentImageBox&) = delete;
     PresentImageBox(PresentImageBox&& rhs) noexcept;
     ~PresentImageBox() noexcept;
 

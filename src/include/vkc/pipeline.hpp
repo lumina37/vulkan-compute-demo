@@ -16,6 +16,7 @@ class PipelineBox {
                 vk::PipelineBindPoint bindPoint) noexcept;
 
 public:
+    PipelineBox(const PipelineBox&) = delete;
     PipelineBox(PipelineBox&& rhs) noexcept;
     ~PipelineBox() noexcept;
 

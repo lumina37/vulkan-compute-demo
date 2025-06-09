@@ -39,7 +39,9 @@ class DescSetsBox {
 
 public:
     using TDescSetLayoutBoxCRef = std::reference_wrapper<const DescSetLayoutBox>;
-    DescSetsBox(DescSetsBox&& rhs) noexcept = default;
+
+    DescSetsBox(const DescSetsBox&) = delete;
+    DescSetsBox(DescSetsBox&&) noexcept = default;
 
     [[nodiscard]] static std::expected<DescSetsBox, Error> create(
         std::shared_ptr<DeviceBox> pDeviceBox, DescPoolBox& descPoolBox,

@@ -5,8 +5,8 @@
 #include <utility>
 
 #include "vkc/device/extensions.hpp"
-#include "vkc/device/physical/concepts.hpp"
 #include "vkc/device/physical/box.hpp"
+#include "vkc/device/physical/concepts.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 
@@ -18,8 +18,7 @@ public:
     DefaultPhyDeviceProps(const DefaultPhyDeviceProps&) = delete;
     DefaultPhyDeviceProps(DefaultPhyDeviceProps&&) noexcept = default;
 
-    [[nodiscard]] static std::expected<DefaultPhyDeviceProps, Error> create(
-        const PhyDeviceBox& phyDeviceBox) noexcept;
+    [[nodiscard]] static std::expected<DefaultPhyDeviceProps, Error> create(const PhyDeviceBox& phyDeviceBox) noexcept;
     [[nodiscard]] std::expected<float, Error> score() const noexcept;
 
     // Members
@@ -37,6 +36,7 @@ class PhyDeviceWithProps_ {
 public:
     using TDProps = TDProps_;
 
+    PhyDeviceWithProps_(PhyDeviceWithProps_&&) noexcept = default;
     PhyDeviceWithProps_(PhyDeviceBox&& phyDeviceBox, TDProps&& phyDeviceProps) noexcept;
 
     template <typename Self>

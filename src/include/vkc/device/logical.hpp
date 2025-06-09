@@ -19,6 +19,7 @@ class DeviceBox {
     DeviceBox(vk::Device device, std::vector<QueueIndex>&& queueIndices) noexcept;
 
 public:
+    DeviceBox(const DeviceBox&) = delete;
     DeviceBox(DeviceBox&& rhs) noexcept;
     ~DeviceBox() noexcept;
 

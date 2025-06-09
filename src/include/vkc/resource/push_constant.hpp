@@ -10,7 +10,7 @@ public:
     using TPc = TPc_;
 
     constexpr PushConstantBox(TPc pushConstant,
-                                  vk::ShaderStageFlags stage = vk::ShaderStageFlagBits::eCompute) noexcept;
+                              vk::ShaderStageFlags stage = vk::ShaderStageFlagBits::eCompute) noexcept;
 
     template <typename Self>
     [[nodiscard]] constexpr auto&& getPushConstantRange(this Self&& self) noexcept {
@@ -25,8 +25,7 @@ private:
 };
 
 template <typename TPc>
-constexpr PushConstantBox<TPc>::PushConstantBox(const TPc pushConstant,
-                                                        const vk::ShaderStageFlags stage) noexcept
+constexpr PushConstantBox<TPc>::PushConstantBox(const TPc pushConstant, const vk::ShaderStageFlags stage) noexcept
     : pushConstant_(pushConstant) {
     pushConstantRange_.setStageFlags(stage);
     pushConstantRange_.setSize(sizeof(TPc));

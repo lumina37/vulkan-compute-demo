@@ -15,6 +15,7 @@ class FenceBox {
     FenceBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Fence fence) noexcept;
 
 public:
+    FenceBox(const FenceBox&) = delete;
     FenceBox(FenceBox&& rhs) noexcept;
     ~FenceBox() noexcept;
 

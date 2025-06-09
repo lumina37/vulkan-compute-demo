@@ -18,6 +18,7 @@ class SampledImageBox {
                         vk::DeviceMemory stagingMemory, vk::DescriptorImageInfo descImageInfo) noexcept;
 
 public:
+    SampledImageBox(const SampledImageBox&) = delete;
     SampledImageBox(SampledImageBox&& rhs) noexcept;
     ~SampledImageBox() noexcept;
 

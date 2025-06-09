@@ -15,6 +15,7 @@ class PipelineLayoutBox {
     PipelineLayoutBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::PipelineLayout pipelineLayout) noexcept;
 
 public:
+    PipelineLayoutBox(const PipelineLayoutBox&) = delete;
     PipelineLayoutBox(PipelineLayoutBox&& rhs) noexcept;
     ~PipelineLayoutBox() noexcept;
 

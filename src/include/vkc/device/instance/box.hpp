@@ -15,6 +15,7 @@ class InstanceBox {
     InstanceBox(vk::Instance instance) noexcept;
 
 public:
+    InstanceBox(const InstanceBox&) = delete;
     InstanceBox(InstanceBox&& rhs) noexcept;
     ~InstanceBox() noexcept;
 

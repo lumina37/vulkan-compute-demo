@@ -14,6 +14,7 @@ class DescSetLayoutBox {
     DescSetLayoutBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DescriptorSetLayout descSetlayout) noexcept;
 
 public:
+    DescSetLayoutBox(const DescSetLayoutBox&) = delete;
     DescSetLayoutBox(DescSetLayoutBox&& rhs) noexcept;
     ~DescSetLayoutBox() noexcept;
 

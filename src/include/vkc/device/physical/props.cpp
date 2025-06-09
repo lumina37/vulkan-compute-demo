@@ -13,8 +13,7 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(
-    const PhyDeviceBox& phyDeviceBox) noexcept {
+std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(const PhyDeviceBox& phyDeviceBox) noexcept {
     DefaultPhyDeviceProps props;
     const vk::PhysicalDevice phyDevice = phyDeviceBox.getPhyDevice();
 

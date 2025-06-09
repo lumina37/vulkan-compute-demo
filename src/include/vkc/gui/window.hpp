@@ -13,6 +13,7 @@ class WindowBox {
     WindowBox(vk::Extent2D extent, GLFWwindow* window) noexcept;
 
 public:
+    WindowBox(const WindowBox&) = delete;
     WindowBox(WindowBox&& rhs) noexcept;
     ~WindowBox() noexcept;
 

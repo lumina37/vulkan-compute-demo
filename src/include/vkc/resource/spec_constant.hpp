@@ -24,9 +24,9 @@ private:
     std::array<vk::SpecializationMapEntry, sizeof...(TSc)> specMapEntries_;
     vk::SpecializationInfo specInfo_;
 };
+
 template <typename... TSc>
-constexpr SpecConstantBox<TSc...>::SpecConstantBox(TSc... specConstants) noexcept
-    : specConstants_(specConstants...) {
+constexpr SpecConstantBox<TSc...>::SpecConstantBox(TSc... specConstants) noexcept : specConstants_(specConstants...) {
     const auto genSpecMapEntry = [&]<size_t index>() {
         const auto& specConstant = std::get<index>(specConstants_);
         const size_t offset = (size_t)&specConstant - (size_t)&specConstants_;

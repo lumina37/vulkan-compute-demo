@@ -11,8 +11,6 @@ class PhyDeviceBox {
     PhyDeviceBox(vk::PhysicalDevice phyDevice) noexcept;
 
 public:
-    PhyDeviceBox(PhyDeviceBox&& rhs) noexcept = default;
-
     [[nodiscard]] static std::expected<PhyDeviceBox, Error> create(vk::PhysicalDevice phyDevice) noexcept;
 
     [[nodiscard]] vk::PhysicalDevice getPhyDevice() const noexcept { return phyDevice_; }
