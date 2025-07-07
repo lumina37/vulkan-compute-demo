@@ -53,31 +53,21 @@ public:
     std::source_location source;
     std::string msg;
 
-    Error() noexcept;
+    Error() noexcept : cate(ECate::eSuccess), code(0) {}
 
     template <typename T>
-    Error(ECate cate, T code, const std::source_location& source = std::source_location::current()) noexcept;
+    Error(ECate cate, T code, const std::source_location& source = std::source_location::current()) noexcept
+        : cate(cate), code((int)code), source(source) {}
 
     template <typename T>
     Error(ECate cate, T code, std::string&& msg,
-          const std::source_location& source = std::source_location::current()) noexcept;
-    ;
+          const std::source_location& source = std::source_location::current()) noexcept
+        : cate(cate), code((int)code), source(source), msg(std::move(msg)) {}
+
     Error& operator=(const Error& rhs) = default;
     Error(const Error& rhs) = default;
     Error& operator=(Error&& rhs) = default;
     Error(Error&& rhs) noexcept = default;
 };
 
-template <typename T>
-Error::Error(const ECate cate, const T code, const std::source_location& source) noexcept
-    : cate(cate), code((int)code), source(source) {}
-
-template <typename T>
-Error::Error(const ECate cate, const T code, std::string&& msg, const std::source_location& source) noexcept
-    : cate(cate), code((int)code), source(source), msg(std::move(msg)) {}
-
 }  // namespace vkc
-
-#ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/helper/error.cpp"
-#endif

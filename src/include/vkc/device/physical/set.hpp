@@ -101,7 +101,7 @@ auto PhyDeviceSet_<TProps>::select(const FnJudge& judge) noexcept
     }
 
     if (scores.empty()) {
-        return std::unexpected{Error{ECate::eVkC, ECode::eResourceInvalid, "no sufficient device"}};
+        return std::unexpected{Error{ECate::eVkC, ECode::eNoSupport, "no sufficient device"}};
     }
 
     auto maxScoreIt = std::max_element(scores.begin(), scores.end());

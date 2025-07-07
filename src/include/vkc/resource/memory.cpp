@@ -29,7 +29,7 @@ std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceBox& phyDeviceBo
         }
     }
 
-    return std::unexpected{Error{ECate::eVkC, ECode::eResourceInvalid, "no sufficient memory type"}};
+    return std::unexpected{Error{ECate::eVkC, ECode::eNoSupport, "no sufficient memory type"}};
 }
 
 std::expected<void, Error> allocBufferMemory(const PhyDeviceBox& phyDeviceBox, DeviceBox& deviceBox, vk::Buffer& buffer,

@@ -77,7 +77,7 @@ std::expected<vk::Queue, Error> DeviceBox::getQueue(vk::QueueFlags type) const n
     const auto queueIndexIt = rgs::find(queueIndices_, type, exposeType);
     if (queueIndexIt == queueIndices_.end()) {
         auto errMsg = std::format("no family index for type={}", (uint32_t)type);
-        return std::unexpected{Error{ECate::eVkC, ECode::eResourceInvalid, std::move(errMsg)}};
+        return std::unexpected{Error{ECate::eVkC, ECode::eNoSupport, std::move(errMsg)}};
     }
 
     const uint32_t familyIndex = queueIndexIt->familyIndex;
