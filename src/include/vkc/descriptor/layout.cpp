@@ -35,7 +35,7 @@ std::expected<DescSetLayoutBox, Error> DescSetLayoutBox::create(
     vk::Device device = pDeviceBox->getDevice();
     const auto [descSetlayoutRes, descSetlayout] = device.createDescriptorSetLayout(layoutInfo);
     if (descSetlayoutRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{descSetlayoutRes}};
+        return std::unexpected{Error{ECate::eVk, descSetlayoutRes}};
     }
 
     return DescSetLayoutBox{std::move(pDeviceBox), descSetlayout};

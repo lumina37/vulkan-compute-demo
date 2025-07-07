@@ -16,8 +16,8 @@
 namespace vkc {
 
 UniformBufferBox::UniformBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceSize size,
-                                           vk::DeviceMemory memory, vk::Buffer buffer,
-                                           vk::DescriptorBufferInfo descBufferInfo) noexcept
+                                   vk::DeviceMemory memory, vk::Buffer buffer,
+                                   vk::DescriptorBufferInfo descBufferInfo) noexcept
     : pDeviceBox_(std::move(pDeviceBox)),
       size_(size),
       memory_(memory),
@@ -46,8 +46,8 @@ UniformBufferBox::~UniformBufferBox() noexcept {
 }
 
 std::expected<UniformBufferBox, Error> UniformBufferBox::create(PhyDeviceBox& phyDeviceBox,
-                                                                        std::shared_ptr<DeviceBox> pDeviceBox,
-                                                                        vk::DeviceSize size) noexcept {
+                                                                std::shared_ptr<DeviceBox> pDeviceBox,
+                                                                vk::DeviceSize size) noexcept {
     vk::Device device = pDeviceBox->getDevice();
 
     // Buffer
@@ -57,19 +57,19 @@ std::expected<UniformBufferBox, Error> UniformBufferBox::create(PhyDeviceBox& ph
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
     auto [bufferRes, buffer] = device.createBuffer(bufferInfo);
     if (bufferRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{bufferRes}};
+        return std::unexpected{Error{ECate::eVk, bufferRes}};
     }
 
     vk::DeviceMemory memory;
     auto allocRes =
         _hp::allocBufferMemory(phyDeviceBox, *pDeviceBox, buffer, vk::MemoryPropertyFlagBits::eHostVisible, memory);
     if (!allocRes) {
-        return std::unexpected{Error{std::move(allocRes.error())}};
+        return std::unexpected{std::move(allocRes.error())};
     }
 
     const auto bindRes = device.bindBufferMemory(buffer, memory, 0);
     if (bindRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{bindRes}};
+        return std::unexpected{Error{ECate::eVk, bindRes}};
     }
 
     // Descriptor Buffer Info

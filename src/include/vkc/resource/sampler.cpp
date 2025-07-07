@@ -42,7 +42,7 @@ std::expected<SamplerBox, Error> SamplerBox::create(std::shared_ptr<DeviceBox> p
     vk::Device device = pDeviceBox->getDevice();
     const auto [samplerRes, sampler] = device.createSampler(samplerCreateInfo);
     if (samplerRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{samplerRes}};
+        return std::unexpected{Error{ECate::eVk, samplerRes}};
     }
 
     // Image Info

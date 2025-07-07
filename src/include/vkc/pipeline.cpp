@@ -14,7 +14,7 @@
 namespace vkc {
 
 PipelineBox::PipelineBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Pipeline pipeline,
-                                 vk::PipelineBindPoint bindPoint) noexcept
+                         vk::PipelineBindPoint bindPoint) noexcept
     : pDeviceBox_(std::move(pDeviceBox)), pipeline_(pipeline), bindPoint_(bindPoint) {}
 
 PipelineBox::PipelineBox(PipelineBox&& rhs) noexcept
@@ -30,9 +30,9 @@ PipelineBox::~PipelineBox() noexcept {
 }
 
 std::expected<PipelineBox, Error> PipelineBox::createCompute(std::shared_ptr<DeviceBox> pDeviceBox,
-                                                                     const PipelineLayoutBox& pipelineLayoutBox,
-                                                                     const ShaderBox& shaderBox,
-                                                                     const vk::SpecializationInfo& specInfo) noexcept {
+                                                             const PipelineLayoutBox& pipelineLayoutBox,
+                                                             const ShaderBox& shaderBox,
+                                                             const vk::SpecializationInfo& specInfo) noexcept {
     vk::ComputePipelineCreateInfo pipelineInfo;
 
     // Shaders
@@ -51,7 +51,7 @@ std::expected<PipelineBox, Error> PipelineBox::createCompute(std::shared_ptr<Dev
     vk::Device device = pDeviceBox->getDevice();
     const auto pipelineRes = device.createComputePipeline(nullptr, pipelineInfo);
     if (pipelineRes.result != vk::Result::eSuccess) {
-        return std::unexpected{Error{pipelineRes.result}};
+        return std::unexpected{Error{ECate::eVk, pipelineRes.result}};
     }
     vk::Pipeline pipeline = pipelineRes.value;
 

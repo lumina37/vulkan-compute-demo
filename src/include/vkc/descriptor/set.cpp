@@ -43,7 +43,7 @@ std::expected<DescSetsBox, Error> DescSetsBox::create(
     vk::Device device = pDeviceBox->getDevice();
     auto [descSetsRes, descSets] = device.allocateDescriptorSets(descSetAllocInfo);
     if (descSetsRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{descSetsRes}};
+        return std::unexpected{Error{ECate::eVk, descSetsRes}};
     }
 
     return DescSetsBox{std::move(pDeviceBox), std::move(descSets)};

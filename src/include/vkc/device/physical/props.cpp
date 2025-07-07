@@ -19,7 +19,7 @@ std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(const 
 
     auto [extPropsRes, extProps] = phyDevice.enumerateDeviceExtensionProperties();
     if (extPropsRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{extPropsRes}};
+        return std::unexpected{Error{ECate::eVk, extPropsRes}};
     }
 
     auto extEntriesRes = ExtEntries_<vk::ExtensionProperties>::create(std::move(extProps));

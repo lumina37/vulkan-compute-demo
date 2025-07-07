@@ -30,7 +30,7 @@ std::expected<SemaphoreBox, Error> SemaphoreBox::create(std::shared_ptr<DeviceBo
     vk::SemaphoreCreateInfo semaphoreInfo;
     const auto [semaphoreRes, semaphore] = device.createSemaphore(semaphoreInfo);
     if (semaphoreRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{semaphoreRes}};
+        return std::unexpected{Error{ECate::eVk, semaphoreRes}};
     }
 
     return SemaphoreBox{std::move(pDeviceBox), semaphore};

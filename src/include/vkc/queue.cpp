@@ -41,7 +41,7 @@ std::expected<void, Error> QueueBox::_submit(vk::CommandBuffer commandBuffer, vk
 
     const auto submitRes = queue_.submit(submitInfo, fence);
     if (submitRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{submitRes}};
+        return std::unexpected{Error{ECate::eVk, submitRes}};
     }
 
     return {};
@@ -82,7 +82,7 @@ std::expected<void, Error> QueueBox::present(SwapchainBox& swapchainBox, uint32_
 
     const auto presentRes = queue_.presentKHR(presentInfo);
     if (presentRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{presentRes}};
+        return std::unexpected{Error{ECate::eVk, presentRes}};
     }
 
     return {};

@@ -56,13 +56,13 @@ std::expected<SwapchainBox, Error> SwapchainBox::create(PhyDeviceBox& phyDeviceB
     vk::Device device = pDeviceBox->getDevice();
     auto swapchainRes = device.createSwapchainKHR(swapchainInfo);
     if (swapchainRes.result != vk::Result::eSuccess) {
-        return std::unexpected{Error{swapchainRes.result}};
+        return std::unexpected{Error{ECate::eVk, swapchainRes.result}};
     }
     vk::SwapchainKHR swapchain = swapchainRes.value;
 
     auto imagesRes = device.getSwapchainImagesKHR(swapchain);
     if (imagesRes.result != vk::Result::eSuccess) {
-        return std::unexpected{Error{imagesRes.result}};
+        return std::unexpected{Error{ECate::eVk, imagesRes.result}};
     }
     auto images = std::move(imagesRes.value);
 
@@ -85,7 +85,7 @@ std::expected<uint32_t, Error> SwapchainBox::acquireImageIndex(SemaphoreBox& sig
     const vk::Device device = pDeviceBox_->getDevice();
     const auto imageIndexRes = device.acquireNextImageKHR(swapchain_, timeout, signalSemaphore);
     if (imageIndexRes.result != vk::Result::eSuccess) {
-        return std::unexpected{Error{imageIndexRes.result}};
+        return std::unexpected{Error{ECate::eVk, imageIndexRes.result}};
     }
     const uint32_t imageIndex = imageIndexRes.value;
 

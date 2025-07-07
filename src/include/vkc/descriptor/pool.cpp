@@ -35,7 +35,7 @@ std::expected<DescPoolBox, Error> DescPoolBox::create(
     vk::Device device = pDeviceBox->getDevice();
     const auto [descPoolRes, descPool] = device.createDescriptorPool(poolInfo);
     if (descPoolRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{descPoolRes}};
+        return std::unexpected{Error{ECate::eVk, descPoolRes}};
     }
 
     return DescPoolBox{std::move(pDeviceBox), descPool};

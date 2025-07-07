@@ -29,14 +29,12 @@ DeviceBox::~DeviceBox() noexcept {
     device_ = nullptr;
 }
 
-std::expected<DeviceBox, Error> DeviceBox::create(PhyDeviceBox& phyDeviceBox,
-                                                          QueueIndex requiredQueueIndex) noexcept {
+std::expected<DeviceBox, Error> DeviceBox::create(PhyDeviceBox& phyDeviceBox, QueueIndex requiredQueueIndex) noexcept {
     return createWithExts(phyDeviceBox, requiredQueueIndex, {});
 }
 
-std::expected<DeviceBox, Error> DeviceBox::createWithExts(
-    PhyDeviceBox& phyDeviceBox, QueueIndex requiredQueueIndex,
-    std::span<const std::string_view> enableExtNames) noexcept {
+std::expected<DeviceBox, Error> DeviceBox::createWithExts(PhyDeviceBox& phyDeviceBox, QueueIndex requiredQueueIndex,
+                                                          std::span<const std::string_view> enableExtNames) noexcept {
     const std::array requiredQueueIndices{requiredQueueIndex};
     return createWithMultiQueueAndExts(phyDeviceBox, requiredQueueIndices, enableExtNames);
 }
@@ -65,7 +63,7 @@ std::expected<DeviceBox, Error> DeviceBox::createWithMultiQueueAndExts(
     vk::PhysicalDevice phyDevice = phyDeviceBox.getPhyDevice();
     const auto [deviceRes, device] = phyDevice.createDevice(deviceInfo);
     if (deviceRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{deviceRes}};
+        return std::unexpected{Error{ECate::eVk, deviceRes}};
     }
 
     auto copiedQueueIndices = requiredQueueIndices | rgs::to<std::vector>();
@@ -79,7 +77,7 @@ std::expected<vk::Queue, Error> DeviceBox::getQueue(vk::QueueFlags type) const n
     const auto queueIndexIt = rgs::find(queueIndices_, type, exposeType);
     if (queueIndexIt == queueIndices_.end()) {
         auto errMsg = std::format("no family index for type={}", (uint32_t)type);
-        return std::unexpected{Error{-1, std::move(errMsg)}};
+        return std::unexpected{Error{ECate::eVkC, ECode::eResourceInvalid, std::move(errMsg)}};
     }
 
     const uint32_t familyIndex = queueIndexIt->familyIndex;

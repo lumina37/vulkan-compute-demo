@@ -57,19 +57,19 @@ std::expected<StorageBufferBox, Error> StorageBufferBox::create(PhyDeviceBox& ph
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
     auto [bufferRes, buffer] = device.createBuffer(bufferInfo);
     if (bufferRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{bufferRes}};
+        return std::unexpected{Error{ECate::eVk, bufferRes}};
     }
 
     vk::DeviceMemory memory;
     auto allocRes =
         _hp::allocBufferMemory(phyDeviceBox, *pDeviceBox, buffer, vk::MemoryPropertyFlagBits::eHostVisible, memory);
     if (!allocRes) {
-        return std::unexpected{Error{std::move(allocRes.error())}};
+        return std::unexpected{std::move(allocRes.error())};
     }
 
     const auto bindRes = device.bindBufferMemory(buffer, memory, 0);
     if (bindRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{bindRes}};
+        return std::unexpected{Error{ECate::eVk, bindRes}};
     }
 
     // Descriptor Buffer Info

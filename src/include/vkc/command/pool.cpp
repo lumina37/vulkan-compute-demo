@@ -38,7 +38,7 @@ std::expected<CommandPoolBox, Error> CommandPoolBox::create(std::shared_ptr<Devi
     vk::Device device = pDeviceBox->getDevice();
     const auto [commandPoolRes, commandPool] = device.createCommandPool(commandPoolInfo);
     if (commandPoolRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{commandPoolRes}};
+        return std::unexpected{Error{ECate::eVk, commandPoolRes}};
     }
 
     return CommandPoolBox{std::move(pDeviceBox), commandPool, queueFamilyIdx};

@@ -49,7 +49,7 @@ std::expected<PhyDeviceSet_<TProps>, Error> PhyDeviceSet_<TProps>::create(const 
 
     const auto [physicalDevicesRes, physicalDevices] = instance.enumeratePhysicalDevices();
     if (physicalDevicesRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{physicalDevicesRes}};
+        return std::unexpected{Error{ECate::eVk, physicalDevicesRes}};
     }
 
     std::vector<TPhyDeviceWithProps> phyDevicesWithProps;
@@ -101,7 +101,7 @@ auto PhyDeviceSet_<TProps>::select(const FnJudge& judge) noexcept
     }
 
     if (scores.empty()) {
-        return std::unexpected{Error{-1, "no sufficient device"}};
+        return std::unexpected{Error{ECate::eVkC, ECode::eResourceInvalid, "no sufficient device"}};
     }
 
     auto maxScoreIt = std::max_element(scores.begin(), scores.end());

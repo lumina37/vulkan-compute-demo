@@ -37,7 +37,7 @@ std::expected<ShaderBox, Error> ShaderBox::create(std::shared_ptr<DeviceBox> pDe
     vk::Device device = pDeviceBox->getDevice();
     const auto [shaderRes, shader] = device.createShaderModule(shaderInfo);
     if (shaderRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{shaderRes}};
+        return std::unexpected{Error{ECate::eVk, shaderRes}};
     }
 
     return ShaderBox{std::move(pDeviceBox), shader};

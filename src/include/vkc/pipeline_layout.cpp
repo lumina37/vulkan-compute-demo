@@ -48,7 +48,7 @@ std::expected<PipelineLayoutBox, Error> PipelineLayoutBox::_create(
     vk::Device device = pDeviceBox->getDevice();
     const auto [pipelineLayoutRes, pipelineLayout] = device.createPipelineLayout(pipelineLayoutInfo);
     if (pipelineLayoutRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{pipelineLayoutRes}};
+        return std::unexpected{Error{ECate::eVk, pipelineLayoutRes}};
     }
 
     return PipelineLayoutBox{std::move(pDeviceBox), pipelineLayout};

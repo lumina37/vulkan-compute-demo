@@ -104,7 +104,7 @@ std::expected<StorageImageBox, Error> StorageImageBox::create(const PhyDeviceBox
     imageInfo.setInitialLayout(vk::ImageLayout::eUndefined);
     auto [imageRes, image] = device.createImage(imageInfo);
     if (imageRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{imageRes}};
+        return std::unexpected{Error{ECate::eVk, imageRes}};
     }
 
     // Image Memory
@@ -115,7 +115,7 @@ std::expected<StorageImageBox, Error> StorageImageBox::create(const PhyDeviceBox
 
     const auto bindRes = device.bindImageMemory(image, imageMemory, 0);
     if (bindRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{bindRes}};
+        return std::unexpected{Error{ECate::eVk, bindRes}};
     }
 
     // Image View
@@ -133,7 +133,7 @@ std::expected<StorageImageBox, Error> StorageImageBox::create(const PhyDeviceBox
     imageViewInfo.setSubresourceRange(subresourceRange);
     const auto [imageViewRes, imageView] = device.createImageView(imageViewInfo);
     if (imageViewRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{imageViewRes}};
+        return std::unexpected{Error{ECate::eVk, imageViewRes}};
     }
 
     // Staging Memory
@@ -143,7 +143,7 @@ std::expected<StorageImageBox, Error> StorageImageBox::create(const PhyDeviceBox
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
     auto [stagingBufferRes, stagingBuffer] = device.createBuffer(bufferInfo);
     if (stagingBufferRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{stagingBufferRes}};
+        return std::unexpected{Error{ECate::eVk, stagingBufferRes}};
     }
 
     vk::DeviceMemory stagingMemory;
@@ -154,7 +154,7 @@ std::expected<StorageImageBox, Error> StorageImageBox::create(const PhyDeviceBox
 
     const auto bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
     if (bindStagingRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{bindStagingRes}};
+        return std::unexpected{Error{ECate::eVk, bindStagingRes}};
     }
 
     // Descriptor Image Info

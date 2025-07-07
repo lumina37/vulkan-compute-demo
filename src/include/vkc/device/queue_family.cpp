@@ -50,7 +50,7 @@ std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhyDeviceBox& ph
     }
 
     if (scores.empty()) {
-        return std::unexpected{Error{-1, "no sufficient queue family"}};
+        return std::unexpected{Error{ECate::eVkC, ECode::eResourceInvalid, "no sufficient queue family"}};
     }
 
     const auto maxScoreIt = std::max_element(scores.begin(), scores.end());

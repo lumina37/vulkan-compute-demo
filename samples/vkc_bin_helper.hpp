@@ -21,7 +21,8 @@ public:
             const auto& err = src.error();
             const fs::path filePath{err.source.file_name()};
             const std::string fileName = filePath.filename().string();
-            std::println(std::cerr, "{}:{} msg={} code={}", fileName, err.source.line(), err.msg, err.code);
+            std::println(std::cerr, "{}:{} cate={} code={} msg={}", fileName, err.source.line(),
+                         vkc::errCateToStr(err.cate), err.code, err.msg);
             std::exit(err.code);
         }
         if constexpr (!std::is_void_v<T>) {

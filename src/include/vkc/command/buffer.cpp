@@ -53,7 +53,7 @@ std::expected<CommandBufferBox, Error> CommandBufferBox::create(
 
     const auto [commandBuffersRes, commandBuffers] = device.allocateCommandBuffers(allocInfo);
     if (commandBuffersRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{commandBuffersRes}};
+        return std::unexpected{Error{ECate::eVk, commandBuffersRes}};
     }
     vk::CommandBuffer commandBuffer = commandBuffers[0];
 
@@ -74,14 +74,14 @@ void CommandBufferBox::bindDescSets(DescSetsBox& descSetsBox, const PipelineLayo
 std::expected<void, Error> CommandBufferBox::begin() noexcept {
     const auto resetRes = commandBuffer_.reset();
     if (resetRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{resetRes}};
+        return std::unexpected{Error{ECate::eVk, resetRes}};
     }
 
     vk::CommandBufferBeginInfo cmdBufBeginInfo;
     cmdBufBeginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
     const auto beginRes = commandBuffer_.begin(cmdBufBeginInfo);
     if (beginRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{beginRes}};
+        return std::unexpected{Error{ECate::eVk, beginRes}};
     }
 
     return {};
@@ -310,7 +310,7 @@ std::expected<void, Error> CommandBufferBox::recordTimestampEnd(
 std::expected<void, Error> CommandBufferBox::end() noexcept {
     const auto endRes = commandBuffer_.end();
     if (endRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{endRes}};
+        return std::unexpected{Error{ECate::eVk, endRes}};
     }
     return {};
 }

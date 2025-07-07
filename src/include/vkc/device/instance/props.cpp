@@ -18,7 +18,7 @@ std::expected<DefaultInstanceProps, Error> DefaultInstanceProps::create() noexce
 
     auto [extPropsRes, extProps] = vk::enumerateInstanceExtensionProperties();
     if (extPropsRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{extPropsRes}};
+        return std::unexpected{Error{ECate::eVk, extPropsRes}};
     }
 
     auto extEntriesRes = ExtEntries_<vk::ExtensionProperties>::create(std::move(extProps));
@@ -27,7 +27,7 @@ std::expected<DefaultInstanceProps, Error> DefaultInstanceProps::create() noexce
 
     auto [layerPropsRes, layerProps] = vk::enumerateInstanceLayerProperties();
     if (layerPropsRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{layerPropsRes}};
+        return std::unexpected{Error{ECate::eVk, layerPropsRes}};
     }
 
     auto layerEntriesRes = ExtEntries_<vk::LayerProperties>::create(std::move(layerProps));

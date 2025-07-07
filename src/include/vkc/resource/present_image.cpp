@@ -84,7 +84,7 @@ std::expected<PresentImageBox, Error> PresentImageBox::create(const PhyDeviceBox
     imageViewInfo.setSubresourceRange(subresourceRange);
     const auto [imageViewRes, imageView] = device.createImageView(imageViewInfo);
     if (imageViewRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{imageViewRes}};
+        return std::unexpected{Error{ECate::eVk, imageViewRes}};
     }
 
     // Staging Memory
@@ -94,7 +94,7 @@ std::expected<PresentImageBox, Error> PresentImageBox::create(const PhyDeviceBox
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
     auto [stagingBufferRes, stagingBuffer] = device.createBuffer(bufferInfo);
     if (stagingBufferRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{stagingBufferRes}};
+        return std::unexpected{Error{ECate::eVk, stagingBufferRes}};
     }
 
     vk::DeviceMemory stagingMemory;
@@ -105,7 +105,7 @@ std::expected<PresentImageBox, Error> PresentImageBox::create(const PhyDeviceBox
 
     const auto bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemory, 0);
     if (bindStagingRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{bindStagingRes}};
+        return std::unexpected{Error{ECate::eVk, bindStagingRes}};
     }
 
     // Descriptor Image Info

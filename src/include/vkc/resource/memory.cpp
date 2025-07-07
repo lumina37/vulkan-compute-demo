@@ -29,11 +29,11 @@ std::expected<uint32_t, Error> findMemoryTypeIdx(const PhyDeviceBox& phyDeviceBo
         }
     }
 
-    return std::unexpected{Error{-1, "no sufficient memory type"}};
+    return std::unexpected{Error{ECate::eVkC, ECode::eResourceInvalid, "no sufficient memory type"}};
 }
 
-std::expected<void, Error> allocBufferMemory(const PhyDeviceBox& phyDeviceBox, DeviceBox& deviceBox,
-                                             vk::Buffer& buffer, const vk::MemoryPropertyFlags memProps,
+std::expected<void, Error> allocBufferMemory(const PhyDeviceBox& phyDeviceBox, DeviceBox& deviceBox, vk::Buffer& buffer,
+                                             const vk::MemoryPropertyFlags memProps,
                                              vk::DeviceMemory& bufferMemory) noexcept {
     vk::Device device = deviceBox.getDevice();
 
@@ -47,14 +47,14 @@ std::expected<void, Error> allocBufferMemory(const PhyDeviceBox& phyDeviceBox, D
     vk::Result bufferMemoryRes;
     std::tie(bufferMemoryRes, bufferMemory) = device.allocateMemory(allocInfo);
     if (bufferMemoryRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{bufferMemoryRes}};
+        return std::unexpected{Error{ECate::eVk, bufferMemoryRes}};
     }
 
     return {};
 }
 
-std::expected<void, Error> allocImageMemory(const PhyDeviceBox& phyDeviceBox, DeviceBox& deviceBox,
-                                            vk::Image& image, const vk::MemoryPropertyFlags memProps,
+std::expected<void, Error> allocImageMemory(const PhyDeviceBox& phyDeviceBox, DeviceBox& deviceBox, vk::Image& image,
+                                            const vk::MemoryPropertyFlags memProps,
                                             vk::DeviceMemory& bufferMemory) noexcept {
     vk::Device device = deviceBox.getDevice();
 
@@ -68,14 +68,13 @@ std::expected<void, Error> allocImageMemory(const PhyDeviceBox& phyDeviceBox, De
     vk::Result bufferMemoryRes;
     std::tie(bufferMemoryRes, bufferMemory) = device.allocateMemory(allocInfo);
     if (bufferMemoryRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{bufferMemoryRes}};
+        return std::unexpected{Error{ECate::eVk, bufferMemoryRes}};
     }
 
     return {};
 }
 
-MemMapBox::MemMapBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceMemory memory,
-                             void* mapPtr) noexcept
+MemMapBox::MemMapBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceMemory memory, void* mapPtr) noexcept
     : pDeviceBox_(std::move(pDeviceBox)), memory_(memory), mapPtr_(mapPtr) {}
 
 MemMapBox::MemMapBox(MemMapBox&& rhs) noexcept
@@ -91,14 +90,14 @@ MemMapBox::~MemMapBox() noexcept {
     memory_ = nullptr;
 }
 
-std::expected<MemMapBox, Error> MemMapBox::create(std::shared_ptr<DeviceBox> pDeviceBox,
-                                                          vk::DeviceMemory& memory, const size_t size) noexcept {
+std::expected<MemMapBox, Error> MemMapBox::create(std::shared_ptr<DeviceBox> pDeviceBox, vk::DeviceMemory& memory,
+                                                  const size_t size) noexcept {
     vk::Device device = pDeviceBox->getDevice();
 
     void* mapPtr;
     const auto mapRes = device.mapMemory(memory, 0, size, (vk::MemoryMapFlags)0, &mapPtr);
     if (mapRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{mapRes}};
+        return std::unexpected{Error{ECate::eVk, mapRes}};
     }
 
     return MemMapBox{std::move(pDeviceBox), memory, mapPtr};

@@ -31,7 +31,7 @@ std::expected<FenceBox, Error> FenceBox::create(std::shared_ptr<DeviceBox> pDevi
     vk::FenceCreateInfo fenceInfo;
     const auto [fenceRes, fence] = device.createFence(fenceInfo);
     if (fenceRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{fenceRes}};
+        return std::unexpected{Error{ECate::eVk, fenceRes}};
     }
 
     return FenceBox{std::move(pDeviceBox), fence};
@@ -41,7 +41,7 @@ std::expected<void, Error> FenceBox::wait(uint64_t timeout) noexcept {
     vk::Device device = pDeviceBox_->getDevice();
     const auto waitFenceRes = device.waitForFences(fence_, true, timeout);
     if (waitFenceRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{waitFenceRes}};
+        return std::unexpected{Error{ECate::eVk, waitFenceRes}};
     }
 
     return {};
@@ -51,7 +51,7 @@ std::expected<void, Error> FenceBox::reset() noexcept {
     vk::Device device = pDeviceBox_->getDevice();
     const auto resetFenceRes = device.resetFences(fence_);
     if (resetFenceRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{resetFenceRes}};
+        return std::unexpected{Error{ECate::eVk, resetFenceRes}};
     }
 
     return {};

@@ -22,7 +22,7 @@ std::expected<DefaultSurfaceProps, Error> DefaultSurfaceProps::create(const PhyD
 
     auto surfaceCapsRes = phyDevice.getSurfaceCapabilitiesKHR(surface);
     if (surfaceCapsRes.result != vk::Result::eSuccess) {
-        return std::unexpected{Error{surfaceCapsRes.result}};
+        return std::unexpected{Error{ECate::eVk, surfaceCapsRes.result}};
     }
     const auto& surfaceCaps = surfaceCapsRes.value;
     props.minExtent = surfaceCaps.minImageExtent;
@@ -33,14 +33,14 @@ std::expected<DefaultSurfaceProps, Error> DefaultSurfaceProps::create(const PhyD
 
     auto surfacePresentModesRes = phyDevice.getSurfacePresentModesKHR(surface);
     if (surfacePresentModesRes.result != vk::Result::eSuccess) {
-        return std::unexpected{Error{surfaceCapsRes.result}};
+        return std::unexpected{Error{ECate::eVk, surfaceCapsRes.result}};
     }
     auto& surfacePresentModes = surfacePresentModesRes.value;
     props.presentModes = std::move(surfacePresentModes);
 
     auto surfaceFormatsRes = phyDevice.getSurfaceFormatsKHR(surface);
     if (surfaceFormatsRes.result != vk::Result::eSuccess) {
-        return std::unexpected{Error{surfaceCapsRes.result}};
+        return std::unexpected{Error{ECate::eVk, surfaceCapsRes.result}};
     }
     auto& surfaceFormats = surfaceFormatsRes.value;
     props.formats = std::move(surfaceFormats);

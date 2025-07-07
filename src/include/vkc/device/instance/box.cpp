@@ -58,7 +58,7 @@ std::expected<InstanceBox, Error> InstanceBox::createWithExts(
 
     const auto [instanceRes, instance] = vk::createInstance(instInfo);
     if (instanceRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{instanceRes}};
+        return std::unexpected{Error{ECate::eVk, instanceRes}};
     }
 
     return InstanceBox{instance};

@@ -30,7 +30,7 @@ WindowBox::~WindowBox() noexcept {
 std::expected<void, Error> WindowBox::globalInit() noexcept {
     const int initRes = glfwInit();
     if (initRes == GLFW_FALSE) {
-        return std::unexpected{Error{-1, "failed to init GLFW"}};
+        return std::unexpected{Error{ECate::eGLFW, 0, "failed to init GLFW"}};
     }
     return {};
 }
@@ -41,7 +41,7 @@ std::expected<std::vector<std::string_view>, Error> WindowBox::getExtensions() {
     uint32_t count;
     const auto pExts = glfwGetRequiredInstanceExtensions(&count);
     if (pExts == nullptr) {
-        return std::unexpected{Error{-1, "failed to get GLFW extensions"}};
+        return std::unexpected{Error{ECate::eGLFW, 0, "failed to get GLFW extensions"}};
     }
 
     auto exts = rgs::views::iota(0, (int)count) |
@@ -57,7 +57,7 @@ std::expected<WindowBox, Error> WindowBox::create(const vk::Extent2D extent) noe
 
     auto window = glfwCreateWindow((int)extent.width, (int)extent.height, "Vulkan Graphics Demo", nullptr, nullptr);
     if (window == nullptr) {
-        return std::unexpected{Error{-1, "failed to create GLFW window"}};
+        return std::unexpected{Error{ECate::eGLFW, 0, "failed to create GLFW window"}};
     }
 
     return WindowBox{extent, window};

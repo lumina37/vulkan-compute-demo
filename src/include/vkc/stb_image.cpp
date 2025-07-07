@@ -42,7 +42,7 @@ std::expected<StbImageBox, Error> StbImageBox::createFromPath(const fs::path& pa
     constexpr int comps = 4;
 
     std::byte* image = (std::byte*)stbi_load(path.string().c_str(), &width, &height, &oriComps, comps);
-    if (image == nullptr) return std::unexpected{Error{-1, "failed to load image"}};
+    if (image == nullptr) return std::unexpected{Error{ECate::eStb, 0, "failed to load image"}};
 
     Extent extent{width, height, mapStbCompsToVkFormat(comps)};
 
@@ -51,7 +51,7 @@ std::expected<StbImageBox, Error> StbImageBox::createFromPath(const fs::path& pa
 
 std::expected<StbImageBox, Error> StbImageBox::createWithExtent(const Extent extent) noexcept {
     std::byte* image = (std::byte*)STBI_MALLOC(extent.size());
-    if (image == nullptr) return std::unexpected{Error{-1}};
+    if (image == nullptr) return std::unexpected{Error{ECate::eStb, 0}};
 
     return StbImageBox{image, extent};
 }
@@ -59,7 +59,7 @@ std::expected<StbImageBox, Error> StbImageBox::createWithExtent(const Extent ext
 std::expected<void, Error> StbImageBox::saveTo(const fs::path& path) const noexcept {
     const int stbErr =
         stbi_write_png(path.string().c_str(), extent_.width(), extent_.height(), extent_.bpp(), image_, 0);
-    if (stbErr == 0) return std::unexpected{Error{-1, "failed to save image"}};
+    if (stbErr == 0) return std::unexpected{Error{ECate::eStb, 0, "failed to save image"}};
 
     return {};
 }
