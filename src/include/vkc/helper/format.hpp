@@ -14,6 +14,8 @@ namespace vkc {
             return 3;
         case vk::Format::eR8G8B8A8Unorm:
             return 4;
+        case vk::Format::eR32Sfloat:
+            return 4;
         default:
             std::unreachable();
     }

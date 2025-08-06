@@ -87,7 +87,7 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
     }
 }
 
-TEST_CASE("Gaussian Blur", "glsl::gaussFilter") {
+TEST_CASE("GLSL-Gaussian-Blur", "") {
     constexpr int maxValidDiff = 1;
     constexpr float maxValidAvgDiff = 0.001f;
 
@@ -193,6 +193,7 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilter") {
             (float)diffAcc / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
+        std::println("v0 - average diff = {}", avgDiff);
     }
 
     SECTION("v1") {
@@ -234,5 +235,6 @@ TEST_CASE("Gaussian Blur", "glsl::gaussFilter") {
             (float)diffAcc / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
+        std::println("v1 - average diff = {}", avgDiff);
     }
 }

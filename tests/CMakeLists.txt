@@ -20,4 +20,6 @@ endfunction()
 vkc_add_test(test_gaussFilter vkc::lib::static "test_gaussFilter.cpp")
 vkc_add_test(test_gaussFilter_header_only vkc::lib::header-only "test_gaussFilter.cpp")
 
+vkc_add_test(test_sgemm vkc::lib::static "test_sgemm.cpp")
+
 add_custom_target(vkc-tests DEPENDS ${_VKC_TEST_TARGETS})

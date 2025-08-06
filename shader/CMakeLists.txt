@@ -1,9 +1,9 @@
 set(_VKC_GLSL_SRCS
         gaussFilter/v0
         gaussFilter/v1
-        # gaussFilter/v2
         grayscale/ro
         grayscale/rw
+        sgemm/v0
 )
 set(_VKC_SPIRV_SHADERS)
 

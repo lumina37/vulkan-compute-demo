@@ -31,6 +31,7 @@ public:
     [[nodiscard]] constexpr int bpp() const noexcept { return bpp_; }
     [[nodiscard]] constexpr int rowAlign() const noexcept { return rowAlign_; }
     [[nodiscard]] constexpr size_t rowPitch() const noexcept { return rowPitch_; }
+    [[nodiscard]] constexpr size_t elemCount() const noexcept { return extent_.width * extent_.height; }
     [[nodiscard]] constexpr size_t size() const noexcept { return size_; }
     [[nodiscard]] constexpr vk::Extent2D extent() const noexcept { return extent_; }
     [[nodiscard]] constexpr vk::Extent3D extent3D() const noexcept { return {extent_.width, extent_.height, 1}; }

@@ -20,11 +20,11 @@ const int ALIGNED_SHARED_MEM_SIZE = (SHARED_MEM_SIZE + (GROUP_SIZE_X - 1)) & ((~
 const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE_X;
 
 // Gather multiple rows for each X
-shared vec4 gatheredY[SHARED_MEM_SIZE];
+shared vec4 rowsGathered[SHARED_MEM_SIZE];
 
 void main() {
     const ivec2 globalTID = ivec2(gl_GlobalInvocationID.xy);
-    const ivec2 dstIdx = globalTID;
+    const ivec2 dstCoord = globalTID;
     const ivec2 dstSize = imageSize(dstImage);
 
     const vec2 invDstSize = 1.0 / vec2(dstSize);
@@ -53,14 +53,14 @@ void main() {
                 acc += srcVal * weight;
                 accWeight += weight;
             }
-            gatheredY[smemWriteX] = acc / accWeight;
+            rowsGathered[smemWriteX] = acc / accWeight;
         }
     }
 
     // Never put the barrier after the divergence !!!
     barrier();
 
-    if (dstIdx.x >= dstSize.x || dstIdx.y >= dstSize.y) {
+    if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) {
         return;
     }
 
@@ -70,11 +70,11 @@ void main() {
     for (int x = -halfKSize; x <= halfKSize; x++) {
         const float weight = exp(-float(x * x) / pc.sigma2);
         const int smemX = MAX_HALF_KSIZE + groupTID.x + x;
-        const vec4 srcVal = gatheredY[smemX];
+        const vec4 srcVal = rowsGathered[smemX];
         acc += srcVal * weight;
         accWeight += weight;
     }
     const vec4 dstVal = acc / accWeight;
 
-    imageStore(dstImage, dstIdx, vec4(dstVal.rgb, 1.0));
+    imageStore(dstImage, dstCoord, vec4(dstVal.rgb, 1.0));
 }

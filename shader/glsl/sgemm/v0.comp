@@ -1,0 +1,35 @@
+#version 460
+
+layout (local_size_x_id = 0, local_size_y_id = 1) in;
+
+layout (binding = 0, r32f) uniform readonly image2D srcMatA;
+layout (binding = 1, r32f) uniform readonly image2D srcMatB;
+layout (binding = 2, r32f) uniform writeonly image2D dstMat;
+
+void main() {
+    const ivec2 dstCoord = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 dstSize = imageSize(dstMat);
+    if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) {
+        return;
+    }
+
+    const ivec2 sizeA = imageSize(srcMatA);
+    const ivec2 sizeB = imageSize(srcMatB);
+    const int M = sizeA.y;
+    const int K = sizeA.x;
+    const int N = sizeB.x;
+
+    float acc = 0.0;
+    for (int i = 0; i < K; i++) {
+        const ivec2 coordA = ivec2(i, dstCoord.y);
+        const vec4 valA = imageLoad(srcMatA, coordA);
+
+        const ivec2 coordB = ivec2(dstCoord.x, i);
+        const vec4 valB = imageLoad(srcMatB, coordB);
+
+        acc += valA.r * valB.r;
+    }
+
+    const vec4 dstVal = vec4(acc, 0.0, 0.0, 0.0);
+    imageStore(dstMat, dstCoord, dstVal);
+}
