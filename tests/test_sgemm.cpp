@@ -88,8 +88,11 @@ TEST_CASE("GLSL-SGEMM", "") {
     constexpr float maxValidDiff = 0.01f;
     constexpr float maxValidAvgDiff = 0.001f;
 
-    constexpr vkc::Extent extentA{32, 16, vk::Format::eR32Sfloat};
-    constexpr vkc::Extent extentB{64, 32, vk::Format::eR32Sfloat};
+    constexpr int M = 16;
+    constexpr int K = 32;
+    constexpr int N = 64;
+    constexpr vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
+    constexpr vkc::Extent extentB{N, K, vk::Format::eR32Sfloat};
     constexpr vkc::Extent extentDst{extentB.width(), extentA.height(), vk::Format::eR32Sfloat};
 
     // Src data
@@ -141,60 +144,101 @@ TEST_CASE("GLSL-SGEMM", "") {
     const std::vector descPoolSizes = genPoolSizes(srcMatABox, srcMatBBox, dstMatBox);
     vkc::DescPoolBox descPoolBox = vkc::DescPoolBox::create(pDeviceBox, descPoolSizes) | unwrap;
 
-    const std::array gaussDLayoutBindings = genDescSetLayoutBindings(srcMatABox, srcMatBBox, dstMatBox);
-    vkc::DescSetLayoutBox gaussDLayoutBox = vkc::DescSetLayoutBox::create(pDeviceBox, gaussDLayoutBindings) | unwrap;
-    const std::array gaussDLayoutBoxCRefs{std::cref(gaussDLayoutBox)};
-    vkc::PipelineLayoutBox gaussPLayoutBox = vkc::PipelineLayoutBox::create(pDeviceBox, gaussDLayoutBoxCRefs) | unwrap;
-    vkc::DescSetsBox gaussDescSetsBox =
-        vkc::DescSetsBox::create(pDeviceBox, descPoolBox, gaussDLayoutBoxCRefs) | unwrap;
-    const std::array gaussWriteDescSets = genWriteDescSets(srcMatABox, srcMatBBox, dstMatBox);
-    const std::array gaussWriteDescSetss{std::span{gaussWriteDescSets.begin(), gaussWriteDescSets.end()}};
-    gaussDescSetsBox.updateDescSets(gaussWriteDescSetss);
+    const std::array sgemmDLayoutBindings = genDescSetLayoutBindings(srcMatABox, srcMatBBox, dstMatBox);
+    vkc::DescSetLayoutBox sgemmDLayoutBox = vkc::DescSetLayoutBox::create(pDeviceBox, sgemmDLayoutBindings) | unwrap;
+    const std::array sgemmDLayoutBoxCRefs{std::cref(sgemmDLayoutBox)};
+    vkc::PipelineLayoutBox sgemmPLayoutBox = vkc::PipelineLayoutBox::create(pDeviceBox, sgemmDLayoutBoxCRefs) | unwrap;
+    vkc::DescSetsBox sgemmDescSetsBox =
+        vkc::DescSetsBox::create(pDeviceBox, descPoolBox, sgemmDLayoutBoxCRefs) | unwrap;
+    const std::array sgemmWriteDescSets = genWriteDescSets(srcMatABox, srcMatBBox, dstMatBox);
+    const std::array sgemmWriteDescSetss{std::span{sgemmWriteDescSets.begin(), sgemmWriteDescSets.end()}};
+    sgemmDescSetsBox.updateDescSets(sgemmWriteDescSetss);
 
     // Command Buffer
     vkc::FenceBox fenceBox = vkc::FenceBox::create(pDeviceBox) | unwrap;
     auto pCommandPoolBox =
         std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
-    vkc::CommandBufferBox gaussCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
+    vkc::CommandBufferBox sgemmCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
 
     SECTION("v0") {
         constexpr vkc::BlockSize blockSize{16, 16, 1};
-        vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v0::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v0::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{blockSize.x, blockSize.y};
-        vkc::PipelineBox gaussPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox,
+        vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
 
-        gaussCmdBufBox.begin() | unwrap;
-        gaussCmdBufBox.bindPipeline(gaussPipelineBox);
-        gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
-        gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        gaussCmdBufBox.recordCopyStagingToSrc(srcMatABox);
-        gaussCmdBufBox.recordCopyStagingToSrc(srcMatBBox);
-        gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
-        gaussCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
-        gaussCmdBufBox.recordDispatch(extentDst.extent(), blockSize);
-        gaussCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        gaussCmdBufBox.recordCopyDstToStaging(dstMatBox);
-        gaussCmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
-        gaussCmdBufBox.end() | unwrap;
+        sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBBox);
+        sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordDispatch(extentDst.extent(), blockSize);
+        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
+        sgemmCmdBufBox.end() | unwrap;
 
-        queueBox.submit(gaussCmdBufBox, fenceBox) | unwrap;
+        queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
         dstMatBox.download(dstMatVk.getPData()) | unwrap;
 
-        int diffAcc = 0;
+        float diffAcc = 0;
         std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
         for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
-            int diff = std::abs(lhs - rhs);
+            const float diff = std::abs(lhs - rhs);
             REQUIRE(diff <= maxValidDiff);
             diffAcc += diff;
         }
-        float avgDiff = (float)diffAcc / (float)dstMatVkSpan.size();
+        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v0 - average diff = {}", avgDiff);
+    }
+
+    SECTION("v1") {
+        constexpr vkc::BlockSize blockSize{16, 16, 1};
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v1::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{blockSize.x, K};
+        vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
+                                                                            specConstantBox.getSpecInfo()) |
+                                            unwrap;
+
+        sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBBox);
+        sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordDispatch(extentDst.extent(), blockSize);
+        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
+        sgemmCmdBufBox.end() | unwrap;
+
+        queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
+
+        dstMatBox.download(dstMatVk.getPData()) | unwrap;
+
+        float diffAcc = 0;
+        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+            const float diff = std::abs(lhs - rhs);
+            REQUIRE(diff <= maxValidDiff);
+            diffAcc += diff;
+        }
+        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+
+        REQUIRE(avgDiff < maxValidAvgDiff);
+        std::println("v1 - average diff = {}", avgDiff);
     }
 }

@@ -4,6 +4,7 @@ set(_VKC_GLSL_SRCS
         grayscale/ro
         grayscale/rw
         sgemm/v0
+        sgemm/v1
 )
 set(_VKC_SPIRV_SHADERS)
 

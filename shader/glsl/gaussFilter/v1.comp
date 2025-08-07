@@ -24,7 +24,7 @@ shared vec4 rowsGathered[SHARED_MEM_SIZE];
 
 void main() {
     const ivec2 globalTID = ivec2(gl_GlobalInvocationID.xy);
-    const ivec2 dstCoord = globalTID;
+    const ivec2 globalID = globalTID;
     const ivec2 dstSize = imageSize(dstImage);
 
     const vec2 invDstSize = 1.0 / vec2(dstSize);
@@ -60,7 +60,7 @@ void main() {
     // Never put the barrier after the divergence !!!
     barrier();
 
-    if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) {
+    if (globalID.x >= dstSize.x || globalID.y >= dstSize.y) {
         return;
     }
 
@@ -76,5 +76,5 @@ void main() {
     }
     const vec4 dstVal = acc / accWeight;
 
-    imageStore(dstImage, dstCoord, vec4(dstVal.rgb, 1.0));
+    imageStore(dstImage, globalID, vec4(dstVal.rgb, 1.0));
 }

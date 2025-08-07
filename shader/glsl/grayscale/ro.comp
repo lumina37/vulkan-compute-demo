@@ -7,16 +7,16 @@ layout (binding = 1) uniform sampler srcSampler;
 layout (binding = 2, rgba8) uniform writeonly image2D dstImage;
 
 void main() {
-    const ivec2 dstCoord = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
     const ivec2 dstSize = imageSize(dstImage);
-    if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) {
+    if (globalID.x >= dstSize.x || globalID.y >= dstSize.y) {
         return;
     }
 
     const vec2 invDstSize = 1.0 / vec2(dstSize);
-    const vec4 srcVal = texture(sampler2D(srcTex, srcSampler), (vec2(dstCoord) + 0.5) * invDstSize);
+    const vec4 srcVal = texture(sampler2D(srcTex, srcSampler), (vec2(globalID) + 0.5) * invDstSize);
     const float gray = dot(vec4(0.299, 0.587, 0.114, 0.0), srcVal);
     const vec4 dstVal = vec4(gray, gray, gray, 1.0);
 
-    imageStore(dstImage, dstCoord, dstVal);
+    imageStore(dstImage, globalID, dstVal);
 }

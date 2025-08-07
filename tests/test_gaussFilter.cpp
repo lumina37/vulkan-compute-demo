@@ -185,11 +185,11 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
 
         int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {
-            int diff = std::abs((int)lhs - (int)rhs);
+            const int diff = std::abs((int)lhs - (int)rhs);
             REQUIRE(diff <= maxValidDiff);
             diffAcc += diff;
         }
-        float avgDiff =
+        const float avgDiff =
             (float)diffAcc / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
@@ -227,11 +227,11 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
 
         int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {
-            int diff = std::abs((int)lhs - (int)rhs);
+            const int diff = std::abs((int)lhs - (int)rhs);
             REQUIRE(diff <= maxValidDiff);
             diffAcc += diff;
         }
-        float avgDiff =
+        const float avgDiff =
             (float)diffAcc / (float)dstImageVk.getExtent().size() / (float)std::numeric_limits<uint8_t>::max();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
