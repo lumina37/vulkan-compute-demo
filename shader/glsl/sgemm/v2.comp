@@ -7,48 +7,75 @@ layout (binding = 1, r32f) uniform readonly image2D srcMatB;
 layout (binding = 2, r32f) uniform writeonly image2D dstMat;
 
 layout (constant_id = 1) const int K = 0;
+// Each thread computes TMxTN elements
+layout (constant_id = 2) const int TM = 4;
+const int TN = TM;
 
-shared float sharedA[gl_WorkGroupSize.y][gl_WorkGroupSize.x];
-shared float sharedB[gl_WorkGroupSize.x][gl_WorkGroupSize.y];
+shared float sharedA[gl_WorkGroupSize.y * TM][gl_WorkGroupSize.x];
+shared float sharedB[gl_WorkGroupSize.x][gl_WorkGroupSize.y * TN];
 
 void main() {
-    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
-    const ivec2 dstSize = imageSize(dstMat);
-    if (globalID.x >= dstSize.x || globalID.y >= dstSize.y) {
-        return;
-    }
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
+    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
 
     const ivec2 sizeA = imageSize(srcMatA);// M * K
     const ivec2 sizeB = imageSize(srcMatB);// K * N
     const int M = sizeA.y;// height on the left
     const int N = sizeB.x;// width at the top
 
-    // fillup sharedA
-    float acc = 0.0;
+    // Accumulation registers for thread tile
+    float acc[TM][TN];
+    for (int tm = 0; tm < TM; tm++) {
+        for (int tn = 0; tn < TN; tn++) {
+            acc[tm][tn] = 0.0;
+        }
+    }
 
-    const int tileCount = K / groupSize.x;
-    for (int iTile = 0; iTile < tileCount; iTile++) {
-        const int srcX = iTile * groupSize.x + localID.x;
-        const ivec2 srcACoord = ivec2(srcX, globalID.y);
-        const vec4 srcAVal = imageLoad(srcMatA, srcACoord);
-        sharedA[localID.y][localID.x] = srcAVal.r;
+    const int globalRowStart = groupID.y * groupSize.y * TM + localID.y * TM;
+    const int globalColStart = groupID.x * groupSize.x * TN + localID.x * TN;
+    const int blockTileCount = K / groupSize.x;
+    for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
+        // Load from srcMatA
+        for (int iTM = 0; iTM < TM; iTM++) {
+            const int srcX = iBlkTile * groupSize.x + localID.x;
+            const int srcY = globalRowStart + iTM;
+            const ivec2 srcACoord = ivec2(srcX, srcY);
+            const vec4 srcAVal = imageLoad(srcMatA, srcACoord);
+            sharedA[localID.y * TM + iTM][localID.x] = srcAVal.r;
+        }
 
-        const int srcY = iTile * groupSize.y + localID.y;
-        const ivec2 srcBCoord = ivec2(globalID.x, srcY);
-        const vec4 srcBVal = imageLoad(srcMatB, srcBCoord);
-        sharedB[localID.x][localID.y] = srcBVal.r;  // transposed
+        // Load from srcMatB
+        for (int iTN = 0; iTN < TN; iTN++) {
+            const int srcX = globalColStart + iTN;
+            const int srcY = iBlkTile * groupSize.x + localID.y;
+            const ivec2 srcBCoord = ivec2(srcX, srcY);
+            const vec4 srcBVal = imageLoad(srcMatB, srcBCoord);
+            sharedB[localID.x * TN + iTN][localID.y] = srcBVal.r;
+        }
         barrier();
 
-        for (int i = 0; i < groupSize.x; i++) {
-            const float valA = sharedA[localID.y][i];
-            const float valB = sharedB[localID.x][i];  // transposed
-            acc += valA * valB;
+        // Compute
+        for (int iK = 0; iK < groupSize.x; iK++) {
+            for (int iTM = 0; iTM < TM; iTM++) {
+                for (int iTN = 0; iTN < TN; iTN++) {
+                    const float valA = sharedA[localID.y * TM + iTM][iK];
+                    const float valB = sharedB[localID.x * TN + iTN][iK];
+                    acc[iTM][iTN] += valA * valB;
+                }
+            }
         }
         barrier();
     }
 
-    const vec4 dstVal = vec4(acc, 0.0, 0.0, 0.0);
-    imageStore(dstMat, globalID, dstVal);
+    // Store results
+    for (int iTM = 0; iTM < TM; iTM++) {
+        for (int iTN = 0; iTN < TN; iTN++) {
+            const int globalRow = globalRowStart + iTM;
+            const int globalCol = globalColStart + iTN;
+            const ivec2 dstCoord = ivec2(globalCol, globalRow);
+            const vec4 dstVal = vec4(acc[iTM][iTN], 0.0, 0.0, 0.0);
+            imageStore(dstMat, dstCoord, dstVal);
+        }
+    }
 }
