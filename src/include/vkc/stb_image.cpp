@@ -26,10 +26,8 @@ namespace fs = std::filesystem;
 
 StbImageBox::StbImageBox(std::byte* image, Extent extent) noexcept : image_(image), extent_(extent) {}
 
-StbImageBox::StbImageBox(StbImageBox&& rhs) noexcept {
-    image_ = std::exchange(rhs.image_, nullptr);
-    std::swap(extent_, rhs.extent_);
-}
+StbImageBox::StbImageBox(StbImageBox&& rhs) noexcept
+    : image_(std::exchange(rhs.image_, nullptr)), extent_(rhs.extent_) {}
 
 StbImageBox::~StbImageBox() noexcept {
     if (image_ == nullptr) return;

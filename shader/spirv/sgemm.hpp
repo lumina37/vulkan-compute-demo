@@ -17,4 +17,10 @@ extern const std::span<std::byte> code;
 
 }  // namespace v1
 
+namespace v2 {
+
+extern const std::span<std::byte> code;
+
+}  // namespace v2
+
 }  // namespace shader::sgemm

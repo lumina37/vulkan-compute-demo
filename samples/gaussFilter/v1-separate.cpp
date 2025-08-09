@@ -74,10 +74,12 @@ int main() {
         unwrap;
 
     // Pipeline
-    constexpr vkc::BlockSize blockSize{256, 1, 1};
+    constexpr int groupSizeX = 256;
+    const int groupNumX = vkc::ceilDiv(dstImage.getExtent().width(), groupSizeX);
+    const int groupNumY = dstImage.getExtent().height();
     vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gaussFilter::v1::code) | unwrap;
     constexpr int maxHalfKSize = 128;
-    vkc::SpecConstantBox specConstantBox{blockSize.x, maxHalfKSize};
+    vkc::SpecConstantBox specConstantBox{groupSizeX, maxHalfKSize};
     vkc::PipelineBox gaussPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
@@ -96,7 +98,7 @@ int main() {
         gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
         gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
         gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufBox.recordDispatch(srcImage.getExtent().extent(), blockSize);
+        gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
         gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
         gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;

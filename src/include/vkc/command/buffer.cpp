@@ -120,10 +120,8 @@ void CommandBufferBox::recordDstPrepareShaderWrite(
                                    barriers.data());
 }
 
-void CommandBufferBox::recordDispatch(const vk::Extent2D extent, const BlockSize blockSize) noexcept {
-    const uint32_t groupSizeX = (extent.width + (blockSize.x - 1)) / blockSize.x;
-    const uint32_t groupSizeY = (extent.height + (blockSize.y - 1)) / blockSize.y;
-    commandBuffer_.dispatch(groupSizeX, groupSizeY, 1);
+void CommandBufferBox::recordDispatch(int groupNumX, int groupNumY) noexcept {
+    commandBuffer_.dispatch(groupNumX, groupNumY, 1);
 }
 
 void CommandBufferBox::recordPrepareSendBeforeDispatch(

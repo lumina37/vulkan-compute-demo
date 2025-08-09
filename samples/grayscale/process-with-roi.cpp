@@ -75,9 +75,12 @@ int main() {
         unwrap;
 
     // Pipeline
-    constexpr vkc::BlockSize blockSize{16, 16, 1};
+    constexpr int groupSizeX = 16;
+    constexpr int groupSizeY = 16;
+    const int groupNumX = vkc::ceilDiv(dstImage.getExtent().width(), groupSizeX);
+    const int groupNumY = vkc::ceilDiv(dstImage.getExtent().height(), groupSizeY);
     vkc::ShaderBox grayShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::grayscale::ro::code) | unwrap;
-    vkc::SpecConstantBox specConstantBox{blockSize.x, blockSize.y};
+    vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY};
     vkc::PipelineBox grayPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, grayPLayoutBox, grayShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
@@ -96,7 +99,7 @@ int main() {
         grayCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
         grayCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
         grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        grayCmdBufBox.recordDispatch(extent.extent(), blockSize);
+        grayCmdBufBox.recordDispatch(groupNumX, groupNumY);
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         grayCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
         grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;

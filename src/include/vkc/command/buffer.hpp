@@ -20,11 +20,6 @@
 
 namespace vkc {
 
-struct BlockSize {
-    using Tv = uint32_t;
-    Tv x, y, z;
-};
-
 class CommandBufferBox {
     CommandBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, std::shared_ptr<CommandPoolBox>&& pCommandPoolBox,
                      vk::CommandBuffer commandBuffer) noexcept;
@@ -66,7 +61,7 @@ public:
     void recordPrepareSendAfterDispatch(std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept;
     void recordPreparePresent(std::span<const TPresentImageBoxRef> imageBoxRefs) noexcept;
 
-    void recordDispatch(vk::Extent2D extent, BlockSize blockSize) noexcept;
+    void recordDispatch(int groupNumX, int groupNumY) noexcept;
 
     template <CImageBox TImageBox>
     void recordCopyStagingToSrc(const TImageBox& srcImageBox) noexcept;

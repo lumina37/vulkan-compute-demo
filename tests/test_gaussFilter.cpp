@@ -155,9 +155,12 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
     vkc::CommandBufferBox gaussCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
 
     SECTION("v0") {
-        constexpr vkc::BlockSize blockSize{16, 16, 1};
+        constexpr int groupSizeX = 16;
+        constexpr int groupSizeY = 16;
+        const int groupNumX = vkc::ceilDiv(dstImageVk.getExtent().width(), groupSizeX);
+        const int groupNumY = vkc::ceilDiv(dstImageVk.getExtent().height(), groupSizeY);
         vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gaussFilter::v0::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{blockSize.x, blockSize.y};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY};
         vkc::PipelineBox gaussPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -170,7 +173,7 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
         gaussCmdBufBox.recordCopyStagingToSrc(srcImageBox);
         gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
         gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
-        gaussCmdBufBox.recordDispatch(srcImage.getExtent().extent(), blockSize);
+        gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
         gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
         gaussCmdBufBox.recordCopyDstToStaging(dstImageBox);
         gaussCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);
@@ -197,9 +200,11 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
     }
 
     SECTION("v1") {
-        constexpr vkc::BlockSize blockSize{256, 1, 1};
+        constexpr int groupSizeX = 256;
+        const int groupNumX = vkc::ceilDiv(dstImageVk.getExtent().width(), groupSizeX);
+        const int groupNumY = dstImageVk.getExtent().height();
         vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gaussFilter::v1::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{blockSize.x};
+        vkc::SpecConstantBox specConstantBox{groupSizeX};
         vkc::PipelineBox gaussPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -212,7 +217,7 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
         gaussCmdBufBox.recordCopyStagingToSrc(srcImageBox);
         gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
         gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
-        gaussCmdBufBox.recordDispatch(srcImage.getExtent().extent(), blockSize);
+        gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
         gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
         gaussCmdBufBox.recordCopyDstToStaging(dstImageBox);
         gaussCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);

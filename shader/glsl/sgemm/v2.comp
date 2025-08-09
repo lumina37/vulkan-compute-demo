@@ -25,7 +25,9 @@ void main() {
     const int M = sizeA.y;// height on the left
     const int N = sizeB.x;// width at the top
 
+    // fillup sharedA
     float acc = 0.0;
+
     const int tileCount = K / groupSize.x;
     for (int iTile = 0; iTile < tileCount; iTile++) {
         const int srcX = iTile * groupSize.x + localID.x;

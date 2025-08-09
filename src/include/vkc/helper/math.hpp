@@ -14,4 +14,9 @@ template <std::integral Tv>
     return (Tv)(((size_t)v + (to - 1)) & ((~to) + 1));
 }
 
+template <std::integral Tv>
+[[nodiscard]] static constexpr Tv ceilDiv(const Tv dividend, const Tv divisor) noexcept {
+    return (dividend + (divisor - 1)) / divisor;
+}
+
 }  // namespace vkc
