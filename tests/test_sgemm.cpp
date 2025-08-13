@@ -1,7 +1,6 @@
 #include <expected>
 #include <filesystem>
 #include <iostream>
-#include <limits>
 #include <print>
 #include <random>
 #include <ranges>
@@ -59,7 +58,7 @@ TEST_CASE("CPU-SGEMM", "") {
 
     // Src data
     vkc::StbImageBox srcMatA = vkc::StbImageBox::createWithExtent(extentA) | unwrap;
-    std::span<float> srcSpanA = std::span{(float*)srcMatA.getPData(), extentA.size() / extentA.bpp()};
+    std::span<float> srcSpanA = std::span{(float*)srcMatA.getPData(), extentA.elemCount()};
     // srcMatA = [[1,2,3],[4,5,6]]
     for (int i = 0; i < srcSpanA.size(); i++) {
         srcSpanA[i] = (float)i + 1;
@@ -99,11 +98,12 @@ TEST_CASE("GLSL-SGEMM", "") {
     std::span<float> srcSpanB = std::span{(float*)srcMatB.getPData(), extentB.elemCount()};
     std::mt19937 rdEngine;
     rdEngine.seed(37);
+    std::uniform_real_distribution dist(0.0f, 1.0f);
     for (auto& val : srcSpanA) {
-        val = (float)rdEngine() / (float)std::numeric_limits<uint32_t>::max();
+        val = dist(rdEngine);
     }
     for (auto& val : srcSpanB) {
-        val = (float)rdEngine() / (float)std::numeric_limits<uint32_t>::max();
+        val = dist(rdEngine);
     }
 
     // CPU Reference

@@ -1,0 +1,114 @@
+#include <array>
+#include <iostream>
+#include <memory>
+#include <print>
+#include <span>
+#include <vector>
+
+#include "../vkc_bin_helper.hpp"
+#include "shader.hpp"
+#include "vkc.hpp"
+
+int main() {
+    constexpr int M = 1024;
+    constexpr int K = 128;
+    constexpr int N = 1024;
+    constexpr vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
+    constexpr vkc::Extent extentB{N, K, vk::Format::eR32Sfloat};
+    constexpr vkc::Extent extentDst{extentB.width(), extentA.height(), vk::Format::eR32Sfloat};
+
+    // Src data
+    vkc::StbImageBox srcMatA = vkc::StbImageBox::createWithExtent(extentA) | unwrap;
+    vkc::StbImageBox srcMatB = vkc::StbImageBox::createWithExtent(extentB) | unwrap;
+    vkc::StbImageBox dstMatVk = vkc::StbImageBox::createWithExtent(extentDst) | unwrap;
+
+    // Device
+    vkc::DefaultInstanceProps instProps = vkc::DefaultInstanceProps::create() | unwrap;
+    if (!instProps.layers.has("VK_LAYER_KHRONOS_validation")) {
+        std::println(std::cerr, "VK_LAYER_KHRONOS_validation not supported");
+        return -1;
+    }
+    vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
+    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
+    vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
+    vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
+    const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
+    auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
+        vkc::DeviceBox::create(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}) | unwrap);
+    vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
+
+    // Descriptor & Layouts
+    vkc::StorageImageBox srcMatABox =
+        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcMatA.getExtent(), vkc::StorageImageType::Read) |
+        unwrap;
+    vkc::StorageImageBox srcMatBBox =
+        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcMatB.getExtent(), vkc::StorageImageType::Read) |
+        unwrap;
+    const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
+    vkc::StorageImageBox dstMatBox =
+        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, dstMatVk.getExtent()) | unwrap;
+    const std::array dstMatBoxRefs{std::ref(dstMatBox)};
+    srcMatABox.upload(srcMatA.getPData()) | unwrap;
+    srcMatBBox.upload(srcMatB.getPData()) | unwrap;
+
+    const std::vector descPoolSizes = genPoolSizes(srcMatABox, srcMatBBox, dstMatBox);
+    vkc::DescPoolBox descPoolBox = vkc::DescPoolBox::create(pDeviceBox, descPoolSizes) | unwrap;
+
+    const std::array sgemmDLayoutBindings = genDescSetLayoutBindings(srcMatABox, srcMatBBox, dstMatBox);
+    vkc::DescSetLayoutBox sgemmDLayoutBox = vkc::DescSetLayoutBox::create(pDeviceBox, sgemmDLayoutBindings) | unwrap;
+    const std::array sgemmDLayoutBoxCRefs{std::cref(sgemmDLayoutBox)};
+    vkc::PipelineLayoutBox sgemmPLayoutBox = vkc::PipelineLayoutBox::create(pDeviceBox, sgemmDLayoutBoxCRefs) | unwrap;
+    vkc::DescSetsBox sgemmDescSetsBox =
+        vkc::DescSetsBox::create(pDeviceBox, descPoolBox, sgemmDLayoutBoxCRefs) | unwrap;
+    const std::array sgemmWriteDescSets = genWriteDescSets(srcMatABox, srcMatBBox, dstMatBox);
+    const std::array sgemmWriteDescSetss{std::span{sgemmWriteDescSets.begin(), sgemmWriteDescSets.end()}};
+    sgemmDescSetsBox.updateDescSets(sgemmWriteDescSetss);
+
+    // Command Buffer
+    vkc::FenceBox fenceBox = vkc::FenceBox::create(pDeviceBox) | unwrap;
+    auto pCommandPoolBox =
+        std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
+    vkc::CommandBufferBox sgemmCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
+    vkc::TimestampQueryPoolBox queryPoolBox =
+        vkc::TimestampQueryPoolBox::create(pDeviceBox, 2, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
+        unwrap;
+
+    // Pipeline
+    constexpr int groupSizeX = 16;
+    constexpr int groupSizeY = 16;
+    constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX);
+    constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY);
+    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v0::code) | unwrap;
+    vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY};
+    vkc::PipelineBox sgemmPipelineBox =
+        vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
+        unwrap;
+
+    // Gaussian Blur
+    for (int i = 0; i < 15; i++) {
+        sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
+        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBBox);
+        sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+        sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
+        sgemmCmdBufBox.end() | unwrap;
+
+        queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
+
+        auto elapsedTime = queryPoolBox.getElaspedTimes() | unwrap;
+        std::println("============================");
+        std::println("Dispatch timecost: {} ms", elapsedTime[0]);
+    }
+}
