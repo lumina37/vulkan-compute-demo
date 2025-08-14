@@ -14,7 +14,7 @@ function(vkc_common_lib_setting name)
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
     target_link_libraries(${name} ${__PUB_DEP_SCOPE}
-            Vulkan::Vulkan
+            Vulkan::Headers
             glfw
     )
 

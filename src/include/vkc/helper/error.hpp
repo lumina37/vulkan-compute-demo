@@ -3,8 +3,6 @@
 #include <source_location>
 #include <string>
 
-#include "vkc/helper/vulkan.hpp"
-
 namespace vkc {
 
 enum class ECode {

@@ -66,6 +66,8 @@ std::expected<DeviceBox, Error> DeviceBox::createWithMultiQueueAndExts(
         return std::unexpected{Error{ECate::eVk, deviceRes}};
     }
 
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(device);
+
     auto copiedQueueIndices = requiredQueueIndices | rgs::to<std::vector>();
 
     return DeviceBox{device, std::move(copiedQueueIndices)};

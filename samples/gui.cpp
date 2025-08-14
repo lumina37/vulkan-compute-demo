@@ -8,6 +8,8 @@
 #include "vkc_bin_helper.hpp"
 
 int main() {
+    vkc::initVulkan() | unwrap;
+
     vkc::StbImageBox srcImage = vkc::StbImageBox::createFromPath("in.png") | unwrap;
 
     // Device

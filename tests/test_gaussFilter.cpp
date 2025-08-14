@@ -88,6 +88,8 @@ void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span
 }
 
 TEST_CASE("GLSL-Gaussian-Blur", "") {
+    vkc::initVulkan() | unwrap;
+
     constexpr int maxValidDiff = 1;
     constexpr float maxValidAvgDiff = 0.001f;
 

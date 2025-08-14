@@ -19,3 +19,4 @@ vkc_add_sample(vkc-bin-sgemm-v1 sgemm/v1-block-tile.cpp)
 vkc_add_sample(vkc-bin-sgemm-v2 sgemm/v2-thread-tile.cpp)
 
 vkc_add_sample(vkc-bin-gui gui.cpp)
+vkc_add_sample(vkc-bin-perf perf.cpp)

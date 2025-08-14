@@ -10,6 +10,8 @@
 #include "vkc.hpp"
 
 int main() {
+    vkc::initVulkan() | unwrap;
+
     vkc::StbImageBox srcImage = vkc::StbImageBox::createFromPath("in.png") | unwrap;
     vkc::StbImageBox dstImage = vkc::StbImageBox::createWithExtent(srcImage.getExtent()) | unwrap;
 

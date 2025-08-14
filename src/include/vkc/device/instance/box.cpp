@@ -61,6 +61,8 @@ std::expected<InstanceBox, Error> InstanceBox::createWithExts(
         return std::unexpected{Error{ECate::eVk, instanceRes}};
     }
 
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
+
     return InstanceBox{instance};
 }
 
