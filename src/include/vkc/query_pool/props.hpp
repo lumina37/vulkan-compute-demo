@@ -1,6 +1,7 @@
 #pragma once
 
 #include <expected>
+#include <string>
 #include <vector>
 
 #include "vkc/device/physical/box.hpp"

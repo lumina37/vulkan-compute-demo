@@ -4,11 +4,24 @@
 #include <print>
 #include <span>
 
+#include "shader.hpp"
 #include "vkc.hpp"
 #include "vkc_bin_helper.hpp"
 
 int main() {
     vkc::initVulkan() | unwrap;
+
+    constexpr int M = 1024;
+    constexpr int K = 128;
+    constexpr int N = 1024;
+    constexpr vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
+    constexpr vkc::Extent extentB{N, K, vk::Format::eR32Sfloat};
+    constexpr vkc::Extent extentDst{extentB.width(), extentA.height(), vk::Format::eR32Sfloat};
+
+    // Src data
+    vkc::StbImageBox srcMatA = vkc::StbImageBox::createWithExtent(extentA) | unwrap;
+    vkc::StbImageBox srcMatB = vkc::StbImageBox::createWithExtent(extentB) | unwrap;
+    vkc::StbImageBox dstMatVk = vkc::StbImageBox::createWithExtent(extentDst) | unwrap;
 
     // Device
     vkc::DefaultInstanceProps instProps = vkc::DefaultInstanceProps::create() | unwrap;
@@ -19,20 +32,105 @@ int main() {
     vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
+    const auto& phyDeviceProps = phyDeviceWithProps.getPhyDeviceProps();
+    if (!phyDeviceProps.extensions.has(vk::KHRPerformanceQueryExtensionName)) {
+        std::println(std::cerr, "VK_KHR_performance_query not supported");
+        return -1;
+    }
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     vkc::PerfCounterProps perfProps = vkc::PerfCounterProps::create(phyDeviceBox, computeQFamilyIdx) | unwrap;
-
-    for (auto& prop : perfProps.perfCounters) {
-        std::println("--------------------");
-        std::println("name: {}", prop.getName());
-        std::println("cate: {}", prop.getCategory());
-        std::println("desc: {}", prop.getDescription());
-    }
-
     constexpr std::string_view perfQueryExtName{vk::KHRPerformanceQueryExtensionName};
     constexpr std::array deviceExtNames{perfQueryExtName};
     auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
         vkc::DeviceBox::createWithExts(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}, deviceExtNames) |
         unwrap);
+    vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
+
+    // Descriptor & Layouts
+    vkc::StorageImageBox srcMatABox =
+        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcMatA.getExtent(), vkc::StorageImageType::Read) |
+        unwrap;
+    vkc::StorageImageBox srcMatBBox =
+        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcMatB.getExtent(), vkc::StorageImageType::Read) |
+        unwrap;
+    const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
+    vkc::StorageImageBox dstMatBox =
+        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, dstMatVk.getExtent()) | unwrap;
+    const std::array dstMatBoxRefs{std::ref(dstMatBox)};
+    srcMatABox.upload(srcMatA.getPData()) | unwrap;
+    srcMatBBox.upload(srcMatB.getPData()) | unwrap;
+
+    const std::vector descPoolSizes = genPoolSizes(srcMatABox, srcMatBBox, dstMatBox);
+    vkc::DescPoolBox descPoolBox = vkc::DescPoolBox::create(pDeviceBox, descPoolSizes) | unwrap;
+
+    const std::array sgemmDLayoutBindings = genDescSetLayoutBindings(srcMatABox, srcMatBBox, dstMatBox);
+    vkc::DescSetLayoutBox sgemmDLayoutBox = vkc::DescSetLayoutBox::create(pDeviceBox, sgemmDLayoutBindings) | unwrap;
+    const std::array sgemmDLayoutBoxCRefs{std::cref(sgemmDLayoutBox)};
+    vkc::PipelineLayoutBox sgemmPLayoutBox = vkc::PipelineLayoutBox::create(pDeviceBox, sgemmDLayoutBoxCRefs) | unwrap;
+    vkc::DescSetsBox sgemmDescSetsBox =
+        vkc::DescSetsBox::create(pDeviceBox, descPoolBox, sgemmDLayoutBoxCRefs) | unwrap;
+    const std::array sgemmWriteDescSets = genWriteDescSets(srcMatABox, srcMatBBox, dstMatBox);
+    const std::array sgemmWriteDescSetss{std::span{sgemmWriteDescSets.begin(), sgemmWriteDescSets.end()}};
+    sgemmDescSetsBox.updateDescSets(sgemmWriteDescSetss);
+
+    // Command Buffer
+    vkc::FenceBox fenceBox = vkc::FenceBox::create(pDeviceBox) | unwrap;
+    auto pCommandPoolBox =
+        std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
+    vkc::CommandBufferBox sgemmCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
+    vkc::TimestampQueryPoolBox queryPoolBox =
+        vkc::TimestampQueryPoolBox::create(pDeviceBox, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
+        unwrap;
+    std::array perfCounterIndices{9u, 10u};
+    vkc::PerfQueryPoolBox perfQueryPoolBox =
+        vkc::PerfQueryPoolBox::create(pDeviceBox, computeQFamilyIdx, 1, perfCounterIndices) | unwrap;
+
+    // Pipeline
+    constexpr int TM = 4;
+    constexpr int TN = TM;
+    constexpr int groupSizeX = 16;
+    constexpr int groupSizeY = 16;
+    constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX * TN);
+    constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY * TM);
+    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v2::code) | unwrap;
+    vkc::SpecConstantBox specConstantBox{groupSizeX, K, TM};
+    vkc::PipelineBox sgemmPipelineBox =
+        vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
+        unwrap;
+
+    // Gaussian Blur
+    for (int i = 0; i < 15; i++) {
+        sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
+        sgemmCmdBufBox.recordResetQueryPool(perfQueryPoolBox);
+        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBBox);
+        sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+        sgemmCmdBufBox.recordPerfQueryStart(perfQueryPoolBox) | unwrap;
+        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+        sgemmCmdBufBox.recordPerfQueryEnd(perfQueryPoolBox) | unwrap;
+        sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
+        sgemmCmdBufBox.end() | unwrap;
+
+        queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
+
+        auto elapsedTime = queryPoolBox.getElaspedTimes() | unwrap;
+        std::println("============================");
+        std::println("Dispatch timecost: {} ms", elapsedTime[0]);
+
+        auto perfQueryResults = perfQueryPoolBox.getResults<float, float>() | unwrap;
+        std::println("Gpu Active: {} %", std::get<0>(perfQueryResults[0]));
+        std::println("Gpu Stall: {} %", std::get<1>(perfQueryResults[0]));
+    }
 }

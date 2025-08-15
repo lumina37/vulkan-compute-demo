@@ -89,6 +89,8 @@ public:
                                                                   vk::PipelineStageFlagBits pipelineStage) noexcept;
     [[nodiscard]] std::expected<void, Error> recordTimestampEnd(TimestampQueryPoolBox& queryPoolBox,
                                                                 vk::PipelineStageFlagBits pipelineStage) noexcept;
+    [[nodiscard]] std::expected<void, Error> recordPerfQueryStart(PerfQueryPoolBox& queryPoolBox) noexcept;
+    [[nodiscard]] std::expected<void, Error> recordPerfQueryEnd(PerfQueryPoolBox& queryPoolBox) noexcept;
 
     [[nodiscard]] std::expected<void, Error> end() noexcept;
 

@@ -305,6 +305,27 @@ std::expected<void, Error> CommandBufferBox::recordTimestampEnd(
     return {};
 }
 
+std::expected<void, Error> CommandBufferBox::recordPerfQueryStart(PerfQueryPoolBox& queryPoolBox) noexcept {
+    vk::QueryPool queryPool = queryPoolBox.getQueryPool();
+    const int queryIndex = queryPoolBox.getQueryIndex();
+
+    auto addIndexRes = queryPoolBox.addQueryIndex();
+    if (!addIndexRes) return std::unexpected{std::move(addIndexRes.error())};
+
+    commandBuffer_.beginQuery(queryPool, queryIndex, vk::QueryControlFlags(0));
+
+    return {};
+}
+
+std::expected<void, Error> CommandBufferBox::recordPerfQueryEnd(PerfQueryPoolBox& queryPoolBox) noexcept {
+    vk::QueryPool queryPool = queryPoolBox.getQueryPool();
+    const int queryIndex = queryPoolBox.getQueryIndex();
+
+    commandBuffer_.endQuery(queryPool, queryIndex);
+
+    return {};
+}
+
 std::expected<void, Error> CommandBufferBox::end() noexcept {
     const auto endRes = commandBuffer_.end();
     if (endRes != vk::Result::eSuccess) {

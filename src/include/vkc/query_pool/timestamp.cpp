@@ -69,14 +69,14 @@ std::expected<void, Error> TimestampQueryPoolBox::addQueryIndex() noexcept {
 void TimestampQueryPoolBox::resetQueryIndex() noexcept { queryIndex_ = 0; }
 
 std::expected<std::vector<float>, Error> TimestampQueryPoolBox::getElaspedTimes() const noexcept {
-    std::vector<uint64_t> timestamps(queryIndex_);
+    using Tv = uint64_t;
+    std::vector<Tv> timestamps(queryIndex_);
     std::vector<float> elapsedTimes(queryIndex_ / 2);
-    constexpr size_t valueSize = sizeof(decltype(timestamps)::value_type);
 
     vk::Device device = pDeviceBox_->getDevice();
     const auto queryRes =
-        device.getQueryPoolResults(queryPool_, 0, queryIndex_, timestamps.size() * valueSize, timestamps.data(),
-                                   valueSize, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
+        device.getQueryPoolResults(queryPool_, 0, queryIndex_, timestamps.size() * sizeof(Tv), timestamps.data(),
+                                   sizeof(Tv), vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
     if (queryRes != vk::Result::eSuccess) {
         return std::unexpected{Error{ECate::eVk, queryRes}};
     }
