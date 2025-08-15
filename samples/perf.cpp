@@ -21,7 +21,15 @@ int main() {
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
-    vkc::PerfQueryProps perfProps = vkc::PerfQueryProps::create(phyDeviceBox, computeQFamilyIdx) | unwrap;
+    vkc::PerfCounterProps perfProps = vkc::PerfCounterProps::create(phyDeviceBox, computeQFamilyIdx) | unwrap;
+
+    for (auto& prop : perfProps.perfCounters) {
+        std::println("--------------------");
+        std::println("name: {}", prop.getName());
+        std::println("cate: {}", prop.getCategory());
+        std::println("desc: {}", prop.getDescription());
+    }
+
     constexpr std::string_view perfQueryExtName{vk::KHRPerformanceQueryExtensionName};
     constexpr std::array deviceExtNames{perfQueryExtName};
     auto pDeviceBox = std::make_shared<vkc::DeviceBox>(

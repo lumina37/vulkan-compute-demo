@@ -1,4 +1,5 @@
 #include <expected>
+#include <ranges>
 #include <utility>
 
 #include "vkc/device/physical/box.hpp"
@@ -13,19 +14,33 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-std::expected<PerfQueryProps, Error> PerfQueryProps::create(const PhyDeviceBox& phyDeviceBox,
-                                                            uint32_t queueFamilyIndex) noexcept {
-    PerfQueryProps props;
+PerfCounterProp::PerfCounterProp(const vk::PerformanceCounterKHR& perfCounter,
+                                 const vk::PerformanceCounterDescriptionKHR& perfCounterDesc) noexcept
+    : unit_(perfCounter.unit),
+      scope_(perfCounter.scope),
+      storage_(perfCounter.storage),
+      name_(perfCounterDesc.name),
+      category_(perfCounterDesc.category),
+      description_(perfCounterDesc.description) {}
+
+std::expected<PerfCounterProps, Error> PerfCounterProps::create(const PhyDeviceBox& phyDeviceBox,
+                                                                uint32_t queueFamilyIndex) noexcept {
+    PerfCounterProps props;
     const vk::PhysicalDevice phyDevice = phyDeviceBox.getPhyDevice();
 
-    auto [perfCountersRes, perfCounterInfo] =
+    auto [rawPerfCountersRes, rawPerfCounters] =
         phyDevice.enumerateQueueFamilyPerformanceQueryCountersKHR(queueFamilyIndex);
-    if (perfCountersRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{ECate::eVk, perfCountersRes}};
+    if (rawPerfCountersRes != vk::Result::eSuccess) {
+        return std::unexpected{Error{ECate::eVk, rawPerfCountersRes}};
     }
-    auto [perfCounters, perfCounterDescs] = std::move(perfCounterInfo);
 
-    props.descs = std::move(perfCounterDescs);
+    props.rawPerfCounters_ = std::move(rawPerfCounters);
+    props.perfCounters = rgs::views::zip(props.rawPerfCounters_.first, props.rawPerfCounters_.second) |
+                         rgs::views::transform([](const auto& pair) {
+                             const auto& [info, desc] = pair;
+                             return PerfCounterProp(info, desc);
+                         }) |
+                         rgs::to<std::vector>();
 
     return props;
 }
