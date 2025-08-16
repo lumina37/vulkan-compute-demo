@@ -98,7 +98,7 @@ int main() {
         vkc::PipelineBox::createCompute(pDeviceBox, grayPLayoutBox, grayShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
 
-    // Gaussian Blur
+    // Record Command Buffer
     gaussCmdBufBox.begin() | unwrap;
     gaussCmdBufBox.bindPipeline(gaussPipelineBox);
     gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);

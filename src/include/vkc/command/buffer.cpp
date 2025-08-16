@@ -309,9 +309,6 @@ std::expected<void, Error> CommandBufferBox::recordPerfQueryStart(PerfQueryPoolB
     vk::QueryPool queryPool = queryPoolBox.getQueryPool();
     const int queryIndex = queryPoolBox.getQueryIndex();
 
-    auto addIndexRes = queryPoolBox.addQueryIndex();
-    if (!addIndexRes) return std::unexpected{std::move(addIndexRes.error())};
-
     commandBuffer_.beginQuery(queryPool, queryIndex, vk::QueryControlFlags(0));
 
     return {};
@@ -319,9 +316,12 @@ std::expected<void, Error> CommandBufferBox::recordPerfQueryStart(PerfQueryPoolB
 
 std::expected<void, Error> CommandBufferBox::recordPerfQueryEnd(PerfQueryPoolBox& queryPoolBox) noexcept {
     vk::QueryPool queryPool = queryPoolBox.getQueryPool();
-    const int queryIndex = queryPoolBox.getQueryIndex();
 
+    const int queryIndex = queryPoolBox.getQueryIndex();
     commandBuffer_.endQuery(queryPool, queryIndex);
+
+    auto addIndexRes = queryPoolBox.addQueryIndex();
+    if (!addIndexRes) return std::unexpected{std::move(addIndexRes.error())};
 
     return {};
 }

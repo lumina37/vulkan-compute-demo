@@ -30,19 +30,23 @@ DeviceBox::~DeviceBox() noexcept {
 }
 
 std::expected<DeviceBox, Error> DeviceBox::create(PhyDeviceBox& phyDeviceBox, QueueIndex requiredQueueIndex) noexcept {
-    return createWithExts(phyDeviceBox, requiredQueueIndex, {});
+    return createWithExts(phyDeviceBox, requiredQueueIndex, {}, nullptr);
 }
 
 std::expected<DeviceBox, Error> DeviceBox::createWithExts(PhyDeviceBox& phyDeviceBox, QueueIndex requiredQueueIndex,
-                                                          std::span<const std::string_view> enableExtNames) noexcept {
+                                                          std::span<const std::string_view> enableExtNames,
+                                                          vk::PhysicalDeviceFeatures2* pFeature) noexcept {
     const std::array requiredQueueIndices{requiredQueueIndex};
-    return createWithMultiQueueAndExts(phyDeviceBox, requiredQueueIndices, enableExtNames);
+    return createWithMultiQueueAndExts(phyDeviceBox, requiredQueueIndices, enableExtNames, pFeature);
 }
 
-std::expected<DeviceBox, Error> DeviceBox::createWithMultiQueueAndExts(
-    PhyDeviceBox& phyDeviceBox, std::span<const QueueIndex> requiredQueueIndices,
-    std::span<const std::string_view> enableExtNames) noexcept {
+std::expected<DeviceBox, Error> DeviceBox::createWithMultiQueueAndExts(PhyDeviceBox& phyDeviceBox,
+                                                                       std::span<const QueueIndex> requiredQueueIndices,
+                                                                       std::span<const std::string_view> enableExtNames,
+                                                                       vk::PhysicalDeviceFeatures2* pFeature) noexcept {
     vk::DeviceCreateInfo deviceInfo;
+
+    deviceInfo.setPNext(pFeature);
 
     constexpr auto genQueueInfo = [](QueueIndex idx) {
         vk::DeviceQueueCreateInfo queueInfo;

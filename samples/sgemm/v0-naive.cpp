@@ -86,7 +86,7 @@ int main() {
         vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
 
-    // Gaussian Blur
+    // Record Command Buffer
     for (int i = 0; i < 15; i++) {
         sgemmCmdBufBox.begin() | unwrap;
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);

@@ -54,5 +54,5 @@ private:
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/query_pool/props.cpp"
+#    include "vkc/query_pool/perf/props.cpp"
 #endif

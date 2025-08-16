@@ -27,12 +27,12 @@ public:
                                                                 QueueIndex requiredQueueIndex) noexcept;
 
     [[nodiscard]] static std::expected<DeviceBox, Error> createWithExts(
-        PhyDeviceBox& phyDeviceBox, QueueIndex requiredQueueIndex,
-        std::span<const std::string_view> enableExtNames) noexcept;
+        PhyDeviceBox& phyDeviceBox, QueueIndex requiredQueueIndex, std::span<const std::string_view> enableExtNames,
+        vk::PhysicalDeviceFeatures2* pFeature) noexcept;
 
     [[nodiscard]] static std::expected<DeviceBox, Error> createWithMultiQueueAndExts(
         PhyDeviceBox& phyDeviceBox, std::span<const QueueIndex> requiredQueueIndices,
-        std::span<const std::string_view> enableExtNames) noexcept;
+        std::span<const std::string_view> enableExtNames, vk::PhysicalDeviceFeatures2* pFeature) noexcept;
 
     [[nodiscard]] vk::Device getDevice() const noexcept { return device_; }
 

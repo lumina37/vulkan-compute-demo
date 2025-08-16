@@ -3,6 +3,7 @@
 #include <memory>
 #include <print>
 #include <span>
+#include <thread>
 
 #include "shader.hpp"
 #include "vkc.hpp"
@@ -32,7 +33,7 @@ int main() {
     vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
-    const auto& phyDeviceProps = phyDeviceWithProps.getPhyDeviceProps();
+    auto& phyDeviceProps = phyDeviceWithProps.getPhyDeviceProps();
     if (!phyDeviceProps.extensions.has(vk::KHRPerformanceQueryExtensionName)) {
         std::println(std::cerr, "VK_KHR_performance_query not supported");
         return -1;
@@ -40,10 +41,24 @@ int main() {
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     vkc::PerfCounterProps perfProps = vkc::PerfCounterProps::create(phyDeviceBox, computeQFamilyIdx) | unwrap;
+    const int perfCounterCount = std::min((int)perfProps.perfCounters.size(), 5);
+    for (int i = 0; i < perfCounterCount; i++) {
+        const auto& perfCounter = perfProps.perfCounters[i];
+        std::println("===============");
+        std::println("index: {}", i);
+        std::println("name: {}", perfCounter.getName());
+        std::println("cate: {}", perfCounter.getCategory());
+        std::println("desc: {}", perfCounter.getDescription());
+        std::println("unit: {}", (int)perfCounter.getUnit());
+        std::println("storage: {}", (int)perfCounter.getStorage());
+    }
+
     constexpr std::string_view perfQueryExtName{vk::KHRPerformanceQueryExtensionName};
-    constexpr std::array deviceExtNames{perfQueryExtName};
+    constexpr std::string_view hostResetExtName{vk::EXTHostQueryResetExtensionName};
+    constexpr std::array deviceExtNames{perfQueryExtName, hostResetExtName};
     auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
-        vkc::DeviceBox::createWithExts(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}, deviceExtNames) |
+        vkc::DeviceBox::createWithExts(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}, deviceExtNames,
+                                       phyDeviceProps.getPFeature()) |
         unwrap);
     vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
 
@@ -79,12 +94,10 @@ int main() {
     auto pCommandPoolBox =
         std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferBox sgemmCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
-    vkc::TimestampQueryPoolBox queryPoolBox =
-        vkc::TimestampQueryPoolBox::create(pDeviceBox, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
-        unwrap;
-    std::array perfCounterIndices{9u, 10u};
+    std::array perfCounterIndices{0u, 8u, 10u};
     vkc::PerfQueryPoolBox perfQueryPoolBox =
         vkc::PerfQueryPoolBox::create(pDeviceBox, computeQFamilyIdx, 1, perfCounterIndices) | unwrap;
+    perfQueryPoolBox.hostReset();
 
     // Pipeline
     constexpr int TM = 4;
@@ -99,38 +112,34 @@ int main() {
         vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
 
-    // Gaussian Blur
-    for (int i = 0; i < 15; i++) {
+    // Record Command Buffer
+    const vkc::ProfilingLockBox lock = vkc::ProfilingLockBox::create(pDeviceBox) | unwrap;
+    for (int i = 0; i < 10; i++) {
+        perfQueryPoolBox.hostReset();
         sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.recordPerfQueryStart(perfQueryPoolBox) | unwrap;
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
-        sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
-        sgemmCmdBufBox.recordResetQueryPool(perfQueryPoolBox);
         sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordCopyStagingToSrc(srcMatABox);
         sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBBox);
         sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
-        sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        sgemmCmdBufBox.recordPerfQueryStart(perfQueryPoolBox) | unwrap;
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
-        sgemmCmdBufBox.recordPerfQueryEnd(perfQueryPoolBox) | unwrap;
-        sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
         sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
+        sgemmCmdBufBox.recordPerfQueryEnd(perfQueryPoolBox) | unwrap;
         sgemmCmdBufBox.end() | unwrap;
 
         queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
-
-        auto elapsedTime = queryPoolBox.getElaspedTimes() | unwrap;
-        std::println("============================");
-        std::println("Dispatch timecost: {} ms", elapsedTime[0]);
-
-        auto perfQueryResults = perfQueryPoolBox.getResults<float, float>() | unwrap;
-        std::println("Gpu Active: {} %", std::get<0>(perfQueryResults[0]));
-        std::println("Gpu Stall: {} %", std::get<1>(perfQueryResults[0]));
     }
+
+    auto perfQueryResults = perfQueryPoolBox.getResults<uint64_t, float, float>() | unwrap;
+    std::println("============================");
+    std::println("GPU Elapsed Time: {} ns", std::get<0>(perfQueryResults[0]));
+    std::println("GPU Active: {} %", std::get<1>(perfQueryResults[0]));
+    std::println("GPU Stall: {} %", std::get<2>(perfQueryResults[0]));
 }

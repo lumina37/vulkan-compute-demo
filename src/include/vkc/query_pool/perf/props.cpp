@@ -7,7 +7,7 @@
 #include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/query_pool/props.hpp"
+#    include "vkc/query_pool/perf/props.hpp"
 #endif
 
 namespace vkc {
@@ -34,13 +34,14 @@ std::expected<PerfCounterProps, Error> PerfCounterProps::create(const PhyDeviceB
         return std::unexpected{Error{ECate::eVk, rawPerfCountersRes}};
     }
 
+    const auto makeProp = [](const auto& pair) {
+        const auto& [info, desc] = pair;
+        return PerfCounterProp(info, desc);
+    };
+
     props.rawPerfCounters_ = std::move(rawPerfCounters);
     props.perfCounters = rgs::views::zip(props.rawPerfCounters_.first, props.rawPerfCounters_.second) |
-                         rgs::views::transform([](const auto& pair) {
-                             const auto& [info, desc] = pair;
-                             return PerfCounterProp(info, desc);
-                         }) |
-                         rgs::to<std::vector>();
+                         rgs::views::transform(makeProp) | rgs::to<std::vector>();
 
     return props;
 }

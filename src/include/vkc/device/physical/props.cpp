@@ -36,10 +36,12 @@ std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(const 
     props.timestampPeriod = phyDeviceProps2.limits.timestampPeriod;
     props.supportTimeQuery = (bool)phyDeviceProps2.limits.timestampComputeAndGraphics;
 
-    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceShaderFloat16Int8Features> featureChain;
-    phyDevice.getFeatures2(&featureChain.get());
+    phyDevice.getFeatures2(props.getPFeature());
 
-    const auto& shaderFp16Int8Features = featureChain.get<vk::PhysicalDeviceShaderFloat16Int8Features>();
+    const auto& perfQueryFeatures = props.featureChain_.get<vk::PhysicalDevicePerformanceQueryFeaturesKHR>();
+    props.supportPerfQuery = (bool)perfQueryFeatures.performanceCounterQueryPools;
+
+    const auto& shaderFp16Int8Features = props.featureChain_.get<vk::PhysicalDeviceShaderFloat16Int8Features>();
     props.supportFp16 = (bool)shaderFp16Int8Features.shaderFloat16;
 
     return props;

@@ -10,7 +10,7 @@
 #include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/query_pool/perf.hpp"
+#    include "vkc/query_pool/perf/box.hpp"
 #endif
 
 namespace vkc {
@@ -28,7 +28,7 @@ PerfQueryPoolBox::PerfQueryPoolBox(PerfQueryPoolBox&& rhs) noexcept
       queryPool_(std::exchange(rhs.queryPool_, nullptr)),
       queryCount_(rhs.queryCount_),
       queryIndex_(rhs.queryIndex_),
-      perfCounterCount_(0) {}
+      perfCounterCount_(rhs.perfCounterCount_) {}
 
 PerfQueryPoolBox::~PerfQueryPoolBox() noexcept {
     if (queryPool_ == nullptr) return;
@@ -38,7 +38,7 @@ PerfQueryPoolBox::~PerfQueryPoolBox() noexcept {
 }
 
 std::expected<PerfQueryPoolBox, Error> PerfQueryPoolBox::create(std::shared_ptr<DeviceBox> pDeviceBox,
-                                                                int queueFamilyIndex, int queryCount,
+                                                                uint32_t queueFamilyIndex, int queryCount,
                                                                 std::span<uint32_t> perfCounterIndices) noexcept {
     vk::QueryPoolPerformanceCreateInfoKHR perfCreateInfo;
     perfCreateInfo.setQueueFamilyIndex(queueFamilyIndex);
@@ -69,4 +69,10 @@ std::expected<void, Error> PerfQueryPoolBox::addQueryIndex() noexcept {
 
 void PerfQueryPoolBox::resetQueryIndex() noexcept { queryIndex_ = 0; }
 
+void PerfQueryPoolBox::hostReset() noexcept {
+    // requires `VK_EXT_host_query_reset` extension
+    vk::Device device = pDeviceBox_->getDevice();
+    device.resetQueryPool(queryPool_, 0, queryCount_);
+    resetQueryIndex();
+}
 }  // namespace vkc

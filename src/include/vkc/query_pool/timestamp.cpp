@@ -66,8 +66,6 @@ std::expected<void, Error> TimestampQueryPoolBox::addQueryIndex() noexcept {
     return {};
 }
 
-void TimestampQueryPoolBox::resetQueryIndex() noexcept { queryIndex_ = 0; }
-
 std::expected<std::vector<float>, Error> TimestampQueryPoolBox::getElaspedTimes() const noexcept {
     using Tv = uint64_t;
     std::vector<Tv> timestamps(queryIndex_);
@@ -87,6 +85,15 @@ std::expected<std::vector<float>, Error> TimestampQueryPoolBox::getElaspedTimes(
     }
 
     return elapsedTimes;
+}
+
+void TimestampQueryPoolBox::resetQueryIndex() noexcept { queryIndex_ = 0; }
+
+void TimestampQueryPoolBox::hostReset() noexcept {
+    // requires `VK_EXT_host_query_reset` extension
+    vk::Device device = pDeviceBox_->getDevice();
+    device.resetQueryPool(queryPool_, 0, queryCount_);
+    resetQueryIndex();
 }
 
 }  // namespace vkc

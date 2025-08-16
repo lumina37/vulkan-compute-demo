@@ -24,13 +24,11 @@ public:
 
     [[nodiscard]] int getQueryIndex() const noexcept { return queryIndex_; }
     [[nodiscard]] std::expected<void, Error> addQueryIndex() noexcept;
-    void resetQueryIndex() noexcept;
-
     [[nodiscard]] int getQueryCount() const noexcept { return queryCount_; }
-
     [[nodiscard]] vk::QueryPool getQueryPool() const noexcept { return queryPool_; }
-
     [[nodiscard]] std::expected<std::vector<float>, Error> getElaspedTimes() const noexcept;
+    void resetQueryIndex() noexcept;
+    void hostReset() noexcept;
 
 private:
     std::shared_ptr<DeviceBox> pDeviceBox_;

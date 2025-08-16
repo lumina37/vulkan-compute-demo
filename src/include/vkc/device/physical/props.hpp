@@ -21,14 +21,22 @@ public:
     [[nodiscard]] static std::expected<DefaultPhyDeviceProps, Error> create(const PhyDeviceBox& phyDeviceBox) noexcept;
     [[nodiscard]] std::expected<float, Error> score() const noexcept;
 
+    [[nodiscard]] vk::PhysicalDeviceFeatures2* getPFeature() noexcept { return &featureChain_.get(); }
+
     // Members
     ExtEntries_<vk::ExtensionProperties> extensions;
     uint32_t apiVersion;
     vk::PhysicalDeviceType deviceType;
     uint32_t maxSharedMemSize;
     float timestampPeriod;
-    bool supportFp16;
     bool supportTimeQuery;
+    bool supportPerfQuery;
+    bool supportFp16;
+
+private:
+    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDevicePerformanceQueryFeaturesKHR,
+                       vk::PhysicalDeviceShaderFloat16Int8Features, vk::PhysicalDeviceHostQueryResetFeatures>
+        featureChain_;
 };
 
 template <CPhyDeviceProps TDProps_>
@@ -43,6 +51,7 @@ public:
     [[nodiscard]] auto&& getPhyDeviceBox(this Self&& self) noexcept {
         return std::forward_like<Self>(self).phyDeviceBox_;
     }
+    [[nodiscard]] TDProps& getPhyDeviceProps() noexcept { return phyDeviceProps_; }
     [[nodiscard]] const TDProps& getPhyDeviceProps() const noexcept { return phyDeviceProps_; }
 
 private:
