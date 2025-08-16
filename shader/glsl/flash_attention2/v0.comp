@@ -1,0 +1,137 @@
+#version 460
+
+// 工作组大小，通常设为 32x1 或 16x16
+layout (local_size_x_id = 0, local_size_y_id = 1) in;
+
+// 输入矩阵
+layout (binding = 0, r32f) uniform readonly image2D queryMat;    // Q: [seq_len, d_k]
+layout (binding = 1, r32f) uniform readonly image2D keyMat;      // K: [seq_len, d_k]
+layout (binding = 2, r32f) uniform readonly image2D valueMat;    // V: [seq_len, d_v]
+
+// 输出矩阵
+layout (binding = 3, r32f) uniform writeonly image2D outputMat;  // O: [seq_len, d_v]
+
+// 中间缓存 (可选，用于更大的序列)
+layout (binding = 4, r32f) uniform image2D tempBuffer;          // 临时缓存
+
+// 缓存大小常量 (可通过 specialization constant 设置)
+layout (constant_id = 2) const int BLOCK_SIZE = 64;
+layout (constant_id = 3) const float SCALE_FACTOR = 0.125;  // 1.0 / sqrt(d_k)
+
+// 共享内存用于分块计算
+shared float sQ[64][64];  // 查询块
+shared float sK[64][64];  // 键块
+shared float sV[64][64];  // 值块
+shared float sAcc[64][64]; // 累加器
+
+void main() {
+    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
+    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+
+    const ivec2 querySize = imageSize(queryMat);  // [seq_len, d_k]
+    const ivec2 keySize = imageSize(keyMat);      // [seq_len, d_k]
+    const ivec2 valueSize = imageSize(valueMat);  // [seq_len, d_v]
+    const ivec2 outputSize = imageSize(outputMat); // [seq_len, d_v]
+
+    const int seqLen = querySize.y;
+    const int dK = querySize.x;
+    const int dV = valueSize.x;
+
+    // 边界检查
+    if (globalID.x >= outputSize.x || globalID.y >= outputSize.y) {
+        return;
+    }
+
+    // 初始化输出累加器和注意力状态
+    float output_acc = 0.0;
+    float max_score = -1e30;
+    float sum_exp = 0.0;
+
+    const int queryBlockIdx = globalID.y;
+    const int outputDimIdx = globalID.x;
+
+    // 分块处理键值对
+    const int numBlocks = (seqLen + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+    for (int blockIdx = 0; blockIdx < numBlocks; blockIdx++) {
+        const int keyBlockStart = blockIdx * BLOCK_SIZE;
+        const int keyBlockEnd = min(keyBlockStart + BLOCK_SIZE, seqLen);
+        const int blockSize = keyBlockEnd - keyBlockStart;
+
+        // 加载查询到共享内存 (只需要加载一次)
+        if (blockIdx == 0 && localID.x < dK && localID.y == 0) {
+            const ivec2 qCoord = ivec2(localID.x, queryBlockIdx);
+            sQ[0][localID.x] = imageLoad(queryMat, qCoord).r;
+        }
+
+        barrier();
+
+        // 计算注意力分数块
+        float blockMaxScore = -1e30;
+        float blockScores[64]; // 假设 BLOCK_SIZE <= 64
+
+        for (int i = 0; i < blockSize; i++) {
+            const int keyIdx = keyBlockStart + i;
+            float score = 0.0;
+
+            // 计算 Q * K^T
+            for (int d = 0; d < dK; d++) {
+                const ivec2 kCoord = ivec2(d, keyIdx);
+                const float kVal = imageLoad(keyMat, kCoord).r;
+                score += sQ[0][d] * kVal;
+            }
+
+            // 应用缩放因子
+            score *= SCALE_FACTOR;
+
+            blockScores[i] = score;
+            blockMaxScore = max(blockMaxScore, score);
+        }
+
+        // 在线 softmax 更新
+        const float newMaxScore = max(max_score, blockMaxScore);
+        const float maxDiff = max_score - newMaxScore;
+        const float blockMaxDiff = blockMaxScore - newMaxScore;
+
+        // 重新缩放之前的累加器
+        if (maxDiff < -20.0) {
+            // 避免数值下溢
+            output_acc = 0.0;
+            sum_exp = 0.0;
+        } else {
+            const float scale = exp(maxDiff);
+            output_acc *= scale;
+            sum_exp *= scale;
+        }
+
+        // 计算当前块的贡献
+        float blockSumExp = 0.0;
+        float blockOutputAcc = 0.0;
+
+        for (int i = 0; i < blockSize; i++) {
+            const int keyIdx = keyBlockStart + i;
+            const float expScore = exp(blockScores[i] - newMaxScore);
+            blockSumExp += expScore;
+
+            // 加载对应的值并累加到输出
+            const ivec2 vCoord = ivec2(outputDimIdx, keyIdx);
+            const float vVal = imageLoad(valueMat, vCoord).r;
+            blockOutputAcc += expScore * vVal;
+        }
+
+        // 更新全局状态
+        output_acc += blockOutputAcc;
+        sum_exp += blockSumExp;
+        max_score = newMaxScore;
+
+        barrier();
+    }
+
+    // 最终归一化
+    const float finalOutput = output_acc / sum_exp;
+
+    // 写入输出
+    const vec4 outputVal = vec4(finalOutput, 0.0, 0.0, 0.0);
+    imageStore(outputMat, globalID, outputVal);
+}

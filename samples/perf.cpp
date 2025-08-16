@@ -41,7 +41,7 @@ int main() {
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     vkc::PerfCounterProps perfProps = vkc::PerfCounterProps::create(phyDeviceBox, computeQFamilyIdx) | unwrap;
-    const int perfCounterCount = std::min((int)perfProps.perfCounters.size(), 5);
+    const int perfCounterCount = std::min((int)perfProps.perfCounters.size(), 12);
     for (int i = 0; i < perfCounterCount; i++) {
         const auto& perfCounter = perfProps.perfCounters[i];
         std::println("===============");
@@ -49,8 +49,8 @@ int main() {
         std::println("name: {}", perfCounter.getName());
         std::println("cate: {}", perfCounter.getCategory());
         std::println("desc: {}", perfCounter.getDescription());
-        std::println("unit: {}", (int)perfCounter.getUnit());
-        std::println("storage: {}", (int)perfCounter.getStorage());
+        std::println("unit: {}", vk::to_string(perfCounter.getUnit()));
+        std::println("storage: {}", vk::to_string(perfCounter.getStorage()));
     }
 
     constexpr std::string_view perfQueryExtName{vk::KHRPerformanceQueryExtensionName};
@@ -94,7 +94,7 @@ int main() {
     auto pCommandPoolBox =
         std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferBox sgemmCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
-    std::array perfCounterIndices{0u, 8u, 10u};
+    std::array perfCounterIndices{0u, 10u, 11u};
     vkc::PerfQueryPoolBox perfQueryPoolBox =
         vkc::PerfQueryPoolBox::create(pDeviceBox, computeQFamilyIdx, 1, perfCounterIndices) | unwrap;
     perfQueryPoolBox.hostReset();
@@ -135,11 +135,11 @@ int main() {
         queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
-    }
 
-    auto perfQueryResults = perfQueryPoolBox.getResults<uint64_t, float, float>() | unwrap;
-    std::println("============================");
-    std::println("GPU Elapsed Time: {} ns", std::get<0>(perfQueryResults[0]));
-    std::println("GPU Active: {} %", std::get<1>(perfQueryResults[0]));
-    std::println("GPU Stall: {} %", std::get<2>(perfQueryResults[0]));
+        auto perfQueryResults = perfQueryPoolBox.getResults<uint64_t, float, float>() | unwrap;
+        std::println("============================");
+        std::println("GPU Elapsed Time: {} ns", std::get<0>(perfQueryResults[0]));
+        std::println("SM Active: {} %", std::get<1>(perfQueryResults[0]));
+        std::println("SM Stall: {} %", std::get<2>(perfQueryResults[0]));
+    }
 }

@@ -41,7 +41,6 @@ public:
 
 private:
     std::shared_ptr<DeviceBox> pDeviceBox_;
-
     vk::QueryPool queryPool_;
     int queryCount_;
     int queryIndex_;
@@ -80,13 +79,13 @@ std::expected<std::vector<std::tuple<TRes...>>, Error> PerfQueryPoolBox::getResu
         }
     };
 
-    const auto genTuple = [&]<size_t... Indices>(std::index_sequence<Indices...>, size_t queryIdx) {
+    const auto genTuple = [&]<size_t... Indices>(std::index_sequence<Indices...>, size_t i) {
         return std::make_tuple(extractValue.template operator()<std::tuple_element_t<Indices, std::tuple<TRes...>>>(
-            rawResults[queryIdx * perfCounterCount_ + Indices])...);
+            rawResults[i * perfCounterCount_ + Indices])...);
     };
 
-    for (size_t queryIdx = 0; queryIdx < queryIndex_; queryIdx++) {
-        results[queryIdx] = genTuple(std::make_index_sequence<sizeof...(TRes)>{}, queryIdx);
+    for (size_t i = 0; i < queryIndex_; i++) {
+        results[i] = genTuple(std::make_index_sequence<sizeof...(TRes)>{}, i);
     }
 
     return results;

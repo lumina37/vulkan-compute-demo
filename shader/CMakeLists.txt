@@ -6,6 +6,7 @@ set(_VKC_GLSL_SRCS
         sgemm/v0
         sgemm/v1
         sgemm/v2
+        flash_attention2/v0
 )
 set(_VKC_SPIRV_SHADERS)
 
