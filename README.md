@@ -1,3 +1,3 @@
 # vulkan-compute-demo
 
-Gaussian blur by Vulkan+GLSL.
+Vulkan Compute Pipeline Demo (Gaussian Blur/GEMM/Flash Attention2/...)
