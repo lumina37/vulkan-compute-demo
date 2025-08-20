@@ -1,18 +1,12 @@
 #version 460
 
-// 工作组大小，通常设为 32x1 或 16x16
 layout (local_size_x_id = 0, local_size_y_id = 1) in;
 
-// 输入矩阵
 layout (binding = 0, r32f) uniform readonly image2D queryMat;    // Q: [seq_len, d_k]
 layout (binding = 1, r32f) uniform readonly image2D keyMat;      // K: [seq_len, d_k]
 layout (binding = 2, r32f) uniform readonly image2D valueMat;    // V: [seq_len, d_v]
 
-// 输出矩阵
 layout (binding = 3, r32f) uniform writeonly image2D outputMat;  // O: [seq_len, d_v]
-
-// 中间缓存 (可选，用于更大的序列)
-layout (binding = 4, r32f) uniform image2D tempBuffer;          // 临时缓存
 
 // 缓存大小常量 (可通过 specialization constant 设置)
 layout (constant_id = 2) const int BLOCK_SIZE = 64;

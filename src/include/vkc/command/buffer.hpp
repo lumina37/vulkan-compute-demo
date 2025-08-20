@@ -81,8 +81,7 @@ public:
 
     void recordWaitDownloadComplete(std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept;
 
-    template <typename TQueryPoolBox>
-        requires CQueryPoolBox<TQueryPoolBox>
+    template <CQueryPoolBox TQueryPoolBox>
     void recordResetQueryPool(TQueryPoolBox& queryPoolBox) noexcept;
 
     [[nodiscard]] std::expected<void, Error> recordTimestampStart(TimestampQueryPoolBox& queryPoolBox,
@@ -277,8 +276,7 @@ void CommandBufferBox::recordCopyStorageToAnotherWithRoi(const StorageImageBox& 
                              vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
-template <typename TQueryPoolBox>
-    requires CQueryPoolBox<TQueryPoolBox>
+template <CQueryPoolBox TQueryPoolBox>
 void CommandBufferBox::recordResetQueryPool(TQueryPoolBox& queryPoolBox) noexcept {
     vk::QueryPool queryPool = queryPoolBox.getQueryPool();
     queryPoolBox.resetQueryIndex();

@@ -3,7 +3,6 @@
 #include <memory>
 #include <print>
 #include <span>
-#include <thread>
 
 #include "shader.hpp"
 #include "vkc.hpp"
@@ -33,12 +32,18 @@ int main() {
     vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
+
     auto& phyDeviceProps = phyDeviceWithProps.getPhyDeviceProps();
     if (!phyDeviceProps.extensions.has(vk::KHRPerformanceQueryExtensionName)) {
         std::println(std::cerr, "VK_KHR_performance_query not supported");
         return -1;
     }
+    if (!phyDeviceProps.extensions.has(vk::EXTHostQueryResetExtensionName)) {
+        std::println(std::cerr, "VK_EXT_host_query_reset not supported");
+        return -1;
+    }
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
+
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     vkc::PerfCounterProps perfProps = vkc::PerfCounterProps::create(phyDeviceBox, computeQFamilyIdx) | unwrap;
     const int perfCounterCount = std::min((int)perfProps.perfCounters.size(), 12);
@@ -138,7 +143,7 @@ int main() {
 
         auto perfQueryResults = perfQueryPoolBox.getResults<uint64_t, float, float>() | unwrap;
         std::println("============================");
-        std::println("GPU Elapsed Time: {} ns", std::get<0>(perfQueryResults[0]));
+        std::println("GPU Elapsed Time: {} ms", (float)std::get<0>(perfQueryResults[0]) / 1e6);
         std::println("SM Active: {} %", std::get<1>(perfQueryResults[0]));
         std::println("SM Stall: {} %", std::get<2>(perfQueryResults[0]));
     }

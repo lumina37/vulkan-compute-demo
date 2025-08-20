@@ -1,0 +1,114 @@
+#version 460
+
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_memory_scope_semantics : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+#extension GL_KHR_cooperative_matrix : enable
+
+layout (local_size_x = 32, local_size_y = 1) in;
+
+layout (binding = 0, r32f) uniform readonly image2D srcMatA;
+layout (binding = 1, r32f) uniform readonly image2D srcMatB;
+layout (binding = 2, r32f) uniform writeonly image2D dstMat;
+
+layout (constant_id = 1) const int K = 0;
+
+void main() {
+    const ivec2 sizeA = imageSize(srcMatA);
+    const ivec2 sizeB = imageSize(srcMatB);
+
+    const int M = sizeA.y;
+    const int N = sizeB.x;
+    const int K_dim = K;
+
+    const int TILE_M = 16;
+    const int TILE_N = 16;
+    const int TILE_K = 16;
+
+    int tilesN = (N + TILE_N - 1) / TILE_N;
+    int tilesM = (M + TILE_M - 1) / TILE_M;
+
+    int tileM = int(gl_WorkGroupID.x) / tilesN;
+    int tileN = int(gl_WorkGroupID.x) % tilesN;
+
+    if (tileM >= tilesM || tileN >= tilesN) {
+        return;
+    }
+
+    coopmat<float16_t, gl_ScopeSubgroup, TILE_M, TILE_K, gl_MatrixUseA> matA;
+    coopmat<float16_t, gl_ScopeSubgroup, TILE_K, TILE_N, gl_MatrixUseB> matB;
+    coopmat<float, gl_ScopeSubgroup, TILE_M, TILE_N, gl_MatrixUseAccumulator> matC;
+
+    for (uint i = 0; i < matC.length(); ++i) {
+        matC[i] = 0.0;
+    }
+
+    int numKTiles = (K_dim + TILE_K - 1) / TILE_K;
+
+    for (int kTile = 0; kTile < numKTiles; kTile++) {
+
+        int baseRowA = tileM * TILE_M;
+        int baseColA = kTile * TILE_K;
+        int baseRowB = kTile * TILE_K;
+        int baseColB = tileN * TILE_N;
+
+        for (uint i = 0; i < matA.length(); ++i) {
+            if (gl_SubgroupInvocationID == i % gl_SubgroupSize) {
+
+                uint row = i / TILE_K;
+                uint col = i % TILE_K;
+
+                int globalRow = baseRowA + int(row);
+                int globalCol = baseColA + int(col);
+
+                float16_t value = float16_t(0.0);
+                if (globalRow < M && globalCol < K_dim) {
+                    vec4 texel = imageLoad(srcMatA, ivec2(globalCol, globalRow));
+                    value = float16_t(texel.r);
+                }
+                matA[i] = value;
+            }
+        }
+
+        for (uint i = 0; i < matB.length(); ++i) {
+            if (gl_SubgroupInvocationID == i % gl_SubgroupSize) {
+
+                uint row = i / TILE_N;
+                uint col = i % TILE_N;
+
+                int globalRow = baseRowB + int(row);
+                int globalCol = baseColB + int(col);
+
+                float16_t value = float16_t(0.0);
+                if (globalRow < K_dim && globalCol < N) {
+                    vec4 texel = imageLoad(srcMatB, ivec2(globalCol, globalRow));
+                    value = float16_t(texel.r);
+                }
+                matB[i] = value;
+            }
+        }
+        subgroupBarrier();
+
+        matC = coopMatMulAdd(matA, matB, matC);
+        subgroupBarrier();
+    }
+
+    int baseRowC = tileM * TILE_M;
+    int baseColC = tileN * TILE_N;
+
+    for (uint i = 0; i < matC.length(); ++i) {
+        if (gl_SubgroupInvocationID == i % gl_SubgroupSize) {
+
+            uint row = i / TILE_N;
+            uint col = i % TILE_N;
+
+            int globalRow = baseRowC + int(row);
+            int globalCol = baseColC + int(col);
+
+            if (globalRow < M && globalCol < N) {
+                float result = matC[i];
+                imageStore(dstMat, ivec2(globalCol, globalRow), vec4(result, 0.0, 0.0, 0.0));
+            }
+        }
+    }
+}
