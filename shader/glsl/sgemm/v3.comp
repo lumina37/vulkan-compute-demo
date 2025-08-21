@@ -13,6 +13,10 @@ layout (binding = 2, r32f) uniform writeonly image2D dstMat;
 
 layout (constant_id = 1) const int K = 0;
 
+shared float16_t sharedA[16 * 16];
+shared float16_t sharedB[16 * 16];
+shared float sharedC[16 * 16];
+
 void main() {
     const ivec2 sizeA = imageSize(srcMatA);
     const ivec2 sizeB = imageSize(srcMatB);
@@ -37,24 +41,21 @@ void main() {
     coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA;
     coopmat<float16_t, gl_ScopeSubgroup, MMA_K, MMA_N, gl_MatrixUseB> matB;
     coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> matAcc;
-
-    for (uint i = 0; i < matAcc.length(); i++) {
-        matAcc[i] = 0.0;
-    }
+    matAcc = coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator>(0.0);
 
     int blockTileCount = (K + MMA_K - 1) / MMA_K;
     for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
-
         int baseRowA = mmaTileM * MMA_M;
         int baseColA = iBlkTile * MMA_K;
         int baseRowB = iBlkTile * MMA_K;
         int baseColB = mmaTileN * MMA_N;
 
-        for (uint i = 0; i < matA.length(); ++i) {
-            if (gl_SubgroupInvocationID == i % gl_SubgroupSize) {
-
-                uint row = i / MMA_K;
-                uint col = i % MMA_K;
+        uint elementsPerThread = (MMA_M * MMA_K + gl_WorkGroupSize.x - 1) / gl_WorkGroupSize.x;
+        for (uint i = 0; i < elementsPerThread; i++) {
+            uint linearIdx = gl_LocalInvocationID.x * elementsPerThread + i;
+            if (linearIdx < MMA_M * MMA_K) {
+                uint row = linearIdx / MMA_K;
+                uint col = linearIdx % MMA_K;
 
                 int globalRow = baseRowA + int(row);
                 int globalCol = baseColA + int(col);
@@ -64,15 +65,16 @@ void main() {
                     vec4 texel = imageLoad(srcMatA, ivec2(globalCol, globalRow));
                     value = float16_t(texel.r);
                 }
-                matA[i] = value;
+                sharedA[linearIdx] = value;
             }
         }
 
-        for (uint i = 0; i < matB.length(); ++i) {
-            if (gl_SubgroupInvocationID == i % gl_SubgroupSize) {
-
-                uint row = i / MMA_N;
-                uint col = i % MMA_N;
+        elementsPerThread = (MMA_K * MMA_N + gl_WorkGroupSize.x - 1) / gl_WorkGroupSize.x;
+        for (uint i = 0; i < elementsPerThread; i++) {
+            uint linearIdx = gl_LocalInvocationID.x * elementsPerThread + i;
+            if (linearIdx < MMA_K * MMA_N) {
+                uint row = linearIdx / MMA_N;
+                uint col = linearIdx % MMA_N;
 
                 int globalRow = baseRowB + int(row);
                 int globalCol = baseColB + int(col);
@@ -82,29 +84,35 @@ void main() {
                     vec4 texel = imageLoad(srcMatB, ivec2(globalCol, globalRow));
                     value = float16_t(texel.r);
                 }
-                matB[i] = value;
+                sharedB[linearIdx] = value;
             }
         }
-        subgroupBarrier();
+        barrier();
 
+        coopMatLoad(matA, sharedA, 0, MMA_K, gl_CooperativeMatrixLayoutRowMajor);
+        coopMatLoad(matB, sharedB, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
         matAcc = coopMatMulAdd(matA, matB, matAcc);
-        subgroupBarrier();
+        barrier();
     }
+
+    coopMatStore(matAcc, sharedC, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
+    barrier();
 
     int baseRowC = mmaTileM * MMA_M;
     int baseColC = mmaTileN * MMA_N;
 
-    for (uint i = 0; i < matAcc.length(); ++i) {
-        if (gl_SubgroupInvocationID == i % gl_SubgroupSize) {
-
-            uint row = i / MMA_N;
-            uint col = i % MMA_N;
+    uint elementsPerThread = (MMA_M * MMA_N + gl_WorkGroupSize.x - 1) / gl_WorkGroupSize.x;
+    for (uint i = 0; i < elementsPerThread; i++) {
+        uint linearIdx = gl_LocalInvocationID.x * elementsPerThread + i;
+        if (linearIdx < MMA_M * MMA_N) {
+            uint row = linearIdx / MMA_N;
+            uint col = linearIdx % MMA_N;
 
             int globalRow = baseRowC + int(row);
             int globalCol = baseColC + int(col);
 
             if (globalRow < M && globalCol < N) {
-                float result = matAcc[i];
+                float result = sharedC[linearIdx];
                 imageStore(dstMat, ivec2(globalCol, globalRow), vec4(result, 0.0, 0.0, 0.0));
             }
         }
