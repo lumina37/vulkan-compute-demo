@@ -6,17 +6,13 @@
 #extension GL_KHR_memory_scope_semantics: require
 #extension GL_KHR_cooperative_matrix: require
 
-layout (local_size_x = 16, local_size_y = 16) in;
+layout (local_size_x = 32, local_size_y = 1) in;
 
 layout (binding = 0, r32f) uniform readonly image2D srcMatA;
 layout (binding = 1, r32f) uniform readonly image2D srcMatB;
 layout (binding = 2, r32f) uniform writeonly image2D dstMat;
 
-layout (constant_id = 0) const int K = 0;
-
-const int MMA_M = 16;
-const int MMA_N = 16;
-const int MMA_K = 16;
+layout (constant_id = 1) const int K = 0;
 
 shared float16_t sharedA[16 * 16];
 shared float16_t sharedB[16 * 16];
@@ -33,12 +29,14 @@ void main() {
     const int M = sizeA.y;
     const int N = sizeB.x;
 
-    int mmaTileM = groupID.y;
-    int mmaTileN = groupID.x;
+    const int MMA_M = 16;
+    const int MMA_N = 16;
+    const int MMA_K = 16;
 
-    int mmaTilesM = (M + MMA_M - 1) / MMA_M;
     int mmaTilesN = (N + MMA_N - 1) / MMA_N;
-
+    int mmaTilesM = (M + MMA_M - 1) / MMA_M;
+    int mmaTileM = int(groupID.x) / mmaTilesN;
+    int mmaTileN = int(groupID.x) % mmaTilesN;
     if (mmaTileM >= mmaTilesM || mmaTileN >= mmaTilesN) {
         return;
     }
@@ -55,26 +53,43 @@ void main() {
         int baseRowB = iBlkTile * MMA_K;
         int baseColB = mmaTileN * MMA_N;
 
-        int loadRowA = baseRowA + localID.y;
-        int loadColA = baseColA + localID.x;
+        uint elementsPerThread = (MMA_M * MMA_K + groupSize.x - 1) / groupSize.x;
+        for (uint i = 0; i < elementsPerThread; i++) {
+            uint linearIdx = localID.x * elementsPerThread + i;
+            if (linearIdx < MMA_M * MMA_K) {
+                uint row = linearIdx / MMA_K;
+                uint col = linearIdx % MMA_K;
 
-        float16_t valueA = float16_t(0.0);
-        if (loadRowA < M && loadColA < K) {
-            vec4 texel = imageLoad(srcMatA, ivec2(loadColA, loadRowA));
-            valueA = float16_t(texel.r);
+                int globalRow = baseRowA + int(row);
+                int globalCol = baseColA + int(col);
+
+                float16_t value = float16_t(0.0);
+                if (globalRow < M && globalCol < K) {
+                    vec4 texel = imageLoad(srcMatA, ivec2(globalCol, globalRow));
+                    value = float16_t(texel.r);
+                }
+                sharedA[linearIdx] = value;
+            }
         }
-        sharedA[localID.y * MMA_K + localID.x] = valueA;
 
-        int loadRowB = baseRowB + localID.y;
-        int loadColB = baseColB + localID.x;
+        elementsPerThread = (MMA_K * MMA_N + groupSize.x - 1) / groupSize.x;
+        for (uint i = 0; i < elementsPerThread; i++) {
+            uint linearIdx = localID.x * elementsPerThread + i;
+            if (linearIdx < MMA_K * MMA_N) {
+                uint row = linearIdx / MMA_N;
+                uint col = linearIdx % MMA_N;
 
-        float16_t valueB = float16_t(0.0);
-        if (loadRowB < K && loadColB < N) {
-            vec4 texel = imageLoad(srcMatB, ivec2(loadColB, loadRowB));
-            valueB = float16_t(texel.r);
+                int globalRow = baseRowB + int(row);
+                int globalCol = baseColB + int(col);
+
+                float16_t value = float16_t(0.0);
+                if (globalRow < K && globalCol < N) {
+                    vec4 texel = imageLoad(srcMatB, ivec2(globalCol, globalRow));
+                    value = float16_t(texel.r);
+                }
+                sharedB[linearIdx] = value;
+            }
         }
-        sharedB[localID.y * MMA_N + localID.x] = valueB;
-
         barrier();
 
         coopMatLoad(matA, sharedA, 0, MMA_K, gl_CooperativeMatrixLayoutRowMajor);
@@ -89,11 +104,20 @@ void main() {
     int baseRowC = mmaTileM * MMA_M;
     int baseColC = mmaTileN * MMA_N;
 
-    int storeRowC = baseRowC + localID.y;
-    int storeColC = baseColC + localID.x;
+    uint elementsPerThread = (MMA_M * MMA_N + groupSize.x - 1) / groupSize.x;
+    for (uint i = 0; i < elementsPerThread; i++) {
+        uint linearIdx = localID.x * elementsPerThread + i;
+        if (linearIdx < MMA_M * MMA_N) {
+            uint row = linearIdx / MMA_N;
+            uint col = linearIdx % MMA_N;
 
-    if (storeRowC < M && storeColC < N) {
-        float result = sharedC[localID.y * MMA_N + localID.x];
-        imageStore(dstMat, ivec2(storeColC, storeRowC), vec4(result, 0.0, 0.0, 0.0));
+            int globalRow = baseRowC + int(row);
+            int globalCol = baseColC + int(col);
+
+            if (globalRow < M && globalCol < N) {
+                float result = sharedC[linearIdx];
+                imageStore(dstMat, ivec2(globalCol, globalRow), vec4(result, 0.0, 0.0, 0.0));
+            }
+        }
     }
 }

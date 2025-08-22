@@ -1,8 +1,5 @@
 #pragma once
 
-#define VULKAN_HPP_NO_EXCEPTIONS
-#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
-
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/helper/error.hpp"

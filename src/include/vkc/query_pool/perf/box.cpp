@@ -45,7 +45,7 @@ std::expected<PerfQueryPoolBox, Error> PerfQueryPoolBox::create(std::shared_ptr<
     perfCreateInfo.setCounterIndices(perfCounterIndices);
 
     vk::QueryPoolCreateInfo queryPoolInfo;
-    queryPoolInfo.setPNext(perfCreateInfo);
+    queryPoolInfo.setPNext(&perfCreateInfo);
     queryPoolInfo.setQueryType(vk::QueryType::ePerformanceQueryKHR);
     queryPoolInfo.setQueryCount(queryCount);
 

@@ -1,7 +1,9 @@
 #include "vkc/helper/vulkan.hpp"
 #include "vkc/helper/error.hpp"
 
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+#endif
 
 namespace vkc {
 
