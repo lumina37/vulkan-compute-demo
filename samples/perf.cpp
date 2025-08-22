@@ -46,7 +46,7 @@ int main() {
 
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     vkc::PerfCounterProps perfProps = vkc::PerfCounterProps::create(phyDeviceBox, computeQFamilyIdx) | unwrap;
-    const int perfCounterCount = std::min((int)perfProps.perfCounters.size(), 12);
+    const int perfCounterCount = std::min((int)perfProps.perfCounters.size(), 11);
     for (int i = 0; i < perfCounterCount; i++) {
         const auto& perfCounter = perfProps.perfCounters[i];
         std::println("===============");
@@ -122,7 +122,6 @@ int main() {
     for (int i = 0; i < 10; i++) {
         perfQueryPoolBox.hostReset();
         sgemmCmdBufBox.begin() | unwrap;
-        sgemmCmdBufBox.recordPerfQueryStart(perfQueryPoolBox) | unwrap;
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
         sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
@@ -130,11 +129,12 @@ int main() {
         sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBBox);
         sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordPerfQueryStart(perfQueryPoolBox) | unwrap;
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+        sgemmCmdBufBox.recordPerfQueryEnd(perfQueryPoolBox) | unwrap;
         sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
         sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
-        sgemmCmdBufBox.recordPerfQueryEnd(perfQueryPoolBox) | unwrap;
         sgemmCmdBufBox.end() | unwrap;
 
         queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
