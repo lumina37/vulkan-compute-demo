@@ -18,8 +18,9 @@ function(vkc_add_test name lib srcs)
 endfunction()
 
 vkc_add_test(test_gaussFilter vkc::lib::static "test_gaussFilter.cpp")
-vkc_add_test(test_gaussFilter_header_only vkc::lib::header-only "test_gaussFilter.cpp")
-
 vkc_add_test(test_sgemm vkc::lib::static "test_sgemm.cpp")
+vkc_add_test(test_flash_attention2 vkc::lib::static "test_flash_attention2.cpp")
+
+vkc_add_test(test_gaussFilter_header_only vkc::lib::header-only "test_gaussFilter.cpp")
 
 add_custom_target(vkc-tests DEPENDS ${_VKC_TEST_TARGETS})

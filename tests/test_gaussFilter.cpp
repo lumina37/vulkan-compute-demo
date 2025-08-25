@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
-#include <iostream>
 #include <limits>
 #include <print>
 #include <random>
@@ -14,29 +13,10 @@
 
 #include "spirv/gaussFilter.hpp"
 #include "vkc.hpp"
+#include "vkc_helper.hpp"
 
 namespace fs = std::filesystem;
 namespace rgs = std::ranges;
-
-class Unwrap {
-public:
-    template <typename T>
-    friend auto operator|(std::expected<T, vkc::Error>&& src, [[maybe_unused]] const Unwrap& _) {
-        if (!src.has_value()) {
-            const auto& err = src.error();
-            const fs::path filePath{err.source.file_name()};
-            const std::string fileName = filePath.filename().string();
-            std::println(std::cerr, "{}:{} cate={} code={} msg={}", fileName, err.source.line(),
-                         vkc::errCateToStr(err.cate), err.code, err.msg);
-            std::exit(err.code);
-        }
-        if constexpr (!std::is_void_v<T>) {
-            return std::forward_like<T>(src.value());
-        }
-    }
-};
-
-constexpr auto unwrap = Unwrap();
 
 void gaussianFilterRefImpl(const std::span<const std::byte> src, const std::span<std::byte> dst,
                            const vkc::Extent extent, const int kernelSize, const float sigma) {

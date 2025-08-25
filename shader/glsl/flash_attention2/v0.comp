@@ -1,131 +1,139 @@
 #version 460
 
-layout (local_size_x_id = 0, local_size_y_id = 1) in;
+#define BLOCK_M 4
+#define BLOCK_N 4
+#define DIM 4
 
-layout (binding = 0, r32f) uniform readonly image2D queryMat;    // Q: [seq_len, d_k]
-layout (binding = 1, r32f) uniform readonly image2D keyMat;      // K: [seq_len, d_k]
-layout (binding = 2, r32f) uniform readonly image2D valueMat;    // V: [seq_len, d_v]
+layout (local_size_x = BLOCK_N, local_size_y = BLOCK_M) in;
 
-layout (binding = 3, r32f) uniform writeonly image2D outputMat;  // O: [seq_len, d_v]
+layout (binding = 0, r32f) uniform readonly image2D srcQ;
+layout (binding = 1, r32f) uniform readonly image2D srcK;
+layout (binding = 2, r32f) uniform readonly image2D srcV;
+layout (binding = 3, r32f) uniform writeonly image2D dstO;
 
-// 缓存大小常量 (可通过 specialization constant 设置)
-layout (constant_id = 2) const int BLOCK_SIZE = 64;
-layout (constant_id = 3) const float SCALE_FACTOR = 0.125;  // 1.0 / sqrt(d_k)
+layout (constant_id = 0) const int u_seqlen = 0;
+layout (constant_id = 1) const int u_stride_head = 0;
+layout (constant_id = 2) const float u_smScale = 0;
 
-// 共享内存用于分块计算
-shared float sQ[64][64];  // 查询块
-shared float sK[64][64];  // 键块
-shared float sV[64][64];  // 值块
-shared float sAcc[64][64]; // 累加器
+shared float sQ[BLOCK_M][DIM];
+shared float sK[BLOCK_N][DIM];
+shared float sV[BLOCK_N][DIM];
+shared float sO[BLOCK_M][DIM];
+shared float sQK[BLOCK_M][BLOCK_N];
+shared float sSafeE[BLOCK_M][BLOCK_N];
+shared float sDenom[BLOCK_M];
+shared float sMax[BLOCK_M];
 
 void main() {
-    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
-    const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
-    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+    const int tx = int(gl_LocalInvocationID.x);
+    const int ty = int(gl_LocalInvocationID.y);
 
-    const ivec2 querySize = imageSize(queryMat);  // [seq_len, d_k]
-    const ivec2 keySize = imageSize(keyMat);      // [seq_len, d_k]
-    const ivec2 valueSize = imageSize(valueMat);  // [seq_len, d_v]
-    const ivec2 outputSize = imageSize(outputMat); // [seq_len, d_v]
+    const int block_x = int(gl_WorkGroupID.x);
+    const int block_y = int(gl_WorkGroupID.y);
 
-    const int seqLen = querySize.y;
-    const int dK = querySize.x;
-    const int dV = valueSize.x;
+    const int row = ty + block_y * BLOCK_M;
 
-    // 边界检查
-    if (globalID.x >= outputSize.x || globalID.y >= outputSize.y) {
+    if (row >= u_seqlen) {
         return;
     }
 
-    // 初始化输出累加器和注意力状态
-    float output_acc = 0.0;
-    float max_score = -1e30;
-    float sum_exp = 0.0;
+    const int groupSeq = (u_seqlen + BLOCK_N - 1) / BLOCK_N;
+    const int groupTx = (DIM + BLOCK_N - 1) / BLOCK_N;
+    const int groupTy = (DIM + BLOCK_M - 1) / BLOCK_M;
 
-    const int queryBlockIdx = globalID.y;
-    const int outputDimIdx = globalID.x;
+    const int base_offset = block_x * u_stride_head;
 
-    // 分块处理键值对
-    const int numBlocks = (seqLen + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    for (int i = 0; i < groupTx; i++) {
+        const int col = i * BLOCK_N + tx;
+        if (col < DIM) {
+            const ivec2 coordQ = ivec2(col, row + base_offset);
+            sQ[ty][col] = imageLoad(srcQ, coordQ).r;
+            sO[ty][col] = 0.0;
+        }
+    }
 
-    for (int blockIdx = 0; blockIdx < numBlocks; blockIdx++) {
-        const int keyBlockStart = blockIdx * BLOCK_SIZE;
-        const int keyBlockEnd = min(keyBlockStart + BLOCK_SIZE, seqLen);
-        const int blockSize = keyBlockEnd - keyBlockStart;
+    if (tx == 0) {
+        sMax[ty] = -1.0 / 0.0;
+        sDenom[ty] = 0.0;
+    }
+    barrier();
 
-        // 加载查询到共享内存 (只需要加载一次)
-        if (blockIdx == 0 && localID.x < dK && localID.y == 0) {
-            const ivec2 qCoord = ivec2(localID.x, queryBlockIdx);
-            sQ[0][localID.x] = imageLoad(queryMat, qCoord).r;
+    for (int j = 0; j < groupSeq; j++) {
+        const int k_row = j * BLOCK_N + tx;
+
+        if (k_row < u_seqlen) {
+            for (int i = 0; i < groupTy; i++) {
+                const int col = i * BLOCK_M + ty;
+                if (col < DIM) {
+                    const ivec2 coordK = ivec2(col, k_row + base_offset);
+                    sK[tx][col] = imageLoad(srcK, coordK).r;
+
+                    const ivec2 coordV = ivec2(col, k_row + base_offset);
+                    sV[tx][col] = imageLoad(srcV, coordV).r;
+                }
+            }
+        } else {
+            for (int i = 0; i < groupTy; i++) {
+                const int col = i * BLOCK_M + ty;
+                if (col < DIM) {
+                    sK[tx][col] = 0.0;
+                    sV[tx][col] = 0.0;
+                }
+            }
+        }
+        barrier();
+
+        float qk_sum = 0.0;
+        for (int i = 0; i < DIM; i++) {
+            qk_sum += sQ[ty][i] * sK[tx][i];
+        }
+        sQK[ty][tx] = qk_sum * u_smScale;
+        barrier();
+
+
+        float localMax = -1.0 / 0.0;
+        for (int i = 0; i < BLOCK_N; i++) {
+            localMax = max(localMax, sQK[ty][i]);
+        }
+        barrier();
+
+        float newMax = max(sMax[ty], localMax);
+        sSafeE[ty][tx] = exp(sQK[ty][tx] - newMax);
+        barrier();
+
+        float localDenom = 0.0;
+        for (int i = 0; i < BLOCK_N; i++) {
+            localDenom += sSafeE[ty][i];
         }
 
         barrier();
 
-        // 计算注意力分数块
-        float blockMaxScore = -1e30;
-        float blockScores[64]; // 假设 BLOCK_SIZE <= 64
+        float rescaleOld = exp(sMax[ty] - newMax);
+        float newDenom = sDenom[ty] * rescaleOld + localDenom;
 
-        for (int i = 0; i < blockSize; i++) {
-            const int keyIdx = keyBlockStart + i;
-            float score = 0.0;
+        for (int i = 0; i < groupTx; i++) {
+            const int col = i * BLOCK_N + tx;
+            if (col < DIM) {
+                sO[ty][col] = sO[ty][col] * rescaleOld;
 
-            // 计算 Q * K^T
-            for (int d = 0; d < dK; d++) {
-                const ivec2 kCoord = ivec2(d, keyIdx);
-                const float kVal = imageLoad(keyMat, kCoord).r;
-                score += sQ[0][d] * kVal;
+                for (int k = 0; k < BLOCK_N; k++) {
+                    sO[ty][col] += sSafeE[ty][k] * sV[k][col];
+                }
             }
-
-            // 应用缩放因子
-            score *= SCALE_FACTOR;
-
-            blockScores[i] = score;
-            blockMaxScore = max(blockMaxScore, score);
         }
 
-        // 在线 softmax 更新
-        const float newMaxScore = max(max_score, blockMaxScore);
-        const float maxDiff = max_score - newMaxScore;
-        const float blockMaxDiff = blockMaxScore - newMaxScore;
-
-        // 重新缩放之前的累加器
-        if (maxDiff < -20.0) {
-            // 避免数值下溢
-            output_acc = 0.0;
-            sum_exp = 0.0;
-        } else {
-            const float scale = exp(maxDiff);
-            output_acc *= scale;
-            sum_exp *= scale;
-        }
-
-        // 计算当前块的贡献
-        float blockSumExp = 0.0;
-        float blockOutputAcc = 0.0;
-
-        for (int i = 0; i < blockSize; i++) {
-            const int keyIdx = keyBlockStart + i;
-            const float expScore = exp(blockScores[i] - newMaxScore);
-            blockSumExp += expScore;
-
-            // 加载对应的值并累加到输出
-            const ivec2 vCoord = ivec2(outputDimIdx, keyIdx);
-            const float vVal = imageLoad(valueMat, vCoord).r;
-            blockOutputAcc += expScore * vVal;
-        }
-
-        // 更新全局状态
-        output_acc += blockOutputAcc;
-        sum_exp += blockSumExp;
-        max_score = newMaxScore;
+        sMax[ty] = newMax;
+        sDenom[ty] = newDenom;
 
         barrier();
     }
 
-    // 最终归一化
-    const float finalOutput = output_acc / sum_exp;
-
-    // 写入输出
-    const vec4 outputVal = vec4(finalOutput, 0.0, 0.0, 0.0);
-    imageStore(outputMat, globalID, outputVal);
+    for (int i = 0; i < groupTx; i++) {
+        const int col = i * BLOCK_N + tx;
+        if (col < DIM) {
+            const float finalOutput = sO[ty][col] / sDenom[ty];
+            const ivec2 coordO = ivec2(col, row + base_offset);
+            imageStore(dstO, coordO, vec4(finalOutput, 0.0, 0.0, 0.0));
+        }
+    }
 }

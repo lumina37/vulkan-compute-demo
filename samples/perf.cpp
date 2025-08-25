@@ -6,7 +6,7 @@
 
 #include "shader.hpp"
 #include "vkc.hpp"
-#include "vkc_bin_helper.hpp"
+#include "vkc_helper.hpp"
 
 int main() {
     vkc::initVulkan() | unwrap;

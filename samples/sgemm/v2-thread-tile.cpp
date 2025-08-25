@@ -5,7 +5,7 @@
 #include <span>
 #include <vector>
 
-#include "../vkc_bin_helper.hpp"
+#include "../vkc_helper.hpp"
 #include "shader.hpp"
 #include "vkc.hpp"
 

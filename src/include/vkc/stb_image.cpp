@@ -5,10 +5,13 @@
 
 #pragma push_macro("STB_IMAGE_IMPLEMENTATION")
 #pragma push_macro("STB_IMAGE_WRITE_IMPLEMENTATION")
+#pragma push_macro("__STDC_LIB_EXT1__")
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#define __STDC_LIB_EXT1__  // fix C4996: 'sprintf': This function or variable may be unsafe.
 #include <stb_image.h>
 #include <stb_image_write.h>
+#pragma pop_macro("__STDC_LIB_EXT1__")
 #pragma pop_macro("STB_IMAGE_WRITE_IMPLEMENTATION")
 #pragma pop_macro("STB_IMAGE_IMPLEMENTATION")
 
