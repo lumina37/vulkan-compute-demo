@@ -239,8 +239,52 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int groupSizeY = 16;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX * TN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY * TM);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v1::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, K, TM};
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v2::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, K, TM, TN};
+        vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
+                                                                            specConstantBox.getSpecInfo()) |
+                                            unwrap;
+
+        sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBBox);
+        sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
+        sgemmCmdBufBox.end() | unwrap;
+
+        queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
+
+        dstMatBox.download(dstMatVk.getPData()) | unwrap;
+
+        float diffAcc = 0;
+        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+            const float diff = std::abs(lhs - rhs);
+            REQUIRE(diff <= maxValidDiff);
+            diffAcc += diff;
+        }
+        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+
+        REQUIRE(avgDiff < maxValidAvgDiff);
+        std::println("v2 - average diff = {}", avgDiff);
+    }
+
+    SECTION("v3") {
+        constexpr int groupSizeX = 16;
+        constexpr int groupSizeY = 16;
+        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX);
+        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY);
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v3::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{K};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;

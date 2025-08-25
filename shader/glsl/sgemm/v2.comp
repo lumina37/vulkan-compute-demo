@@ -1,20 +1,20 @@
 #version 460
 
-layout (local_size_x_id = 0, local_size_y_id = 0) in;
+layout (local_size_x_id = 0, local_size_y_id = 1) in;
 
 layout (binding = 0, r32f) uniform readonly image2D srcMatA;
 layout (binding = 1, r32f) uniform readonly image2D srcMatB;
 layout (binding = 2, r32f) uniform writeonly image2D dstMat;
 
-layout (constant_id = 1) const int K = 0;
-// Each thread computes TMxTN elements
-layout (constant_id = 2) const int THREAD_BLOCK_M = 4;
-const int THREAD_BLOCK_N = THREAD_BLOCK_M;
+layout (constant_id = 2) const int K = 0;
+layout (constant_id = 3) const int THREAD_BLOCK_M = 1;
+layout (constant_id = 4) const int THREAD_BLOCK_N = 1;
 
 shared float sharedA[gl_WorkGroupSize.y * THREAD_BLOCK_M][gl_WorkGroupSize.x];
-shared float sharedB[gl_WorkGroupSize.x][gl_WorkGroupSize.y * THREAD_BLOCK_N];
+shared float sharedB[gl_WorkGroupSize.y * THREAD_BLOCK_N][gl_WorkGroupSize.x];
 
 void main() {
+    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
@@ -32,14 +32,12 @@ void main() {
         }
     }
 
-    const int globalRowStart = groupID.y * groupSize.y * THREAD_BLOCK_M + localID.y * THREAD_BLOCK_M;
-    const int globalColStart = groupID.x * groupSize.x * THREAD_BLOCK_N + localID.x * THREAD_BLOCK_N;
     const int blockTileCount = K / groupSize.x;
     for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
         // Load from srcMatA
         for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
             const int srcX = iBlkTile * groupSize.x + localID.x;
-            const int srcY = globalRowStart + tm;
+            const int srcY = globalID.y * THREAD_BLOCK_M + tm;
             const ivec2 srcACoord = ivec2(srcX, srcY);
             const vec4 srcAVal = imageLoad(srcMatA, srcACoord);
             sharedA[localID.y * THREAD_BLOCK_M + tm][localID.x] = srcAVal.r;
@@ -47,20 +45,22 @@ void main() {
 
         // Load from srcMatB
         for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
-            const int srcX = globalColStart + tn;
-            const int srcY = iBlkTile * groupSize.x + localID.y;
+            const int srcX = globalID.y * THREAD_BLOCK_N + tn;
+            const int srcY = iBlkTile * groupSize.x + localID.x;
             const ivec2 srcBCoord = ivec2(srcX, srcY);
             const vec4 srcBVal = imageLoad(srcMatB, srcBCoord);
-            sharedB[localID.x * THREAD_BLOCK_N + tn][localID.y] = srcBVal.r;
+            sharedB[localID.y * THREAD_BLOCK_N + tn][localID.x] = srcBVal.r;
         }
         barrier();
 
         // Compute
-        for (int k = 0; k < groupSize.x; k++) {
-            for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
-                for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
-                    const float valA = sharedA[localID.y * THREAD_BLOCK_M + tm][k];
-                    const float valB = sharedB[localID.x * THREAD_BLOCK_N + tn][k];
+        for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
+            const int rowA = localID.y * THREAD_BLOCK_M + tm;
+            for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
+                const int rowB = localID.y * THREAD_BLOCK_N + tn;
+                for (int k = 0; k < groupSize.x; k++) {
+                    const float valA = sharedA[rowA][k];
+                    const float valB = sharedB[rowB][k];
                     acc[tm][tn] += valA * valB;
                 }
             }
@@ -71,8 +71,8 @@ void main() {
     // Store results
     for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
         for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
-            const int globalRow = globalRowStart + tm;
-            const int globalCol = globalColStart + tn;
+            const int globalRow = globalID.y * THREAD_BLOCK_M + tm;
+            const int globalCol = globalID.x * THREAD_BLOCK_N + tn;
             const ivec2 dstCoord = ivec2(globalCol, globalRow);
             const vec4 dstVal = vec4(acc[tm][tn], 0.0, 0.0, 0.0);
             imageStore(dstMat, dstCoord, dstVal);
