@@ -235,12 +235,13 @@ TEST_CASE("GLSL-SGEMM", "") {
     SECTION("v2") {
         constexpr int TM = 4;
         constexpr int TN = TM;
+        constexpr int TK = TM;
         constexpr int groupSizeX = 16;
         constexpr int groupSizeY = 16;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX * TN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY * TM);
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v2::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, K, TM, TN};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, K, TM, TN, TK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;

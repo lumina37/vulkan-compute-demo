@@ -7,11 +7,12 @@ layout (binding = 1, r32f) uniform readonly image2D srcMatB;
 layout (binding = 2, r32f) uniform writeonly image2D dstMat;
 
 layout (constant_id = 2) const int K = 0;
-layout (constant_id = 3) const int THREAD_BLOCK_M = 1;
-layout (constant_id = 4) const int THREAD_BLOCK_N = 1;
+layout (constant_id = 3) const int THREAD_BLOCK_M = 4;
+layout (constant_id = 4) const int THREAD_BLOCK_N = 4;
+layout (constant_id = 5) const int THREAD_BLOCK_K = 4;
 
-shared float sharedA[gl_WorkGroupSize.y * THREAD_BLOCK_M][gl_WorkGroupSize.x];
-shared float sharedB[gl_WorkGroupSize.y * THREAD_BLOCK_N][gl_WorkGroupSize.x];
+shared float sharedA[gl_WorkGroupSize.y * THREAD_BLOCK_M][THREAD_BLOCK_K];
+shared float sharedB[gl_WorkGroupSize.x * THREAD_BLOCK_N][THREAD_BLOCK_K];
 
 void main() {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
@@ -32,35 +33,43 @@ void main() {
         }
     }
 
-    const int blockTileCount = K / groupSize.x;
+    const int blockTileCount = K / THREAD_BLOCK_K;
     for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
         // Load from srcMatA
         for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
-            const int srcX = iBlkTile * groupSize.x + localID.x;
-            const int srcY = globalID.y * THREAD_BLOCK_M + tm;
-            const ivec2 srcACoord = ivec2(srcX, srcY);
-            const vec4 srcAVal = imageLoad(srcMatA, srcACoord);
-            sharedA[localID.y * THREAD_BLOCK_M + tm][localID.x] = srcAVal.r;
+            for (int tk = 0; tk < THREAD_BLOCK_K; tk++) {
+                const int srcX = iBlkTile * THREAD_BLOCK_K + tk;
+                const int srcY = (groupID.y * groupSize.y + localID.y) * THREAD_BLOCK_M + tm;
+                const ivec2 srcACoord = ivec2(srcX, srcY);
+                const vec4 srcAVal = imageLoad(srcMatA, srcACoord);
+                const int dstY = localID.y * THREAD_BLOCK_M + tm;
+                const int dstX = tk;
+                sharedA[dstY][dstX] = srcAVal.r;
+            }
         }
 
         // Load from srcMatB
-        for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
-            const int srcX = globalID.y * THREAD_BLOCK_N + tn;
-            const int srcY = iBlkTile * groupSize.x + localID.x;
-            const ivec2 srcBCoord = ivec2(srcX, srcY);
-            const vec4 srcBVal = imageLoad(srcMatB, srcBCoord);
-            sharedB[localID.y * THREAD_BLOCK_N + tn][localID.x] = srcBVal.r;
+        for (int tk = 0; tk < THREAD_BLOCK_K; tk++) {
+            for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
+                const int srcX = (groupID.x * groupSize.x + localID.x) * THREAD_BLOCK_N + tn;
+                const int srcY = iBlkTile * THREAD_BLOCK_K + tk;
+                const ivec2 srcBCoord = ivec2(srcX, srcY);
+                const vec4 srcBVal = imageLoad(srcMatB, srcBCoord);
+                const int dstY = tk;
+                const int dstX = localID.x * THREAD_BLOCK_N + tn;
+                sharedB[dstX][dstY] = srcBVal.r;// transpose
+            }
         }
         barrier();
 
         // Compute
         for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
-            const int rowA = localID.y * THREAD_BLOCK_M + tm;
+            const int yA = localID.y * THREAD_BLOCK_M + tm;
             for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
-                const int rowB = localID.y * THREAD_BLOCK_N + tn;
-                for (int k = 0; k < groupSize.x; k++) {
-                    const float valA = sharedA[rowA][k];
-                    const float valB = sharedB[rowB][k];
+                const int yB = localID.x * THREAD_BLOCK_N + tn;
+                for (int tk = 0; tk < THREAD_BLOCK_K; tk++) {
+                    const float valA = sharedA[yA][tk];
+                    const float valB = sharedB[yB][tk];
                     acc[tm][tn] += valA * valB;
                 }
             }
@@ -69,6 +78,7 @@ void main() {
     }
 
     // Store results
+    const ivec2 dstSize = imageSize(dstMat);
     for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
         for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
             const int globalRow = globalID.y * THREAD_BLOCK_M + tm;
