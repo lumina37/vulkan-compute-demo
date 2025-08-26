@@ -12,11 +12,14 @@ layout (binding = 0, r32f) uniform readonly image2D srcMatA;
 layout (binding = 1, r32f) uniform readonly image2D srcMatB;
 layout (binding = 2, r32f) uniform writeonly image2D dstMat;
 
-layout (constant_id = 1) const int K = 0;
+layout (constant_id = 0) const int K = 0;
+const int MMA_M = 16;
+const int MMA_N = 16;
+const int MMA_K = 16;
 
-shared float16_t sharedA[16 * 16];
-shared float16_t sharedB[16 * 16];
-shared float sharedC[16 * 16];
+shared float16_t sharedA[MMA_M * MMA_K];
+shared float16_t sharedB[MMA_K * MMA_N];
+shared float sharedC[MMA_M * MMA_N];
 
 void main() {
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
@@ -25,70 +28,35 @@ void main() {
 
     const ivec2 sizeA = imageSize(srcMatA);
     const ivec2 sizeB = imageSize(srcMatB);
-
     const int M = sizeA.y;
     const int N = sizeB.x;
-
-    const int MMA_M = 16;
-    const int MMA_N = 16;
-    const int MMA_K = 16;
-
-    int mmaTilesN = (N + MMA_N - 1) / MMA_N;
-    int mmaTilesM = (M + MMA_M - 1) / MMA_M;
-    int mmaTileM = int(groupID.x) / mmaTilesN;
-    int mmaTileN = int(groupID.x) % mmaTilesN;
-    if (mmaTileM >= mmaTilesM || mmaTileN >= mmaTilesN) {
-        return;
-    }
 
     coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA;
     coopmat<float16_t, gl_ScopeSubgroup, MMA_K, MMA_N, gl_MatrixUseB> matB;
     coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> matAcc;
     matAcc = coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator>(0.0);
 
-    int blockTileCount = (K + MMA_K - 1) / MMA_K;
+    const int blockTileCount = K / MMA_K;
+    const int baseM = groupID.y * MMA_M;
+    const int baseN = groupID.x * MMA_N;
     for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
-        int baseRowA = mmaTileM * MMA_M;
-        int baseColA = iBlkTile * MMA_K;
-        int baseRowB = iBlkTile * MMA_K;
-        int baseColB = mmaTileN * MMA_N;
-
-        uint elementsPerThread = (MMA_M * MMA_K + groupSize.x - 1) / groupSize.x;
-        for (uint i = 0; i < elementsPerThread; i++) {
-            uint linearIdx = localID.x * elementsPerThread + i;
-            if (linearIdx < MMA_M * MMA_K) {
-                uint row = linearIdx / MMA_K;
-                uint col = linearIdx % MMA_K;
-
-                int globalRow = baseRowA + int(row);
-                int globalCol = baseColA + int(col);
-
-                float16_t value = float16_t(0.0);
-                if (globalRow < M && globalCol < K) {
-                    vec4 texel = imageLoad(srcMatA, ivec2(globalCol, globalRow));
-                    value = float16_t(texel.r);
-                }
-                sharedA[linearIdx] = value;
-            }
+        const int baseK = iBlkTile * MMA_K;
+        const int elemsPerThreadA = MMA_M * MMA_K / groupSize.x;
+        for (int i = 0; i < elemsPerThreadA; i++) {
+            const int linearIdx = localID.x * elemsPerThreadA + i;
+            const int srcX = baseK + linearIdx % MMA_K;
+            const int srcY = baseM + linearIdx / MMA_K;
+            const vec4 srcVal = imageLoad(srcMatA, ivec2(srcX, srcY));
+            sharedA[linearIdx] = float16_t(srcVal.r);
         }
 
-        elementsPerThread = (MMA_K * MMA_N + groupSize.x - 1) / groupSize.x;
-        for (uint i = 0; i < elementsPerThread; i++) {
-            uint linearIdx = localID.x * elementsPerThread + i;
-            if (linearIdx < MMA_K * MMA_N) {
-                uint row = linearIdx / MMA_N;
-                uint col = linearIdx % MMA_N;
-
-                int globalRow = baseRowB + int(row);
-                int globalCol = baseColB + int(col);
-
-                float16_t value = float16_t(0.0);
-                if (globalRow < K && globalCol < N) {
-                    vec4 texel = imageLoad(srcMatB, ivec2(globalCol, globalRow));
-                    value = float16_t(texel.r);
-                }
-                sharedB[linearIdx] = value;
-            }
+        const int elemsPerThreadB = MMA_K * MMA_N / groupSize.x;
+        for (int i = 0; i < elemsPerThreadB; i++) {
+            const int linearIdx = localID.x * elemsPerThreadB + i;
+            const int srcX = baseN + linearIdx % MMA_N;
+            const int srcY = baseK + linearIdx / MMA_N;
+            const vec4 srcVal = imageLoad(srcMatB, ivec2(srcX, srcY));
+            sharedB[linearIdx] = float16_t(srcVal.r);
         }
         barrier();
 
@@ -101,23 +69,12 @@ void main() {
     coopMatStore(matAcc, sharedC, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
     barrier();
 
-    int baseRowC = mmaTileM * MMA_M;
-    int baseColC = mmaTileN * MMA_N;
-
-    uint elementsPerThread = (MMA_M * MMA_N + groupSize.x - 1) / groupSize.x;
-    for (uint i = 0; i < elementsPerThread; i++) {
-        uint linearIdx = localID.x * elementsPerThread + i;
-        if (linearIdx < MMA_M * MMA_N) {
-            uint row = linearIdx / MMA_N;
-            uint col = linearIdx % MMA_N;
-
-            int globalRow = baseRowC + int(row);
-            int globalCol = baseColC + int(col);
-
-            if (globalRow < M && globalCol < N) {
-                float result = sharedC[linearIdx];
-                imageStore(dstMat, ivec2(globalCol, globalRow), vec4(result, 0.0, 0.0, 0.0));
-            }
-        }
+    int elemsPerThread = MMA_M * MMA_N / groupSize.x;
+    for (int i = 0; i < elemsPerThread; i++) {
+        const int linearIdx = localID.x * elemsPerThread + i;
+        const int dstX = baseN + linearIdx % MMA_K;
+        const int dstY = baseM + linearIdx / MMA_K;
+        float dstVal = sharedC[linearIdx];
+        imageStore(dstMat, ivec2(dstX, dstY), vec4(dstVal, 0.0, 0.0, 0.0));
     }
 }

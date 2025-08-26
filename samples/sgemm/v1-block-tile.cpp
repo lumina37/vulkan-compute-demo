@@ -12,9 +12,9 @@
 int main() {
     vkc::initVulkan() | unwrap;
 
-    constexpr int M = 1024;
-    constexpr int K = 128;
-    constexpr int N = 1024;
+    constexpr int M = 2048;
+    constexpr int K = 2048;
+    constexpr int N = 2048;
     constexpr vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
     constexpr vkc::Extent extentB{N, K, vk::Format::eR32Sfloat};
     constexpr vkc::Extent extentDst{extentB.width(), extentA.height(), vk::Format::eR32Sfloat};

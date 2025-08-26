@@ -7,18 +7,20 @@ layout (binding = 1, r32f) uniform readonly image2D srcMatB;
 layout (binding = 2, r32f) uniform writeonly image2D dstMat;
 
 layout (constant_id = 2) const int K = 0;
-layout (constant_id = 3) const int THREAD_BLOCK_M = 4;
-layout (constant_id = 4) const int THREAD_BLOCK_N = 4;
-layout (constant_id = 5) const int THREAD_BLOCK_K = 4;
+layout (constant_id = 3) const int THREAD_TILE_M = 4;
+layout (constant_id = 4) const int THREAD_TILE_N = 4;
+layout (constant_id = 5) const int THREAD_TILE_K = 4;
 
-shared float sharedA[gl_WorkGroupSize.y * THREAD_BLOCK_M][THREAD_BLOCK_K];
-shared float sharedB[gl_WorkGroupSize.x * THREAD_BLOCK_N][THREAD_BLOCK_K];
+shared float sharedA[gl_WorkGroupSize.y * THREAD_TILE_M][THREAD_TILE_K];
+shared float sharedB[gl_WorkGroupSize.x * THREAD_TILE_N][THREAD_TILE_K];
 
 void main() {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
+    const int localIndex = int(gl_LocalInvocationIndex);
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+    const int groupThreadCount = groupSize.x * groupSize.y;
 
     const ivec2 sizeA = imageSize(srcMatA);// M * K
     const ivec2 sizeB = imageSize(srcMatB);// K * N
@@ -26,48 +28,46 @@ void main() {
     const int N = sizeB.x;// width at the top
 
     // Accumulation registers for thread tile
-    float acc[THREAD_BLOCK_M][THREAD_BLOCK_N];
-    for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
-        for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
+    float acc[THREAD_TILE_M][THREAD_TILE_N];
+    for (int tm = 0; tm < THREAD_TILE_M; tm++) {
+        for (int tn = 0; tn < THREAD_TILE_N; tn++) {
             acc[tm][tn] = 0.0;
         }
     }
 
-    const int blockTileCount = K / THREAD_BLOCK_K;
+    const int blockTileCount = K / THREAD_TILE_K;
     for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
         // Load from srcMatA
-        for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
-            for (int tk = 0; tk < THREAD_BLOCK_K; tk++) {
-                const int srcX = iBlkTile * THREAD_BLOCK_K + tk;
-                const int srcY = (groupID.y * groupSize.y + localID.y) * THREAD_BLOCK_M + tm;
-                const ivec2 srcACoord = ivec2(srcX, srcY);
-                const vec4 srcAVal = imageLoad(srcMatA, srcACoord);
-                const int dstY = localID.y * THREAD_BLOCK_M + tm;
-                const int dstX = tk;
-                sharedA[dstY][dstX] = srcAVal.r;
-            }
+        const int elemsPerThreadA = (THREAD_TILE_M * groupSize.y) * THREAD_TILE_K / groupThreadCount;
+        for (int i = 0; i < elemsPerThreadA; i++) {
+            const int linearIdx = i * groupThreadCount + localIndex;
+            const int tk = linearIdx % THREAD_TILE_K;
+            const int tm = linearIdx / THREAD_TILE_K;
+            const int srcX = iBlkTile * THREAD_TILE_K + tk;
+            const int srcY = (groupID.y * groupSize.y) * THREAD_TILE_M + tm;
+            const vec4 srcAVal = imageLoad(srcMatA, ivec2(srcX, srcY));
+            sharedA[tm][tk] = srcAVal.r;
         }
 
         // Load from srcMatB
-        for (int tk = 0; tk < THREAD_BLOCK_K; tk++) {
-            for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
-                const int srcX = (groupID.x * groupSize.x + localID.x) * THREAD_BLOCK_N + tn;
-                const int srcY = iBlkTile * THREAD_BLOCK_K + tk;
-                const ivec2 srcBCoord = ivec2(srcX, srcY);
-                const vec4 srcBVal = imageLoad(srcMatB, srcBCoord);
-                const int dstY = tk;
-                const int dstX = localID.x * THREAD_BLOCK_N + tn;
-                sharedB[dstX][dstY] = srcBVal.r;// transpose
-            }
+        const int elemsPerThreadB = (THREAD_TILE_N * groupSize.x) * THREAD_TILE_K / groupThreadCount;
+        for (int i = 0; i < elemsPerThreadB; i++) {
+            const int linearIdx = i * groupThreadCount + localIndex;
+            const int tn = linearIdx % (THREAD_TILE_N * groupSize.x);
+            const int tk = linearIdx / (THREAD_TILE_N * groupSize.x);
+            const int srcX = (groupID.x * groupSize.x) * THREAD_TILE_N + tn;
+            const int srcY = iBlkTile * THREAD_TILE_K + tk;
+            const vec4 srcBVal = imageLoad(srcMatB, ivec2(srcX, srcY));
+            sharedB[tn][tk] = srcBVal.r;// transpose
         }
         barrier();
 
         // Compute
-        for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
-            const int yA = localID.y * THREAD_BLOCK_M + tm;
-            for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
-                const int yB = localID.x * THREAD_BLOCK_N + tn;
-                for (int tk = 0; tk < THREAD_BLOCK_K; tk++) {
+        for (int tm = 0; tm < THREAD_TILE_M; tm++) {
+            const int yA = localID.y * THREAD_TILE_M + tm;
+            for (int tn = 0; tn < THREAD_TILE_N; tn++) {
+                const int yB = localID.x * THREAD_TILE_N + tn;
+                for (int tk = 0; tk < THREAD_TILE_K; tk++) {
                     const float valA = sharedA[yA][tk];
                     const float valB = sharedB[yB][tk];
                     acc[tm][tn] += valA * valB;
@@ -79,10 +79,10 @@ void main() {
 
     // Store results
     const ivec2 dstSize = imageSize(dstMat);
-    for (int tm = 0; tm < THREAD_BLOCK_M; tm++) {
-        for (int tn = 0; tn < THREAD_BLOCK_N; tn++) {
-            const int globalRow = globalID.y * THREAD_BLOCK_M + tm;
-            const int globalCol = globalID.x * THREAD_BLOCK_N + tn;
+    for (int tm = 0; tm < THREAD_TILE_M; tm++) {
+        for (int tn = 0; tn < THREAD_TILE_N; tn++) {
+            const int globalRow = globalID.y * THREAD_TILE_M + tm;
+            const int globalCol = globalID.x * THREAD_TILE_N + tn;
             const ivec2 dstCoord = ivec2(globalCol, globalRow);
             const vec4 dstVal = vec4(acc[tm][tn], 0.0, 0.0, 0.0);
             imageStore(dstMat, dstCoord, dstVal);
