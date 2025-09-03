@@ -1,139 +1,44 @@
 #version 460
 
-#define BLOCK_M 4
-#define BLOCK_N 4
-#define DIM 4
-
-layout (local_size_x = BLOCK_N, local_size_y = BLOCK_M) in;
+layout (local_size_x_id = 0, local_size_y_id = 1) in;
 
 layout (binding = 0, r32f) uniform readonly image2D srcQ;
 layout (binding = 1, r32f) uniform readonly image2D srcK;
 layout (binding = 2, r32f) uniform readonly image2D srcV;
 layout (binding = 3, r32f) uniform writeonly image2D dstO;
 
-layout (constant_id = 0) const int u_seqlen = 0;
-layout (constant_id = 1) const int u_stride_head = 0;
-layout (constant_id = 2) const float u_smScale = 0;
-
-shared float sQ[BLOCK_M][DIM];
-shared float sK[BLOCK_N][DIM];
-shared float sV[BLOCK_N][DIM];
-shared float sO[BLOCK_M][DIM];
-shared float sQK[BLOCK_M][BLOCK_N];
-shared float sSafeE[BLOCK_M][BLOCK_N];
-shared float sDenom[BLOCK_M];
-shared float sMax[BLOCK_M];
-
 void main() {
-    const int tx = int(gl_LocalInvocationID.x);
-    const int ty = int(gl_LocalInvocationID.y);
+    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 matSize = imageSize(dstO);
+    const int d = matSize.x;
+    const int N = matSize.y;
+    const float invSqrtD = sqrt(1.0f / float(d));
 
-    const int block_x = int(gl_WorkGroupID.x);
-    const int block_y = int(gl_WorkGroupID.y);
+    float diviendAcc = 0;
+    float divisorAcc = 0;
+    float maxQK = 0;
 
-    const int row = ty + block_y * BLOCK_M;
+    for (int iterV = 0; iterV < N; iterV++) {
+        float qkAcc = 0;
+        for (int iterQK = 0; iterQK < d; iterQK++) {
+            const ivec2 coordQ = ivec2(iterQK, globalID.y);
+            const vec4 valQ = imageLoad(srcQ, coordQ);
+            const ivec2 coordK = ivec2(iterQK, iterV);
+            const vec4 valK = imageLoad(srcK, coordK);
+            qkAcc += valQ.x * valK.x;
+        }
+        qkAcc *= invSqrtD;
 
-    if (row >= u_seqlen) {
-        return;
+        const float currMaxQK = max(qkAcc, maxQK);
+        const float adjustedQK = exp(qkAcc - currMaxQK);
+        const float adjustAcc = exp(maxQK - currMaxQK);
+        const ivec2 coordV = ivec2(globalID.x, iterV);
+        const vec4 valV = imageLoad(srcV, coordV);
+        diviendAcc = diviendAcc * adjustAcc + adjustedQK * valV.x;
+        divisorAcc = divisorAcc * adjustAcc + adjustedQK;
+        maxQK = currMaxQK;
     }
 
-    const int groupSeq = (u_seqlen + BLOCK_N - 1) / BLOCK_N;
-    const int groupTx = (DIM + BLOCK_N - 1) / BLOCK_N;
-    const int groupTy = (DIM + BLOCK_M - 1) / BLOCK_M;
-
-    const int base_offset = block_x * u_stride_head;
-
-    for (int i = 0; i < groupTx; i++) {
-        const int col = i * BLOCK_N + tx;
-        if (col < DIM) {
-            const ivec2 coordQ = ivec2(col, row + base_offset);
-            sQ[ty][col] = imageLoad(srcQ, coordQ).r;
-            sO[ty][col] = 0.0;
-        }
-    }
-
-    if (tx == 0) {
-        sMax[ty] = -1.0 / 0.0;
-        sDenom[ty] = 0.0;
-    }
-    barrier();
-
-    for (int j = 0; j < groupSeq; j++) {
-        const int k_row = j * BLOCK_N + tx;
-
-        if (k_row < u_seqlen) {
-            for (int i = 0; i < groupTy; i++) {
-                const int col = i * BLOCK_M + ty;
-                if (col < DIM) {
-                    const ivec2 coordK = ivec2(col, k_row + base_offset);
-                    sK[tx][col] = imageLoad(srcK, coordK).r;
-
-                    const ivec2 coordV = ivec2(col, k_row + base_offset);
-                    sV[tx][col] = imageLoad(srcV, coordV).r;
-                }
-            }
-        } else {
-            for (int i = 0; i < groupTy; i++) {
-                const int col = i * BLOCK_M + ty;
-                if (col < DIM) {
-                    sK[tx][col] = 0.0;
-                    sV[tx][col] = 0.0;
-                }
-            }
-        }
-        barrier();
-
-        float qk_sum = 0.0;
-        for (int i = 0; i < DIM; i++) {
-            qk_sum += sQ[ty][i] * sK[tx][i];
-        }
-        sQK[ty][tx] = qk_sum * u_smScale;
-        barrier();
-
-
-        float localMax = -1.0 / 0.0;
-        for (int i = 0; i < BLOCK_N; i++) {
-            localMax = max(localMax, sQK[ty][i]);
-        }
-        barrier();
-
-        float newMax = max(sMax[ty], localMax);
-        sSafeE[ty][tx] = exp(sQK[ty][tx] - newMax);
-        barrier();
-
-        float localDenom = 0.0;
-        for (int i = 0; i < BLOCK_N; i++) {
-            localDenom += sSafeE[ty][i];
-        }
-
-        barrier();
-
-        float rescaleOld = exp(sMax[ty] - newMax);
-        float newDenom = sDenom[ty] * rescaleOld + localDenom;
-
-        for (int i = 0; i < groupTx; i++) {
-            const int col = i * BLOCK_N + tx;
-            if (col < DIM) {
-                sO[ty][col] = sO[ty][col] * rescaleOld;
-
-                for (int k = 0; k < BLOCK_N; k++) {
-                    sO[ty][col] += sSafeE[ty][k] * sV[k][col];
-                }
-            }
-        }
-
-        sMax[ty] = newMax;
-        sDenom[ty] = newDenom;
-
-        barrier();
-    }
-
-    for (int i = 0; i < groupTx; i++) {
-        const int col = i * BLOCK_N + tx;
-        if (col < DIM) {
-            const float finalOutput = sO[ty][col] / sDenom[ty];
-            const ivec2 coordO = ivec2(col, row + base_offset);
-            imageStore(dstO, coordO, vec4(finalOutput, 0.0, 0.0, 0.0));
-        }
-    }
+    const vec4 dstVal = vec4(diviendAcc / divisorAcc, 0.0, 0.0, 0.0);
+    imageStore(dstO, globalID, dstVal);
 }

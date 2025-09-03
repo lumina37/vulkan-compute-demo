@@ -47,7 +47,7 @@ void main() {
             const int srcX = baseK + linearIdx % MMA_K;
             const int srcY = baseM + linearIdx / MMA_K;
             const vec4 srcVal = imageLoad(srcMatA, ivec2(srcX, srcY));
-            sharedA[linearIdx] = float16_t(srcVal.r);
+            sharedA[linearIdx] = float16_t(srcVal.x);
         }
 
         const int elemsPerThreadB = MMA_K * MMA_N / groupSize.x;
@@ -56,7 +56,7 @@ void main() {
             const int srcX = baseN + linearIdx % MMA_N;
             const int srcY = baseK + linearIdx / MMA_N;
             const vec4 srcVal = imageLoad(srcMatB, ivec2(srcX, srcY));
-            sharedB[linearIdx] = float16_t(srcVal.r);
+            sharedB[linearIdx] = float16_t(srcVal.x);
         }
         barrier();
 

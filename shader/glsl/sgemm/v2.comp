@@ -46,7 +46,7 @@ void main() {
             const int srcX = iBlkTile * THREAD_TILE_K + tk;
             const int srcY = (groupID.y * groupSize.y) * THREAD_TILE_M + tm;
             const vec4 srcAVal = imageLoad(srcMatA, ivec2(srcX, srcY));
-            sharedA[tm][tk] = srcAVal.r;
+            sharedA[tm][tk] = srcAVal.x;
         }
 
         // Load from srcMatB
@@ -58,7 +58,7 @@ void main() {
             const int srcX = (groupID.x * groupSize.x) * THREAD_TILE_N + tn;
             const int srcY = iBlkTile * THREAD_TILE_K + tk;
             const vec4 srcBVal = imageLoad(srcMatB, ivec2(srcX, srcY));
-            sharedB[tn][tk] = srcBVal.r;// transpose
+            sharedB[tn][tk] = srcBVal.x;// transpose
         }
         barrier();
 

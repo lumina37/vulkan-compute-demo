@@ -8,6 +8,7 @@ set(_VKC_GLSL_SRCS
         sgemm/v2
         sgemm/v3
         flash_attention2/v0
+        flash_attention2/v1
 )
 set(_VKC_SPIRV_SHADERS)
 

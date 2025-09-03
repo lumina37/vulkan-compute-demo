@@ -32,13 +32,13 @@ void main() {
         const int srcX = iTile * groupSize.x + localID.x;
         const ivec2 srcACoord = ivec2(srcX, globalID.y);
         const vec4 srcAVal = imageLoad(srcMatA, srcACoord);
-        sharedA[localID.y][localID.x] = srcAVal.r;
+        sharedA[localID.y][localID.x] = srcAVal.x;
 
         // Load from srcMatB
         const int srcY = iTile * groupSize.y + localID.y;
         const ivec2 srcBCoord = ivec2(globalID.x, srcY);
         const vec4 srcBVal = imageLoad(srcMatB, srcBCoord);
-        sharedB[localID.x][localID.y] = srcBVal.r;// transposed
+        sharedB[localID.x][localID.y] = srcBVal.x;// transposed
         barrier();
 
         // Compute

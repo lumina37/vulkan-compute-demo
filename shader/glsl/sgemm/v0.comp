@@ -27,7 +27,7 @@ void main() {
         const ivec2 coordB = ivec2(globalID.x, i);
         const vec4 valB = imageLoad(srcMatB, coordB);
 
-        acc += valA.r * valB.r;
+        acc += valA.x * valB.x;
     }
 
     const vec4 dstVal = vec4(acc, 0.0, 0.0, 0.0);
