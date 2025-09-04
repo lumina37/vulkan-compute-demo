@@ -41,18 +41,18 @@ void main() {
     const int baseN = groupID.x * MMA_N;
     for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
         const int baseK = iBlkTile * MMA_K;
-        const int elemsPerThreadA = MMA_M * MMA_K / groupSize.x;
-        for (int i = 0; i < elemsPerThreadA; i++) {
-            const int linearIdx = localID.x * elemsPerThreadA + i;
+        const int loadsPerThreadA = MMA_M * MMA_K / groupSize.x;
+        for (int i = 0; i < loadsPerThreadA; i++) {
+            const int linearIdx = localID.x * loadsPerThreadA + i;
             const int srcX = baseK + linearIdx % MMA_K;
             const int srcY = baseM + linearIdx / MMA_K;
             const vec4 srcVal = imageLoad(srcMatA, ivec2(srcX, srcY));
             sharedA[linearIdx] = float16_t(srcVal.x);
         }
 
-        const int elemsPerThreadB = MMA_K * MMA_N / groupSize.x;
-        for (int i = 0; i < elemsPerThreadB; i++) {
-            const int linearIdx = localID.x * elemsPerThreadB + i;
+        const int loadsPerThreadB = MMA_K * MMA_N / groupSize.x;
+        for (int i = 0; i < loadsPerThreadB; i++) {
+            const int linearIdx = localID.x * loadsPerThreadB + i;
             const int srcX = baseN + linearIdx % MMA_N;
             const int srcY = baseK + linearIdx / MMA_N;
             const vec4 srcVal = imageLoad(srcMatB, ivec2(srcX, srcY));
@@ -69,12 +69,12 @@ void main() {
     coopMatStore(matAcc, sharedC, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
     barrier();
 
-    int elemsPerThread = MMA_M * MMA_N / groupSize.x;
-    for (int i = 0; i < elemsPerThread; i++) {
-        const int linearIdx = localID.x * elemsPerThread + i;
+    int storesPerThread = MMA_M * MMA_N / groupSize.x;
+    for (int i = 0; i < storesPerThread; i++) {
+        const int linearIdx = localID.x * storesPerThread + i;
         const int dstX = baseN + linearIdx % MMA_K;
         const int dstY = baseM + linearIdx / MMA_K;
-        float dstVal = sharedC[linearIdx];
-        imageStore(dstMat, ivec2(dstX, dstY), vec4(dstVal, 0.0, 0.0, 0.0));
+        const vec4 dstVal = vec4(sharedC[linearIdx], 0.0, 0.0, 0.0);
+        imageStore(dstMat, ivec2(dstX, dstY), dstVal);
     }
 }

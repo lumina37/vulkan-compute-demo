@@ -1,139 +1,144 @@
 #version 460
 
-#define BLOCK_M 4
-#define BLOCK_N 4
-#define DIM 4
-
-layout (local_size_x = BLOCK_N, local_size_y = BLOCK_M) in;
+layout (local_size_x_id = 0) in;
 
 layout (binding = 0, r32f) uniform readonly image2D srcQ;
 layout (binding = 1, r32f) uniform readonly image2D srcK;
 layout (binding = 2, r32f) uniform readonly image2D srcV;
 layout (binding = 3, r32f) uniform writeonly image2D dstO;
 
-layout (constant_id = 0) const int u_seqlen = 0;
-layout (constant_id = 1) const int u_stride_head = 0;
-layout (constant_id = 2) const float u_smScale = 0;
+layout (constant_id = 1) const int d = 128;// head dim
+layout (constant_id = 2) const int BrForQ = 16;// divides Q
+layout (constant_id = 3) const int BcForKV = 16;// divides K/V
 
-shared float sQ[BLOCK_M][DIM];
-shared float sK[BLOCK_N][DIM];
-shared float sV[BLOCK_N][DIM];
-shared float sO[BLOCK_M][DIM];
-shared float sQK[BLOCK_M][BLOCK_N];
-shared float sSafeE[BLOCK_M][BLOCK_N];
-shared float sDenom[BLOCK_M];
-shared float sMax[BLOCK_M];
+shared float sQ[BrForQ][d];
+shared float sK[BcForKV][d];
+shared float sV[BcForKV][d];
+shared float sO[BrForQ][d];
+shared float sQK[BcForKV][BrForQ];// transposed
+shared float sMaxQK[2][BrForQ];
+shared float sAdjustFactor[BrForQ];
+shared float sRowExpSum[BrForQ];
 
 void main() {
-    const int tx = int(gl_LocalInvocationID.x);
-    const int ty = int(gl_LocalInvocationID.y);
+    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
+    const int groupSize = int(gl_WorkGroupSize.x);
+    const int localID = int(gl_LocalInvocationID.x);
+    const int groupID = int(gl_WorkGroupID.x);
+    const ivec2 matSize = imageSize(dstO);
+    const int N = matSize.y;
+    const float invSqrtD = sqrt(1.0f / float(d));
 
-    const int block_x = int(gl_WorkGroupID.x);
-    const int block_y = int(gl_WorkGroupID.y);
+    const int iterQ = groupID;
+    const int KVIterCount = N / BcForKV;
 
-    const int row = ty + block_y * BLOCK_M;
-
-    if (row >= u_seqlen) {
-        return;
+    // Init accumulator
+    if (localID < BrForQ) {
+        sRowExpSum[localID] = 0;
+        sMaxQK[0][localID] = -1. / 0.;
+        sMaxQK[1][localID] = -1. / 0.;
     }
 
-    const int groupSeq = (u_seqlen + BLOCK_N - 1) / BLOCK_N;
-    const int groupTx = (DIM + BLOCK_N - 1) / BLOCK_N;
-    const int groupTy = (DIM + BLOCK_M - 1) / BLOCK_M;
+    // Load Q & zero-init O
+    const int loadsPerThreadQ = BrForQ * d / groupSize;
+    for (int i = 0; i < loadsPerThreadQ; i++) {
+        const int linearIdx = i * groupSize + localID;
+        const int x = linearIdx % d;
+        const int y = linearIdx / d;
+        const int srcX = x;
+        const int srcY = iterQ * BrForQ + y;
+        const vec4 srcVal = imageLoad(srcQ, ivec2(srcX, srcY));
+        sQ[y][x] = srcVal.x;
+        sO[y][x] = 0;
+    }
 
-    const int base_offset = block_x * u_stride_head;
-
-    for (int i = 0; i < groupTx; i++) {
-        const int col = i * BLOCK_N + tx;
-        if (col < DIM) {
-            const ivec2 coordQ = ivec2(col, row + base_offset);
-            sQ[ty][col] = imageLoad(srcQ, coordQ).r;
-            sO[ty][col] = 0.0;
+    const int loadsPerThreadKV = BcForKV * d / groupSize;
+    const int computesPerThreadQK = BrForQ * BcForKV / groupSize;
+    for (int iterKV = 0; iterKV < KVIterCount; iterKV++) {
+        // Load KV
+        for (int i = 0; i < loadsPerThreadKV; i++) {
+            const int linearIdx = i * groupSize + localID;
+            const int x = linearIdx % d;
+            const int y = linearIdx / d;
+            const int srcX = x;
+            const int srcY = iterKV * BcForKV + y;
+            const vec4 srcKVal = imageLoad(srcK, ivec2(srcX, srcY));
+            const vec4 srcVVal = imageLoad(srcV, ivec2(srcX, srcY));
+            sK[y][x] = srcKVal.x;
+            sV[y][x] = srcVVal.x;
         }
-    }
+        barrier();
 
-    if (tx == 0) {
-        sMax[ty] = -1.0 / 0.0;
-        sDenom[ty] = 0.0;
-    }
-    barrier();
+        // Compute Q*K^T
+        for (int i = 0; i < computesPerThreadQK; i++) {
+            const int linearIdx = i * groupSize + localID;
+            const int x = linearIdx % BcForKV;
+            const int y = linearIdx / BcForKV;
 
-    for (int j = 0; j < groupSeq; j++) {
-        const int k_row = j * BLOCK_N + tx;
-
-        if (k_row < u_seqlen) {
-            for (int i = 0; i < groupTy; i++) {
-                const int col = i * BLOCK_M + ty;
-                if (col < DIM) {
-                    const ivec2 coordK = ivec2(col, k_row + base_offset);
-                    sK[tx][col] = imageLoad(srcK, coordK).r;
-
-                    const ivec2 coordV = ivec2(col, k_row + base_offset);
-                    sV[tx][col] = imageLoad(srcV, coordV).r;
-                }
+            float acc = 0;
+            for (int iqk = 0; iqk < d; iqk++) {
+                acc += sQ[y][iqk] * sK[x][iqk];
             }
-        } else {
-            for (int i = 0; i < groupTy; i++) {
-                const int col = i * BLOCK_M + ty;
-                if (col < DIM) {
-                    sK[tx][col] = 0.0;
-                    sV[tx][col] = 0.0;
-                }
+            sQK[x][y] = acc * invSqrtD;// transposed
+        }
+        barrier();
+
+        // Max element for each row
+        const int prevMaxQKIdx = (iterKV + 1) % 2;
+        const int currMaxQKIdx = iterKV % 2;
+        if (localID < BrForQ) {
+            for (int i = 0; i < BcForKV; i++) {
+                sMaxQK[currMaxQKIdx][localID] = max(sMaxQK[currMaxQKIdx][localID], sQK[i][localID]);
             }
+            sAdjustFactor[localID] = exp(sMaxQK[prevMaxQKIdx][localID] - sMaxQK[currMaxQKIdx][localID]);
         }
         barrier();
 
-        float qk_sum = 0.0;
-        for (int i = 0; i < DIM; i++) {
-            qk_sum += sQ[ty][i] * sK[tx][i];
-        }
-        sQK[ty][tx] = qk_sum * u_smScale;
-        barrier();
-
-
-        float localMax = -1.0 / 0.0;
-        for (int i = 0; i < BLOCK_N; i++) {
-            localMax = max(localMax, sQK[ty][i]);
+        // Exp of sQK
+        for (int i = 0; i < computesPerThreadQK; i++) {
+            const int linearIdx = i * groupSize + localID;
+            const int x = linearIdx % BcForKV;
+            const int y = linearIdx / BcForKV;
+            sQK[x][y] = exp(sQK[x][y] - sMaxQK[currMaxQKIdx][y]);// transposed
         }
         barrier();
 
-        float newMax = max(sMax[ty], localMax);
-        sSafeE[ty][tx] = exp(sQK[ty][tx] - newMax);
-        barrier();
-
-        float localDenom = 0.0;
-        for (int i = 0; i < BLOCK_N; i++) {
-            localDenom += sSafeE[ty][i];
-        }
-
-        barrier();
-
-        float rescaleOld = exp(sMax[ty] - newMax);
-        float newDenom = sDenom[ty] * rescaleOld + localDenom;
-
-        for (int i = 0; i < groupTx; i++) {
-            const int col = i * BLOCK_N + tx;
-            if (col < DIM) {
-                sO[ty][col] = sO[ty][col] * rescaleOld;
-
-                for (int k = 0; k < BLOCK_N; k++) {
-                    sO[ty][col] += sSafeE[ty][k] * sV[k][col];
-                }
+        // Row expsum
+        if (localID < BrForQ) {
+            float rowExpSum = 0;
+            for (int i = 0; i < BcForKV; i++) {
+                rowExpSum += sQK[i][localID];// transposed
             }
+            sRowExpSum[localID] = sAdjustFactor[localID] * sRowExpSum[localID] + rowExpSum;
         }
+        barrier();
 
-        sMax[ty] = newMax;
-        sDenom[ty] = newDenom;
+        // Compute and adjust sO
+        const int computesPerThreadO = BrForQ * d / groupSize;
+        for (int i = 0; i < computesPerThreadO; i++) {
+            const int linearIdx = i * groupSize + localID;
+            const int x = linearIdx % d;
+            const int y = linearIdx / d;
 
+            float acc = 0;
+            for (int io = 0; io < BcForKV; io++) {
+                acc += sQK[io][y] * sV[io][x];// transposed
+            }
+            sO[y][x] = sAdjustFactor[y] * sO[y][x] + acc;
+        }
         barrier();
     }
 
-    for (int i = 0; i < groupTx; i++) {
-        const int col = i * BLOCK_N + tx;
-        if (col < DIM) {
-            const float finalOutput = sO[ty][col] / sDenom[ty];
-            const ivec2 coordO = ivec2(col, row + base_offset);
-            imageStore(dstO, coordO, vec4(finalOutput, 0.0, 0.0, 0.0));
-        }
+    // Compute final O with sRowExpSum (softmax divisor)
+    const int storesPerThreadO = BrForQ * d / groupSize;
+    for (int i = 0; i < storesPerThreadO; i++) {
+        const int linearIdx = i * groupSize + localID;
+        const int x = linearIdx % d;
+        const int y = linearIdx / d;
+        const int dstX = x;
+        const int dstY = iterQ * BrForQ + y;
+        const float finalVal = sO[y][x] / sRowExpSum[y];
+        const vec4 dstVal = vec4(finalVal, 0.0, 0.0, 0.0);
+        imageStore(dstO, ivec2(dstX, dstY), dstVal);
     }
 }

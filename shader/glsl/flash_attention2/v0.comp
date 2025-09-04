@@ -14,9 +14,9 @@ void main() {
     const int N = matSize.y;
     const float invSqrtD = sqrt(1.0f / float(d));
 
-    float diviendAcc = 0;
-    float divisorAcc = 0;
-    float maxQK = 0;
+    float outputSum = 0;
+    float rowExpSum = 0;
+    float maxQK = -1. / 0.;
 
     for (int iterV = 0; iterV < N; iterV++) {
         float qkAcc = 0;
@@ -34,11 +34,11 @@ void main() {
         const float adjustAcc = exp(maxQK - currMaxQK);
         const ivec2 coordV = ivec2(globalID.x, iterV);
         const vec4 valV = imageLoad(srcV, coordV);
-        diviendAcc = diviendAcc * adjustAcc + adjustedQK * valV.x;
-        divisorAcc = divisorAcc * adjustAcc + adjustedQK;
+        outputSum = outputSum * adjustAcc + adjustedQK * valV.x;
+        rowExpSum = rowExpSum * adjustAcc + adjustedQK;
         maxQK = currMaxQK;
     }
 
-    const vec4 dstVal = vec4(diviendAcc / divisorAcc, 0.0, 0.0, 0.0);
+    const vec4 dstVal = vec4(outputSum / rowExpSum, 0.0, 0.0, 0.0);
     imageStore(dstO, globalID, dstVal);
 }

@@ -205,4 +205,49 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v0 - average diff = {}", avgDiff);
     }
+
+    SECTION("v1") {
+        constexpr int groupSizeX = 32;
+        constexpr int BrForQ = 16;
+        constexpr int BcForKV = 16;
+        constexpr int groupNumX = vkc::ceilDiv(extent.height(), BrForQ);
+        vkc::ShaderBox fa2ShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::flash_attention2::v1::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{groupSizeX, d, BrForQ, BcForKV};
+        vkc::PipelineBox fa2PipelineBox =
+            vkc::PipelineBox::createCompute(pDeviceBox, fa2PLayoutBox, fa2ShaderBox, specConstantBox.getSpecInfo()) |
+            unwrap;
+
+        fa2CmdBufBox.begin() | unwrap;
+        fa2CmdBufBox.bindPipeline(fa2PipelineBox);
+        fa2CmdBufBox.bindDescSets(fa2DescSetsBox, fa2PLayoutBox, vk::PipelineBindPoint::eCompute);
+        fa2CmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
+        fa2CmdBufBox.recordCopyStagingToSrc(srcMatQBox);
+        fa2CmdBufBox.recordCopyStagingToSrc(srcMatKBox);
+        fa2CmdBufBox.recordCopyStagingToSrc(srcMatVBox);
+        fa2CmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        fa2CmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        fa2CmdBufBox.recordDispatch(groupNumX, 1);
+        fa2CmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
+        fa2CmdBufBox.recordCopyDstToStaging(dstMatBox);
+        fa2CmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
+        fa2CmdBufBox.end() | unwrap;
+
+        queueBox.submit(fa2CmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
+
+        dstMatBox.download(dstMatVk.getPData()) | unwrap;
+
+        float diffAcc = 0;
+        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extent.elemCount()};
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+            const float diff = std::abs(lhs - rhs);
+            REQUIRE(diff <= maxValidDiff);
+            diffAcc += diff;
+        }
+        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+
+        REQUIRE(avgDiff < maxValidAvgDiff);
+        std::println("v1 - average diff = {}", avgDiff);
+    }
 }

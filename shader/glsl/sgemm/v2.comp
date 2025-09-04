@@ -38,8 +38,8 @@ void main() {
     const int blockTileCount = K / THREAD_TILE_K;
     for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
         // Load from srcMatA
-        const int elemsPerThreadA = (THREAD_TILE_M * groupSize.y) * THREAD_TILE_K / groupThreadCount;
-        for (int i = 0; i < elemsPerThreadA; i++) {
+        const int loadsPerThreadA = (THREAD_TILE_M * groupSize.y) * THREAD_TILE_K / groupThreadCount;
+        for (int i = 0; i < loadsPerThreadA; i++) {
             const int linearIdx = i * groupThreadCount + localIndex;
             const int tk = linearIdx % THREAD_TILE_K;
             const int tm = linearIdx / THREAD_TILE_K;
@@ -50,8 +50,8 @@ void main() {
         }
 
         // Load from srcMatB
-        const int elemsPerThreadB = (THREAD_TILE_N * groupSize.x) * THREAD_TILE_K / groupThreadCount;
-        for (int i = 0; i < elemsPerThreadB; i++) {
+        const int loadsPerThreadB = (THREAD_TILE_N * groupSize.x) * THREAD_TILE_K / groupThreadCount;
+        for (int i = 0; i < loadsPerThreadB; i++) {
             const int linearIdx = i * groupThreadCount + localIndex;
             const int tn = linearIdx % (THREAD_TILE_N * groupSize.x);
             const int tk = linearIdx / (THREAD_TILE_N * groupSize.x);
