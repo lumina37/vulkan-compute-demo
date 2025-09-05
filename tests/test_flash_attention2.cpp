@@ -33,7 +33,7 @@ void fa2RefImpl(const std::span<const float> srcMatQ, const std::span<const floa
             row.push_back(qkAcc * invSqrtD);
         }
 
-        const float maxQK = *std::max_element(row.begin(), row.end());
+        const float maxQK = *rgs::max_element(row);
         float divisorAcc = 0;
         for (float qk : row) {
             divisorAcc += std::exp(qk - maxQK);

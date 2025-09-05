@@ -21,7 +21,6 @@ shared float sAdjustFactor[BrForQ];
 shared float sRowExpSum[BrForQ];
 
 void main() {
-    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
     const int groupSize = int(gl_WorkGroupSize.x);
     const int localID = int(gl_LocalInvocationID.x);
     const int groupID = int(gl_WorkGroupID.x);
@@ -29,7 +28,6 @@ void main() {
     const int N = matSize.y;
     const float invSqrtD = sqrt(1.0f / float(d));
 
-    const int iterQ = groupID;
     const int KVIterCount = N / BcForKV;
 
     // Init accumulator
@@ -46,7 +44,7 @@ void main() {
         const int x = linearIdx % d;
         const int y = linearIdx / d;
         const int srcX = x;
-        const int srcY = iterQ * BrForQ + y;
+        const int srcY = groupID * BrForQ + y;
         const vec4 srcVal = imageLoad(srcQ, ivec2(srcX, srcY));
         sQ[y][x] = srcVal.x;
         sO[y][x] = 0;
@@ -136,7 +134,7 @@ void main() {
         const int x = linearIdx % d;
         const int y = linearIdx / d;
         const int dstX = x;
-        const int dstY = iterQ * BrForQ + y;
+        const int dstY = groupID * BrForQ + y;
         const float finalVal = sO[y][x] / sRowExpSum[y];
         const vec4 dstVal = vec4(finalVal, 0.0, 0.0, 0.0);
         imageStore(dstO, ivec2(dstX, dstY), dstVal);
