@@ -4,11 +4,11 @@
 #include "vkc/device/logical.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
-#include "vkc/pipeline_layout.hpp"
+#include "vkc/pipeline/layout.hpp"
 #include "vkc/shader.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/pipeline.hpp"
+#    include "vkc/pipeline/box.hpp"
 #endif
 
 namespace vkc {

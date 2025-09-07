@@ -12,7 +12,6 @@
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 #include "vkc/pipeline.hpp"
-#include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY

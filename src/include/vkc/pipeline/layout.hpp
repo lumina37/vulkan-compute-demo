@@ -47,5 +47,5 @@ private:
 }  // namespace vkc
 
 #ifdef _VKC_LIB_HEADER_ONLY
-#    include "vkc/pipeline_layout.cpp"
+#    include "vkc/pipeline/layout.cpp"
 #endif

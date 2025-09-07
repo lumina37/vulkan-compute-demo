@@ -10,7 +10,7 @@
 #include "vkc/helper/vulkan.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
-#    include "vkc/pipeline_layout.hpp"
+#    include "vkc/pipeline/layout.hpp"
 #endif
 
 namespace vkc {

@@ -6,7 +6,6 @@
 #include "vkc/extent.hpp"
 #include "vkc/gui.hpp"
 #include "vkc/pipeline.hpp"
-#include "vkc/pipeline_layout.hpp"
 #include "vkc/query_pool.hpp"
 #include "vkc/queue.hpp"
 #include "vkc/resource.hpp"
