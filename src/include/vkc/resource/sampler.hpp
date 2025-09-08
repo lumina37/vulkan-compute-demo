@@ -11,7 +11,7 @@ namespace vkc {
 
 class SamplerBox {
     SamplerBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Sampler sampler,
-               vk::DescriptorImageInfo samplerInfo) noexcept;
+               const vk::DescriptorImageInfo& samplerInfo) noexcept;
 
 public:
     SamplerBox(const SamplerBox&) = delete;

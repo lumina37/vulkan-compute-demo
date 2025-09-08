@@ -14,9 +14,9 @@
 namespace vkc {
 
 class PresentImageBox {
-    PresentImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image, vk::ImageView imageView,
+    PresentImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, const Extent& extent, vk::Image image, vk::ImageView imageView,
                     vk::Buffer stagingBuffer, MemoryBox&& stagingMemoryBox,
-                    vk::DescriptorImageInfo descImageInfo) noexcept;
+                    const vk::DescriptorImageInfo& descImageInfo) noexcept;
 
 public:
     PresentImageBox(const PresentImageBox&) = delete;

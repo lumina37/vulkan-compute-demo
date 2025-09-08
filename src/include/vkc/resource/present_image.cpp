@@ -15,9 +15,9 @@
 
 namespace vkc {
 
-PresentImageBox::PresentImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image,
+PresentImageBox::PresentImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, const Extent& extent, vk::Image image,
                                  vk::ImageView imageView, vk::Buffer stagingBuffer, MemoryBox&& stagingMemoryBox,
-                                 vk::DescriptorImageInfo descImageInfo) noexcept
+                                 const vk::DescriptorImageInfo& descImageInfo) noexcept
     : pDeviceBox_(std::move(pDeviceBox)),
       extent_(extent),
       image_(image),
@@ -97,7 +97,7 @@ std::expected<PresentImageBox, Error> PresentImageBox::create(std::shared_ptr<De
         MemoryBox::create(pDeviceBox, stagingMemoryReq,
                           vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     if (!stagingMemoryBoxRes) return std::unexpected{std::move(stagingMemoryBoxRes.error())};
-    MemoryBox stagingMemoryBox = std::move(stagingMemoryBoxRes.value());
+    MemoryBox& stagingMemoryBox = stagingMemoryBoxRes.value();
 
     const auto bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemoryBox.getDeviceMemory(), 0);
     if (bindStagingRes != vk::Result::eSuccess) {
@@ -114,30 +114,34 @@ std::expected<PresentImageBox, Error> PresentImageBox::create(std::shared_ptr<De
 }
 
 std::expected<void, Error> PresentImageBox::upload(const std::byte* pSrc) noexcept {
-    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, stagingMemoryBox_.getDeviceMemory(), extent_.size());
+    auto mmapRes = stagingMemoryBox_.memMap();
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapBox = mmapRes.value();
+    void* mapPtr = mmapRes.value();
 
-    std::memcpy(mmapBox.getMapPtr(), pSrc, extent_.size());
+    std::memcpy(mapPtr, pSrc, extent_.size());
+
+    stagingMemoryBox_.memUnmap();
 
     return {};
 }
 
 std::expected<void, Error> PresentImageBox::uploadWithRoi(const std::byte* pSrc, const Roi roi,
                                                           const size_t bufferRowPitch) noexcept {
-    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, stagingMemoryBox_.getDeviceMemory(), extent_.size());
+    auto mmapRes = stagingMemoryBox_.memMap();
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapBox = mmapRes.value();
+    void* mapPtr = mmapRes.value();
 
     size_t srcOffset = 0;
     size_t dstOffset = extent_.calculateBufferOffset(roi.offset());
     for (int row = 0; row < (int)roi.extent().height; row++) {
         const std::byte* srcCursor = pSrc + srcOffset;
-        std::byte* dstCursor = (std::byte*)mmapBox.getMapPtr() + dstOffset;
+        std::byte* dstCursor = (std::byte*)mapPtr + dstOffset;
         std::memcpy(dstCursor, srcCursor, roi.extent().width * extent_.bpp());
         srcOffset += bufferRowPitch;
         dstOffset += extent_.rowPitch();
     }
+
+    stagingMemoryBox_.memUnmap();
 
     return {};
 }

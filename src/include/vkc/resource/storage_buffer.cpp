@@ -14,19 +14,17 @@
 
 namespace vkc {
 
-StorageBufferBox::StorageBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceSize size, MemoryBox&& memoryBox,
-                                   vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept
+StorageBufferBox::StorageBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Buffer buffer, MemoryBox&& memoryBox,
+                                   const vk::DescriptorBufferInfo& descBufferInfo) noexcept
     : pDeviceBox_(std::move(pDeviceBox)),
-      size_(size),
-      memoryBox_(std::move(memoryBox)),
       buffer_(buffer),
+      memoryBox_(std::move(memoryBox)),
       descBufferInfo_(descBufferInfo) {}
 
 StorageBufferBox::StorageBufferBox(StorageBufferBox&& rhs) noexcept
     : pDeviceBox_(std::move(rhs.pDeviceBox_)),
-      size_(rhs.size_),
-      memoryBox_(std::move(rhs.memoryBox_)),
       buffer_(std::exchange(rhs.buffer_, nullptr)),
+      memoryBox_(std::move(rhs.memoryBox_)),
       descBufferInfo_(std::exchange(rhs.descBufferInfo_, {})) {}
 
 StorageBufferBox::~StorageBufferBox() noexcept {
@@ -53,7 +51,7 @@ std::expected<StorageBufferBox, Error> StorageBufferBox::create(std::shared_ptr<
     const vk::MemoryRequirements stagingMemoryReq = _hp::getMemoryRequirements(*pDeviceBox, buffer);
     auto memoryBoxRes = MemoryBox::create(pDeviceBox, stagingMemoryReq, vk::MemoryPropertyFlagBits::eHostVisible);
     if (!memoryBoxRes) return std::unexpected{std::move(memoryBoxRes.error())};
-    MemoryBox memoryBox = std::move(memoryBoxRes.value());
+    MemoryBox& memoryBox = memoryBoxRes.value();
 
     const auto bindRes = device.bindBufferMemory(buffer, memoryBox.getDeviceMemory(), 0);
     if (bindRes != vk::Result::eSuccess) {
@@ -65,7 +63,7 @@ std::expected<StorageBufferBox, Error> StorageBufferBox::create(std::shared_ptr<
     descBufferInfo.setBuffer(buffer);
     descBufferInfo.setRange(size);
 
-    return StorageBufferBox{std::move(pDeviceBox), size, std::move(memoryBox), buffer, descBufferInfo};
+    return StorageBufferBox{std::move(pDeviceBox), buffer, std::move(memoryBox), descBufferInfo};
 }
 
 vk::WriteDescriptorSet StorageBufferBox::draftWriteDescSet() const noexcept {
@@ -77,21 +75,25 @@ vk::WriteDescriptorSet StorageBufferBox::draftWriteDescSet() const noexcept {
 }
 
 std::expected<void, Error> StorageBufferBox::upload(const std::byte* pSrc) noexcept {
-    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, memoryBox_.getDeviceMemory(), size_);
+    auto mmapRes = memoryBox_.memMap();
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapBox = mmapRes.value();
+    void* mapPtr = mmapRes.value();
 
-    std::memcpy(mmapBox.getMapPtr(), pSrc, size_);
+    std::memcpy(mapPtr, pSrc, getSize());
+
+    memoryBox_.memUnmap();
 
     return {};
 }
 
 std::expected<void, Error> StorageBufferBox::download(std::byte* pDst) noexcept {
-    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, memoryBox_.getDeviceMemory(), size_);
+    auto mmapRes = memoryBox_.memMap();
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapBox = mmapRes.value();
+    void* mapPtr = mmapRes.value();
 
-    std::memcpy(pDst, mmapBox.getMapPtr(), size_);
+    std::memcpy(pDst, mapPtr, getSize());
+
+    memoryBox_.memUnmap();
 
     return {};
 }

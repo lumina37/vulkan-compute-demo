@@ -20,9 +20,8 @@ typedef enum StorageImageType {
 } StorageImageType;
 
 class StorageImageBox {
-    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image, vk::ImageView imageView,
-                    MemoryBox&& imageMemoryBox, vk::Buffer stagingBuffer, MemoryBox&& stagingMemoryBox,
-                    vk::DescriptorImageInfo descImageInfo) noexcept;
+    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, const Extent& extent, vk::Image image, vk::ImageView imageView,
+                    MemoryBox&& imageMemoryBox, vk::Buffer stagingBuffer, MemoryBox&& stagingMemoryBox, const vk::DescriptorImageInfo& descImageInfo) noexcept;
 
 public:
     StorageImageBox(const StorageImageBox&) = delete;

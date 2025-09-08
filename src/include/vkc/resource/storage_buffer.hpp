@@ -12,8 +12,8 @@
 namespace vkc {
 
 class StorageBufferBox {
-    StorageBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceSize size, MemoryBox&& memoryBox,
-                     vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
+    StorageBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Buffer buffer, MemoryBox&& memoryBox,
+                     const vk::DescriptorBufferInfo& descBufferInfo) noexcept;
 
 public:
     StorageBufferBox(const StorageBufferBox&) = delete;
@@ -23,7 +23,7 @@ public:
     [[nodiscard]] static std::expected<StorageBufferBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
                                                                        vk::DeviceSize size) noexcept;
 
-    [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
+    [[nodiscard]] vk::DeviceSize getSize() const noexcept { return memoryBox_.getRequirements().size; }
     [[nodiscard]] vk::Buffer getBuffer() noexcept { return buffer_; }
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eStorageBuffer;
@@ -37,7 +37,6 @@ public:
 private:
     std::shared_ptr<DeviceBox> pDeviceBox_;
 
-    vk::DeviceSize size_;
     vk::Buffer buffer_;
     MemoryBox memoryBox_;
     vk::DescriptorBufferInfo descBufferInfo_;

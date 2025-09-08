@@ -157,30 +157,34 @@ vk::WriteDescriptorSet SampledImageBox::draftWriteDescSet() const noexcept {
 }
 
 std::expected<void, Error> SampledImageBox::upload(const std::byte* pSrc) noexcept {
-    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, stagingMemoryBox_.getDeviceMemory(), extent_.size());
+    auto mmapRes = stagingMemoryBox_.memMap();
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapBox = mmapRes.value();
+    void* mapPtr = mmapRes.value();
 
-    std::memcpy(mmapBox.getMapPtr(), pSrc, extent_.size());
+    std::memcpy(mapPtr, pSrc, extent_.size());
+
+    stagingMemoryBox_.memUnmap();
 
     return {};
 }
 
 std::expected<void, Error> SampledImageBox::uploadWithRoi(const std::byte* pSrc, const Roi roi,
                                                           const size_t bufferRowPitch) noexcept {
-    auto mmapRes = _hp::MemMapBox::create(pDeviceBox_, stagingMemoryBox_.getDeviceMemory(), extent_.size());
+    auto mmapRes = stagingMemoryBox_.memMap();
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
-    auto& mmapBox = mmapRes.value();
+    void* mapPtr = mmapRes.value();
 
     size_t srcOffset = 0;
     size_t dstOffset = extent_.calculateBufferOffset(roi.offset());
     for (int row = 0; row < (int)roi.extent().height; row++) {
         const std::byte* srcCursor = pSrc + srcOffset;
-        std::byte* dstCursor = (std::byte*)mmapBox.getMapPtr() + dstOffset;
+        std::byte* dstCursor = (std::byte*)mapPtr + dstOffset;
         std::memcpy(dstCursor, srcCursor, roi.extent().width * extent_.bpp());
         srcOffset += bufferRowPitch;
         dstOffset += extent_.rowPitch();
     }
+
+    stagingMemoryBox_.memUnmap();
 
     return {};
 }
