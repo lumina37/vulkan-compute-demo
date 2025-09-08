@@ -1,5 +1,4 @@
 #include <expected>
-#include <ranges>
 #include <utility>
 
 #include "vkc/device/physical/box.hpp"
@@ -11,8 +10,6 @@
 #endif
 
 namespace vkc {
-
-namespace rgs = std::ranges;
 
 std::expected<DefaultSurfaceProps, Error> DefaultSurfaceProps::create(const PhyDeviceBox& phyDeviceBox,
                                                                       const SurfaceBox& surfaceBox) noexcept {

@@ -9,8 +9,6 @@
 
 namespace vkc {
 
-namespace rgs = std::ranges;
-
 PhyDeviceBox::PhyDeviceBox(vk::PhysicalDevice phyDevice) noexcept : phyDevice_(phyDevice) {}
 
 std::expected<PhyDeviceBox, Error> PhyDeviceBox::create(vk::PhysicalDevice phyDevice) noexcept {

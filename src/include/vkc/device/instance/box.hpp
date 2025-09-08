@@ -8,8 +8,6 @@
 
 namespace vkc {
 
-namespace rgs = std::ranges;
-
 class InstanceBox {
     InstanceBox(vk::Instance instance) noexcept;
 

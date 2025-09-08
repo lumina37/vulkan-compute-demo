@@ -1,5 +1,4 @@
 #include <expected>
-#include <ranges>
 
 #include "vkc/device/extensions.hpp"
 #include "vkc/helper/error.hpp"
@@ -10,8 +9,6 @@
 #endif
 
 namespace vkc {
-
-namespace rgs = std::ranges;
 
 std::expected<DefaultInstanceProps, Error> DefaultInstanceProps::create() noexcept {
     DefaultInstanceProps props;
