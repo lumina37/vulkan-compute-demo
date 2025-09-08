@@ -127,17 +127,13 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
 
     // Descriptor & Layouts
     vkc::StorageImageBox srcMatQBox =
-        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcMatQ.getExtent(), vkc::StorageImageType::Read) |
-        unwrap;
+        vkc::StorageImageBox::create(pDeviceBox, srcMatQ.getExtent(), vkc::StorageImageType::Read) | unwrap;
     vkc::StorageImageBox srcMatKBox =
-        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcMatK.getExtent(), vkc::StorageImageType::Read) |
-        unwrap;
+        vkc::StorageImageBox::create(pDeviceBox, srcMatK.getExtent(), vkc::StorageImageType::Read) | unwrap;
     vkc::StorageImageBox srcMatVBox =
-        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcMatV.getExtent(), vkc::StorageImageType::Read) |
-        unwrap;
+        vkc::StorageImageBox::create(pDeviceBox, srcMatV.getExtent(), vkc::StorageImageType::Read) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcMatQBox), std::ref(srcMatKBox), std::ref(srcMatVBox)};
-    vkc::StorageImageBox dstMatBox =
-        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, dstMatVk.getExtent()) | unwrap;
+    vkc::StorageImageBox dstMatBox = vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent()) | unwrap;
     const std::array dstMatBoxRefs{std::ref(dstMatBox)};
     srcMatQBox.upload(srcMatQ.getPData()) | unwrap;
     srcMatKBox.upload(srcMatK.getPData()) | unwrap;

@@ -41,14 +41,11 @@ int main() {
 
     // Descriptor & Layouts
     vkc::StorageImageBox srcMatABox =
-        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcMatA.getExtent(), vkc::StorageImageType::Read) |
-        unwrap;
+        vkc::StorageImageBox::create(pDeviceBox, srcMatA.getExtent(), vkc::StorageImageType::Read) | unwrap;
     vkc::StorageImageBox srcMatBBox =
-        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcMatB.getExtent(), vkc::StorageImageType::Read) |
-        unwrap;
+        vkc::StorageImageBox::create(pDeviceBox, srcMatB.getExtent(), vkc::StorageImageType::Read) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
-    vkc::StorageImageBox dstMatBox =
-        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, dstMatVk.getExtent()) | unwrap;
+    vkc::StorageImageBox dstMatBox = vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent()) | unwrap;
     const std::array dstMatBoxRefs{std::ref(dstMatBox)};
     srcMatABox.upload(srcMatA.getPData()) | unwrap;
     srcMatBBox.upload(srcMatB.getPData()) | unwrap;

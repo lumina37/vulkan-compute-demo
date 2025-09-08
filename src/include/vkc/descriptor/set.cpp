@@ -18,8 +18,7 @@
 
 namespace vkc {
 
-DescSetsBox::DescSetsBox(std::shared_ptr<DeviceBox>&& pDeviceBox,
-                                 std::vector<vk::DescriptorSet>&& descSets) noexcept
+DescSetsBox::DescSetsBox(std::shared_ptr<DeviceBox>&& pDeviceBox, std::vector<vk::DescriptorSet>&& descSets) noexcept
     : pDeviceBox_(std::move(pDeviceBox)), descSets_(std::move(descSets)) {}
 
 std::expected<DescSetsBox, Error> DescSetsBox::create(

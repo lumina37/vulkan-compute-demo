@@ -42,7 +42,7 @@ int main() {
     vkc::SurfaceBox surfaceBox = vkc::SurfaceBox::create(pInstBox, windowBox) | unwrap;
     const std::array familyIndices{computeQFamilyIdx};
     vkc::SwapchainBox swapChainBox =
-        vkc::SwapchainBox::create(phyDeviceBox, pDeviceBox, surfaceBox, familyIndices, srcImage.getExtent()) | unwrap;
+        vkc::SwapchainBox::create(pDeviceBox, surfaceBox, familyIndices, srcImage.getExtent()) | unwrap;
 
     // Command Buffer
     vkc::FenceBox fenceBox = vkc::FenceBox::create(pDeviceBox) | unwrap;

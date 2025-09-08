@@ -4,28 +4,26 @@
 #include <expected>
 #include <memory>
 
-#include "vkc/device/logical.hpp"
-#include "vkc/device/physical.hpp"
+#include "vkc/device.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
+#include "vkc/resource/memory.hpp"
 
 namespace vkc {
 
 class StorageBufferBox {
-    StorageBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceSize size, vk::DeviceMemory memory,
-                         vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
+    StorageBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceSize size, MemoryBox&& memoryBox,
+                     vk::Buffer buffer, vk::DescriptorBufferInfo descBufferInfo) noexcept;
 
 public:
     StorageBufferBox(const StorageBufferBox&) = delete;
     StorageBufferBox(StorageBufferBox&& rhs) noexcept;
     ~StorageBufferBox() noexcept;
 
-    [[nodiscard]] static std::expected<StorageBufferBox, Error> create(PhyDeviceBox& phyDeviceBox,
-                                                                           std::shared_ptr<DeviceBox> pDeviceBox,
-                                                                           vk::DeviceSize size) noexcept;
+    [[nodiscard]] static std::expected<StorageBufferBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
+                                                                       vk::DeviceSize size) noexcept;
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
-
     [[nodiscard]] vk::Buffer getBuffer() noexcept { return buffer_; }
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eStorageBuffer;
@@ -40,8 +38,8 @@ private:
     std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::DeviceSize size_;
-    vk::DeviceMemory memory_;
     vk::Buffer buffer_;
+    MemoryBox memoryBox_;
     vk::DescriptorBufferInfo descBufferInfo_;
 };
 

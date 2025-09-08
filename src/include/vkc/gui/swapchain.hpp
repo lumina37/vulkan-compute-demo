@@ -29,9 +29,8 @@ public:
     ~SwapchainBox() noexcept;
 
     [[nodiscard]] static std::expected<SwapchainBox, Error> create(
-        PhyDeviceBox& phyDeviceBox, std::shared_ptr<DeviceBox> pDeviceBox, SurfaceBox& surfaceBox,
-        std::span<const uint32_t> queueFamilyIndices, const Extent& extent,
-        vk::ColorSpaceKHR colorspace = vk::ColorSpaceKHR::eSrgbNonlinear) noexcept;
+        std::shared_ptr<DeviceBox> pDeviceBox, SurfaceBox& surfaceBox, std::span<const uint32_t> queueFamilyIndices,
+        const Extent& extent, vk::ColorSpaceKHR colorspace = vk::ColorSpaceKHR::eSrgbNonlinear) noexcept;
 
     [[nodiscard]] vk::SwapchainKHR getSwapchain() const noexcept { return swapchain_; }
 

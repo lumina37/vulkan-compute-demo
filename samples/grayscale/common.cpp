@@ -32,11 +32,9 @@ int main() {
 
     // Descriptor & Layouts
     vkc::SamplerBox samplerBox = vkc::SamplerBox::create(pDeviceBox) | unwrap;
-    vkc::SampledImageBox srcImageBox =
-        vkc::SampledImageBox::create(phyDeviceBox, pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::SampledImageBox srcImageBox = vkc::SampledImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
     const std::array srcImageBoxRefs{std::ref(srcImageBox)};
-    vkc::StorageImageBox dstImageBox =
-        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StorageImageBox dstImageBox = vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
     const std::array dstImageBoxRefs{std::ref(dstImageBox)};
 
     Timer uploadTimer;

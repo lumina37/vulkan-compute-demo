@@ -17,11 +17,13 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
-DeviceBox::DeviceBox(vk::Device device, std::vector<QueueIndex>&& queueIndices) noexcept
-    : device_(device), queueIndices_(queueIndices) {}
+DeviceBox::DeviceBox(vk::Device device, vk::PhysicalDevice phyDevice, std::vector<QueueIndex>&& queueIndices) noexcept
+    : device_(device), phyDevice_(phyDevice), queueIndices_(queueIndices) {}
 
 DeviceBox::DeviceBox(DeviceBox&& rhs) noexcept
-    : device_(std::exchange(rhs.device_, nullptr)), queueIndices_(std::move(rhs.queueIndices_)) {}
+    : device_(std::exchange(rhs.device_, nullptr)),
+      phyDevice_(std::exchange(rhs.phyDevice_, nullptr)),
+      queueIndices_(std::move(rhs.queueIndices_)) {}
 
 DeviceBox::~DeviceBox() noexcept {
     if (device_ == nullptr) return;
@@ -74,7 +76,7 @@ std::expected<DeviceBox, Error> DeviceBox::createWithMultiQueueAndExts(PhyDevice
 
     auto copiedQueueIndices = requiredQueueIndices | rgs::to<std::vector>();
 
-    return DeviceBox{device, std::move(copiedQueueIndices)};
+    return DeviceBox{device, phyDevice, std::move(copiedQueueIndices)};
 }
 
 std::expected<vk::Queue, Error> DeviceBox::getQueue(vk::QueueFlags type) const noexcept {

@@ -106,11 +106,9 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
     // Descriptor & Layouts
     vkc::SamplerBox samplerBox = vkc::SamplerBox::create(pDeviceBox) | unwrap;
     vkc::PushConstantBox kernelSizePcBox{std::pair{kernelSize, sigma * sigma * 2.0f}};
-    vkc::SampledImageBox srcImageBox =
-        vkc::SampledImageBox::create(phyDeviceBox, pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::SampledImageBox srcImageBox = vkc::SampledImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
     const std::array srcImageBoxRefs{std::ref(srcImageBox)};
-    vkc::StorageImageBox dstImageBox =
-        vkc::StorageImageBox::create(phyDeviceBox, pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StorageImageBox dstImageBox = vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
     const std::array dstImageBoxRefs{std::ref(dstImageBox)};
     srcImageBox.upload(srcImage.getPData()) | unwrap;
 

@@ -23,14 +23,12 @@ public:
 
 private:
     [[nodiscard]] static std::expected<PipelineLayoutBox, Error> _create(
-        std::shared_ptr<DeviceBox>&& pDeviceBox,
-        const std::span<const TDescSetLayoutBoxCRef>& descSetLayoutBoxCRefs,
+        std::shared_ptr<DeviceBox>&& pDeviceBox, const std::span<const TDescSetLayoutBoxCRef>& descSetLayoutBoxCRefs,
         const vk::PushConstantRange* pPushConstantRange) noexcept;
 
 public:
     [[nodiscard]] static std::expected<PipelineLayoutBox, Error> create(
-        std::shared_ptr<DeviceBox> pDeviceBox,
-        std::span<const TDescSetLayoutBoxCRef> descSetLayoutBoxCRefs) noexcept;
+        std::shared_ptr<DeviceBox> pDeviceBox, std::span<const TDescSetLayoutBoxCRef> descSetLayoutBoxCRefs) noexcept;
 
     [[nodiscard]] static std::expected<PipelineLayoutBox, Error> createWithPushConstant(
         std::shared_ptr<DeviceBox> pDeviceBox, std::span<const TDescSetLayoutBoxCRef> descSetLayoutBoxCRefs,

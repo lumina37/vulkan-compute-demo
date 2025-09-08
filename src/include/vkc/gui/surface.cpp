@@ -25,7 +25,7 @@ SurfaceBox::~SurfaceBox() noexcept {
 }
 
 std::expected<SurfaceBox, Error> SurfaceBox::create(std::shared_ptr<InstanceBox> pInstanceBox,
-                                                            const WindowBox& windowBox) noexcept {
+                                                    const WindowBox& windowBox) noexcept {
     vk::SurfaceKHR surface;
     glfwCreateWindowSurface(pInstanceBox->getInstance(), windowBox.getWindow(), nullptr, (VkSurfaceKHR*)&surface);
 

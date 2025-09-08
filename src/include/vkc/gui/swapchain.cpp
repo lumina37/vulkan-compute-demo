@@ -30,8 +30,7 @@ SwapchainBox::~SwapchainBox() noexcept {
     swapchain_ = nullptr;
 }
 
-std::expected<SwapchainBox, Error> SwapchainBox::create(PhyDeviceBox& phyDeviceBox,
-                                                        std::shared_ptr<DeviceBox> pDeviceBox, SurfaceBox& surfaceBox,
+std::expected<SwapchainBox, Error> SwapchainBox::create(std::shared_ptr<DeviceBox> pDeviceBox, SurfaceBox& surfaceBox,
                                                         const std::span<const uint32_t> queueFamilyIndices,
                                                         const Extent& extent,
                                                         const vk::ColorSpaceKHR colorspace) noexcept {
@@ -70,7 +69,7 @@ std::expected<SwapchainBox, Error> SwapchainBox::create(PhyDeviceBox& phyDeviceB
     imageBoxs.reserve(images.size());
 
     for (auto image : images) {
-        auto imageBoxRes = PresentImageBox::create(phyDeviceBox, pDeviceBox, image, extent);
+        auto imageBoxRes = PresentImageBox::create(pDeviceBox, image, extent);
         if (!imageBoxRes) return std::unexpected{std::move(imageBoxRes.error())};
         auto& imageBox = imageBoxRes.value();
         imageBoxs.emplace_back(std::move(imageBox));

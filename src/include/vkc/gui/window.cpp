@@ -18,8 +18,7 @@ namespace rgs = std::ranges;
 
 WindowBox::WindowBox(vk::Extent2D extent, GLFWwindow* window) noexcept : extent_(extent), window_(window) {}
 
-WindowBox::WindowBox(WindowBox&& rhs) noexcept
-    : extent_(rhs.extent_), window_(std::exchange(rhs.window_, nullptr)) {}
+WindowBox::WindowBox(WindowBox&& rhs) noexcept : extent_(rhs.extent_), window_(std::exchange(rhs.window_, nullptr)) {}
 
 WindowBox::~WindowBox() noexcept {
     if (window_ == nullptr) return;

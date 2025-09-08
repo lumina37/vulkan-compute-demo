@@ -16,7 +16,7 @@ struct QueueIndex {
 };
 
 class DeviceBox {
-    DeviceBox(vk::Device device, std::vector<QueueIndex>&& queueIndices) noexcept;
+    DeviceBox(vk::Device device, vk::PhysicalDevice phyDevice, std::vector<QueueIndex>&& queueIndices) noexcept;
 
 public:
     DeviceBox(const DeviceBox&) = delete;
@@ -35,11 +35,13 @@ public:
         std::span<const std::string_view> enableExtNames, vk::PhysicalDeviceFeatures2* pFeature) noexcept;
 
     [[nodiscard]] vk::Device getDevice() const noexcept { return device_; }
+    [[nodiscard]] vk::PhysicalDevice getPhyDevice() const noexcept { return phyDevice_; }
 
     [[nodiscard]] std::expected<vk::Queue, Error> getQueue(vk::QueueFlags type) const noexcept;
 
 private:
     vk::Device device_;
+    vk::PhysicalDevice phyDevice_;
     std::vector<QueueIndex> queueIndices_;
 };
 

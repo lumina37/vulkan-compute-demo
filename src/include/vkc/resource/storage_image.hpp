@@ -9,6 +9,7 @@
 #include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
+#include "vkc/resource/memory.hpp"
 
 namespace vkc {
 
@@ -19,9 +20,9 @@ typedef enum StorageImageType {
 } StorageImageType;
 
 class StorageImageBox {
-    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image,
-                        vk::ImageView imageView, vk::DeviceMemory imageMemory, vk::Buffer stagingBuffer,
-                        vk::DeviceMemory stagingMemory, vk::DescriptorImageInfo descImageInfo) noexcept;
+    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image, vk::ImageView imageView,
+                    MemoryBox&& imageMemoryBox, vk::Buffer stagingBuffer, MemoryBox&& stagingMemoryBox,
+                    vk::DescriptorImageInfo descImageInfo) noexcept;
 
 public:
     StorageImageBox(const StorageImageBox&) = delete;
@@ -29,7 +30,7 @@ public:
     ~StorageImageBox() noexcept;
 
     [[nodiscard]] static std::expected<StorageImageBox, Error> create(
-        const PhyDeviceBox& phyDeviceBox, std::shared_ptr<DeviceBox> pDeviceBox, const Extent& extent,
+        std::shared_ptr<DeviceBox> pDeviceBox, const Extent& extent,
         StorageImageType imageType = StorageImageType::Write) noexcept;
 
     template <typename Self>
@@ -64,10 +65,10 @@ private:
 
     vk::Image image_;
     vk::ImageView imageView_;
-    vk::DeviceMemory imageMemory_;
+    MemoryBox imageMemoryBox_;
 
     vk::Buffer stagingBuffer_;
-    vk::DeviceMemory stagingMemory_;
+    MemoryBox stagingMemoryBox_;
 
     vk::DescriptorImageInfo descImageInfo_;
     vk::AccessFlags imageAccessMask_;
@@ -78,7 +79,7 @@ private:
 constexpr vk::DescriptorSetLayoutBinding StorageImageBox::draftDescSetLayoutBinding() noexcept {
     vk::DescriptorSetLayoutBinding binding;
     binding.setDescriptorCount(1);
-    binding.setDescriptorType(vk::DescriptorType::eStorageImage);
+    binding.setDescriptorType(getDescType());
     binding.setStageFlags(vk::ShaderStageFlagBits::eCompute);
     return binding;
 }

@@ -14,7 +14,7 @@
 namespace vkc {
 
 DescSetLayoutBox::DescSetLayoutBox(std::shared_ptr<DeviceBox>&& pDeviceBox,
-                                           vk::DescriptorSetLayout descSetlayout) noexcept
+                                   vk::DescriptorSetLayout descSetlayout) noexcept
     : pDdeviceBox_(std::move(pDeviceBox)), descSetlayout_(descSetlayout) {}
 
 DescSetLayoutBox::DescSetLayoutBox(DescSetLayoutBox&& rhs) noexcept

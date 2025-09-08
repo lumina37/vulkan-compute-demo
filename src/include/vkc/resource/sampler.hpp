@@ -11,15 +11,14 @@ namespace vkc {
 
 class SamplerBox {
     SamplerBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Sampler sampler,
-                   vk::DescriptorImageInfo samplerInfo) noexcept;
+               vk::DescriptorImageInfo samplerInfo) noexcept;
 
 public:
     SamplerBox(const SamplerBox&) = delete;
     SamplerBox(SamplerBox&& rhs) noexcept;
     ~SamplerBox() noexcept;
 
-    [[nodiscard]] static std::expected<SamplerBox, Error> create(
-        std::shared_ptr<DeviceBox> pDeviceBox) noexcept;
+    [[nodiscard]] static std::expected<SamplerBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox) noexcept;
 
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept { return vk::DescriptorType::eSampler; }
     [[nodiscard]] vk::WriteDescriptorSet draftWriteDescSet() const noexcept;

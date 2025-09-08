@@ -9,23 +9,22 @@
 #include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
+#include "vkc/resource/memory.hpp"
 
 namespace vkc {
 
 class PresentImageBox {
-    PresentImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image,
-                        vk::ImageView imageView, vk::Buffer stagingBuffer, vk::DeviceMemory stagingMemory,
-                        vk::DescriptorImageInfo descImageInfo) noexcept;
+    PresentImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image, vk::ImageView imageView,
+                    vk::Buffer stagingBuffer, MemoryBox&& stagingMemoryBox,
+                    vk::DescriptorImageInfo descImageInfo) noexcept;
 
 public:
     PresentImageBox(const PresentImageBox&) = delete;
     PresentImageBox(PresentImageBox&& rhs) noexcept;
     ~PresentImageBox() noexcept;
 
-    [[nodiscard]] static std::expected<PresentImageBox, Error> create(const PhyDeviceBox& phyDeviceBox,
-                                                                          std::shared_ptr<DeviceBox> pDeviceBox,
-                                                                          vk::Image image,
-                                                                          const Extent& extent) noexcept;
+    [[nodiscard]] static std::expected<PresentImageBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
+                                                                      vk::Image image, const Extent& extent) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {
@@ -54,7 +53,7 @@ private:
     vk::ImageView imageView_;
 
     vk::Buffer stagingBuffer_;
-    vk::DeviceMemory stagingMemory_;
+    MemoryBox stagingMemoryBox_;
 
     vk::DescriptorImageInfo descImageInfo_;
     vk::AccessFlags imageAccessMask_;

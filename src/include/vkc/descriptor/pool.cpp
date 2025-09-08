@@ -26,8 +26,8 @@ DescPoolBox::~DescPoolBox() noexcept {
     descPool_ = nullptr;
 }
 
-std::expected<DescPoolBox, Error> DescPoolBox::create(
-    std::shared_ptr<DeviceBox> pDeviceBox, std::span<const vk::DescriptorPoolSize> poolSizes) noexcept {
+std::expected<DescPoolBox, Error> DescPoolBox::create(std::shared_ptr<DeviceBox> pDeviceBox,
+                                                      std::span<const vk::DescriptorPoolSize> poolSizes) noexcept {
     vk::DescriptorPoolCreateInfo poolInfo;
     poolInfo.setMaxSets((uint32_t)poolSizes.size());
     poolInfo.setPoolSizes(poolSizes);
