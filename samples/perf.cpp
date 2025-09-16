@@ -97,7 +97,7 @@ int main() {
     auto pCommandPoolBox =
         std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferBox sgemmCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
-    std::array perfCounterIndices{0u, 10u, 11u};
+    std::array perfCounterIndices{0u, 8u, 10u};
     vkc::PerfQueryPoolBox perfQueryPoolBox =
         vkc::PerfQueryPoolBox::create(pDeviceBox, computeQFamilyIdx, 1, perfCounterIndices) | unwrap;
     perfQueryPoolBox.hostReset();
@@ -140,10 +140,10 @@ int main() {
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        auto perfQueryResults = perfQueryPoolBox.getResults<uint64_t, float, float>() | unwrap;
+        auto perfQueryResults = perfQueryPoolBox.getResults<uint64_t, uint64_t, float>() | unwrap;
         std::println("============================");
         std::println("GPU Elapsed Time: {} ms", (float)std::get<0>(perfQueryResults[0]) / 1e6);
-        std::println("SM Active: {} %", std::get<1>(perfQueryResults[0]));
-        std::println("SM Stall: {} %", std::get<2>(perfQueryResults[0]));
+        std::println("Dispatched Threads: {}", std::get<1>(perfQueryResults[0]));
+        std::println("SM Active: {} %", std::get<2>(perfQueryResults[0]));
     }
 }
