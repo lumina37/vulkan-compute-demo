@@ -9,6 +9,8 @@
 
 namespace vkc {
 
+std::expected<void, Error> initGLFW() noexcept;
+
 class WindowBox {
     WindowBox(vk::Extent2D extent, GLFWwindow* window) noexcept;
 
@@ -17,7 +19,6 @@ public:
     WindowBox(WindowBox&& rhs) noexcept;
     ~WindowBox() noexcept;
 
-    static std::expected<void, Error> globalInit() noexcept;
     static void globalDestroy() noexcept;
 
     [[nodiscard]] static std::expected<std::vector<std::string_view>, Error> getExtensions();

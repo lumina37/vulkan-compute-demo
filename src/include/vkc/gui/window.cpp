@@ -16,6 +16,14 @@ namespace vkc {
 
 namespace rgs = std::ranges;
 
+std::expected<void, Error> initGLFW() noexcept {
+    const int initRes = glfwInit();
+    if (initRes == GLFW_FALSE) {
+        return std::unexpected{Error{ECate::eGLFW, 0, "failed to init GLFW"}};
+    }
+    return {};
+}
+
 WindowBox::WindowBox(vk::Extent2D extent, GLFWwindow* window) noexcept : extent_(extent), window_(window) {}
 
 WindowBox::WindowBox(WindowBox&& rhs) noexcept : extent_(rhs.extent_), window_(std::exchange(rhs.window_, nullptr)) {}
@@ -24,14 +32,6 @@ WindowBox::~WindowBox() noexcept {
     if (window_ == nullptr) return;
     glfwDestroyWindow(window_);
     window_ = nullptr;
-}
-
-std::expected<void, Error> WindowBox::globalInit() noexcept {
-    const int initRes = glfwInit();
-    if (initRes == GLFW_FALSE) {
-        return std::unexpected{Error{ECate::eGLFW, 0, "failed to init GLFW"}};
-    }
-    return {};
 }
 
 void WindowBox::globalDestroy() noexcept { glfwTerminate(); }

@@ -9,6 +9,7 @@
 
 int main() {
     vkc::initVulkan() | unwrap;
+    vkc::initGLFW() | unwrap;
 
     vkc::StbImageBox srcImage = vkc::StbImageBox::createFromPath("in.png") | unwrap;
 
@@ -19,7 +20,6 @@ int main() {
         return -1;
     }
 
-    vkc::WindowBox::globalInit() | unwrap;  // only call once
     auto instExtNames = vkc::WindowBox::getExtensions() | unwrap;
     constexpr std::string_view validationLayerName{"VK_LAYER_KHRONOS_validation"};
     constexpr std::array instLayerNames{validationLayerName};
@@ -53,21 +53,18 @@ int main() {
     auto pCommandPoolBox =
         std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferBox presentCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
-    vkc::TimestampQueryPoolBox queryPoolBox =
-        vkc::TimestampQueryPoolBox::create(pDeviceBox, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
-        unwrap;
 
     // Main Loop
     while (!glfwWindowShouldClose(windowBox.getWindow())) {
         Timer loopTimer;
-        loopTimer.begin();
 
+        loopTimer.begin();
         const uint32_t imageIndex = swapChainBox.acquireImageIndex(semaphoreBox) | unwrap;
-
         loopTimer.end();
-        std::println("Acquire image timecost: {} ms", loopTimer.durationMs());
-        loopTimer.begin();
 
+        std::println("Acquire image timecost: {} ms", loopTimer.durationMs());
+
+        loopTimer.begin();
         vkc::PresentImageBox& presentImageBox = swapChainBox.getImageBox((int)imageIndex);
         const std::array presentImageBoxRefs{std::ref(presentImageBox)};
 
@@ -84,8 +81,8 @@ int main() {
         fenceBox.reset() | unwrap;
 
         queueBox.present(swapChainBox, imageIndex) | unwrap;
-
         loopTimer.end();
+
         std::println("Present timecost: {} ms", loopTimer.durationMs());
 
         glfwPollEvents();
