@@ -25,20 +25,20 @@ std::expected<StagingBufferBox, Error> StagingBufferBox::create(std::shared_ptr<
         bufferUsage |= vk::BufferUsageFlagBits::eTransferDst;
     }
 
-    auto stagingBufferBoxRes = BufferBox::create(pDeviceBox, size, bufferUsage);
-    if (!stagingBufferBoxRes) return std::unexpected{std::move(stagingBufferBoxRes.error())};
-    BufferBox& stagingBufferBox = stagingBufferBoxRes.value();
+    auto bufferBoxRes = BufferBox::create(pDeviceBox, size, bufferUsage);
+    if (!bufferBoxRes) return std::unexpected{std::move(bufferBoxRes.error())};
+    BufferBox& bufferBox = bufferBoxRes.value();
 
     auto memoryBoxRes =
-        MemoryBox::create(pDeviceBox, stagingBufferBox.getMemoryRequirements(),
+        MemoryBox::create(pDeviceBox, bufferBox.getMemoryRequirements(),
                           vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     if (!memoryBoxRes) return std::unexpected{std::move(memoryBoxRes.error())};
     MemoryBox& memoryBox = memoryBoxRes.value();
 
-    const auto bindStagingRes = stagingBufferBox.bind(memoryBox);
-    if (!bindStagingRes) return std::unexpected{std::move(bindStagingRes.error())};
+    const auto bindRes = bufferBox.bind(memoryBox);
+    if (!bindRes) return std::unexpected{std::move(bindRes.error())};
 
-    return StagingBufferBox{std::move(stagingBufferBox), std::move(memoryBox)};
+    return StagingBufferBox{std::move(bufferBox), std::move(memoryBox)};
 }
 
 std::expected<void, Error> StagingBufferBox::upload(const std::byte* pSrc) noexcept {

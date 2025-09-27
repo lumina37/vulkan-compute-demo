@@ -29,10 +29,6 @@ public:
     [[nodiscard]] auto&& getBufferBox(this Self&& self) noexcept {
         return std::forward_like<Self>(self).bufferBox_;
     }
-    template <typename Self>
-    [[nodiscard]] auto&& getMemoryBox(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).memoryBox_;
-    }
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return bufferBox_.getSize(); }
 

@@ -7,24 +7,30 @@
 #include "vkc/device.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
+#include "vkc/resource/buffer.hpp"
 #include "vkc/resource/memory.hpp"
 
 namespace vkc {
 
 class StorageBufferBox {
-    StorageBufferBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::Buffer buffer, MemoryBox&& memoryBox,
+    StorageBufferBox(BufferBox&& bufferBox, MemoryBox&& memoryBox,
                      const vk::DescriptorBufferInfo& descBufferInfo) noexcept;
 
 public:
     StorageBufferBox(const StorageBufferBox&) = delete;
-    StorageBufferBox(StorageBufferBox&& rhs) noexcept;
-    ~StorageBufferBox() noexcept;
+    StorageBufferBox(StorageBufferBox&& rhs) noexcept = default;
+    ~StorageBufferBox() noexcept = default;
 
-    [[nodiscard]] static std::expected<StorageBufferBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
+    [[nodiscard]] static std::expected<StorageBufferBox, Error> create(std::shared_ptr<DeviceBox>& pDeviceBox,
                                                                        vk::DeviceSize size) noexcept;
 
-    [[nodiscard]] vk::DeviceSize getSize() const noexcept { return memoryBox_.getRequirements().size; }
-    [[nodiscard]] vk::Buffer getBuffer() noexcept { return buffer_; }
+    template <typename Self>
+    [[nodiscard]] auto&& getBufferBox(this Self&& self) noexcept {
+        return std::forward_like<Self>(self).bufferBox_;
+    }
+
+    [[nodiscard]] vk::DeviceSize getSize() const noexcept { return bufferBox_.getSize(); }
+
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eStorageBuffer;
     }
@@ -35,9 +41,7 @@ public:
     [[nodiscard]] std::expected<void, Error> download(std::byte* pDst) noexcept;
 
 private:
-    std::shared_ptr<DeviceBox> pDeviceBox_;
-
-    vk::Buffer buffer_;
+    BufferBox bufferBox_;
     MemoryBox memoryBox_;
     vk::DescriptorBufferInfo descBufferInfo_;
 };

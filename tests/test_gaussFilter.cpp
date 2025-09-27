@@ -107,10 +107,15 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
     vkc::SamplerBox samplerBox = vkc::SamplerBox::create(pDeviceBox) | unwrap;
     vkc::PushConstantBox kernelSizePcBox{std::pair{kernelSize, sigma * sigma * 2.0f}};
     vkc::SampledImageBox srcImageBox = vkc::SampledImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StagingBufferBox srcStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcImageBoxRefs{std::ref(srcImageBox)};
+    srcStagingBufferBox.upload(srcImage.getPData()) | unwrap;
     vkc::StorageImageBox dstImageBox = vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StagingBufferBox dstStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstImageBoxRefs{std::ref(dstImageBox)};
-    srcImageBox.upload(srcImage.getPData()) | unwrap;
+    const std::array dstStagingBufferBoxRefs{std::ref(dstStagingBufferBox)};
 
     const std::vector descPoolSizes = genPoolSizes(srcImageBox, samplerBox, dstImageBox);
     vkc::DescPoolBox descPoolBox = vkc::DescPoolBox::create(pDeviceBox, descPoolSizes) | unwrap;
@@ -150,21 +155,20 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
         gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
         gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
         gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
-        gaussCmdBufBox.recordCopyStagingToSrc(srcImageBox);
+        gaussCmdBufBox.recordCopyStagingToSrc(srcStagingBufferBox, srcImageBox);
         gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
         gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
         gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
         gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
-        gaussCmdBufBox.recordCopyDstToStaging(dstImageBox);
-        gaussCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);
+        gaussCmdBufBox.recordCopyDstToStaging(dstImageBox, dstStagingBufferBox);
+        gaussCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
         gaussCmdBufBox.end() | unwrap;
 
         queueBox.submit(gaussCmdBufBox, fenceBox) | unwrap;
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        dstImageBox.download(dstImageVk.getPData()) | unwrap;
-        // dstImageVk.saveTo("v0.png") | unwrap;
+        dstStagingBufferBox.download(dstImageVk.getPData()) | unwrap;
 
         int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {
@@ -194,21 +198,20 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
         gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
         gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
         gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
-        gaussCmdBufBox.recordCopyStagingToSrc(srcImageBox);
+        gaussCmdBufBox.recordCopyStagingToSrc(srcStagingBufferBox, srcImageBox);
         gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
         gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
         gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
         gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
-        gaussCmdBufBox.recordCopyDstToStaging(dstImageBox);
-        gaussCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);
+        gaussCmdBufBox.recordCopyDstToStaging(dstImageBox, dstStagingBufferBox);
+        gaussCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
         gaussCmdBufBox.end() | unwrap;
 
         queueBox.submit(gaussCmdBufBox, fenceBox) | unwrap;
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        dstImageBox.download(dstImageVk.getPData()) | unwrap;
-        // dstImageVk.saveTo("v2.png") | unwrap;
+        dstStagingBufferBox.download(dstImageVk.getPData()) | unwrap;
 
         int diffAcc = 0;
         for (const auto [lhs, rhs] : rgs::views::zip(dstImageCpuRef.getImageSpan(), dstImageVk.getImageSpan())) {

@@ -41,14 +41,21 @@ int main() {
 
     // Descriptor & Layouts
     vkc::StorageImageBox srcMatABox =
-        vkc::StorageImageBox::create(pDeviceBox, srcMatA.getExtent(), vkc::StorageImageType::Read) | unwrap;
+        vkc::StorageImageBox::create(pDeviceBox, srcMatA.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StagingBufferBox srcMatAStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, srcMatA.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StorageImageBox srcMatBBox =
-        vkc::StorageImageBox::create(pDeviceBox, srcMatB.getExtent(), vkc::StorageImageType::Read) | unwrap;
+        vkc::StorageImageBox::create(pDeviceBox, srcMatB.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StagingBufferBox srcMatBStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, srcMatB.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
     vkc::StorageImageBox dstMatBox = vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent()) | unwrap;
+    vkc::StagingBufferBox dstMatStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstMatBoxRefs{std::ref(dstMatBox)};
-    srcMatABox.upload(srcMatA.getPData()) | unwrap;
-    srcMatBBox.upload(srcMatB.getPData()) | unwrap;
+    const std::array dstStagingBufferRefs{std::ref(dstMatStagingBufferBox)};
+    srcMatAStagingBufferBox.upload(srcMatA.getPData()) | unwrap;
+    srcMatBStagingBufferBox.upload(srcMatB.getPData()) | unwrap;
 
     const std::vector descPoolSizes = genPoolSizes(srcMatABox, srcMatBBox, dstMatBox);
     vkc::DescPoolBox descPoolBox = vkc::DescPoolBox::create(pDeviceBox, descPoolSizes) | unwrap;
@@ -90,16 +97,16 @@ int main() {
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
         sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
         sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBBox);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBStagingBufferBox, srcMatBBox);
         sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
         sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
         sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox);
-        sgemmCmdBufBox.recordWaitDownloadComplete(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;
 
         queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;

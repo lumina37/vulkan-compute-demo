@@ -43,6 +43,9 @@ int main() {
     const std::array familyIndices{computeQFamilyIdx};
     vkc::SwapchainBox swapChainBox =
         vkc::SwapchainBox::create(pDeviceBox, surfaceBox, familyIndices, srcImage.getExtent()) | unwrap;
+    vkc::StagingBufferBox stagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
+    stagingBufferBox.upload(srcImage.getPData()) | unwrap;
 
     // Command Buffer
     vkc::FenceBox fenceBox = vkc::FenceBox::create(pDeviceBox) | unwrap;
@@ -66,12 +69,11 @@ int main() {
         loopTimer.begin();
 
         vkc::PresentImageBox& presentImageBox = swapChainBox.getImageBox((int)imageIndex);
-        presentImageBox.upload(srcImage.getPData()) | unwrap;
         const std::array presentImageBoxRefs{std::ref(presentImageBox)};
 
         presentCmdBufBox.begin() | unwrap;
         presentCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::PresentImageBox>(presentImageBoxRefs);
-        presentCmdBufBox.recordCopyStagingToSrc(presentImageBox);
+        presentCmdBufBox.recordCopyStagingToSrc(stagingBufferBox, presentImageBox);
         presentCmdBufBox.recordPreparePresent(presentImageBoxRefs);
         presentCmdBufBox.end() | unwrap;
 
