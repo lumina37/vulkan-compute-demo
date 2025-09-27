@@ -100,8 +100,6 @@ private:
     std::shared_ptr<CommandPoolBox> pCommandPoolBox_;
 
     vk::CommandBuffer commandBuffer_;
-
-    static constexpr vk::ImageSubresourceRange SUBRESOURCE_RANGE{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1};
 };
 
 template <typename TPc>
@@ -125,7 +123,7 @@ void CommandBufferBox::recordPrepareReceiveBeforeDispatch(
     barrierTemplate.setNewLayout(newImageLayout);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+    barrierTemplate.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
 
     const auto fillout = [&](const std::reference_wrapper<TImageBox> boxRef) {
         auto& box = boxRef.get();
@@ -157,7 +155,7 @@ void CommandBufferBox::recordPrepareReceiveAfterDispatch(
     barrierTemplate.setNewLayout(newImageLayout);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+    barrierTemplate.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
 
     const auto fillout = [&](const std::reference_wrapper<TImageBox> boxRef) {
         auto& box = boxRef.get();
@@ -193,7 +191,7 @@ void CommandBufferBox::recordSrcPrepareShaderRead(
     barrierTemplate.setNewLayout(newImageLayout);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+    barrierTemplate.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
 
     const auto fillout = [&](const std::reference_wrapper<TImageBox> boxRef) {
         auto& box = boxRef.get();
@@ -219,44 +217,35 @@ void CommandBufferBox::recordSrcPrepareShaderRead(
 template <CImageBox TImageBox>
 void CommandBufferBox::recordCopyStagingToSrc(const StagingBufferBox& stagingBufferBox,
                                               TImageBox& srcImageBox) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
-    copyRegion.setImageSubresource(subresourceLayers);
+    copyRegion.setImageSubresource(_hp::SUBRESOURCE_LAYERS);
     copyRegion.setImageExtent(srcImageBox.getExtent().extent3D());
 
-    commandBuffer_.copyBufferToImage(stagingBufferBox.getBufferBox().getVkBuffer(), srcImageBox.getVkImage(),
+    commandBuffer_.copyBufferToImage(stagingBufferBox.getVkBuffer(), srcImageBox.getVkImage(),
                                      vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
 template <CImageBox TImageBox>
 void CommandBufferBox::recordCopyStagingToSrcWithRoi(const StagingBufferBox& stagingBufferBox, TImageBox& srcImageBox,
                                                      const Roi& roi) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
     const Extent& imageExtent = srcImageBox.getExtent();
     copyRegion.setBufferOffset(imageExtent.calculateBufferOffset(roi.offset()));
     copyRegion.setBufferRowLength(imageExtent.width());
     copyRegion.setBufferImageHeight(imageExtent.height());
-    copyRegion.setImageSubresource(subresourceLayers);
+    copyRegion.setImageSubresource(_hp::SUBRESOURCE_LAYERS);
     copyRegion.setImageOffset(roi.offset3D());
     copyRegion.setImageExtent(roi.extent3D());
 
-    commandBuffer_.copyBufferToImage(stagingBufferBox.getBufferBox().getVkBuffer(), srcImageBox.getVkImage(),
+    commandBuffer_.copyBufferToImage(stagingBufferBox.getVkBuffer(), srcImageBox.getVkImage(),
                                      vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
 template <CImageBox TImageBox>
 void CommandBufferBox::recordCopyStorageToAnother(const StorageImageBox& srcImageBox, TImageBox& dstImageBox) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
     vk::ImageCopy copyRegion;
-    copyRegion.setSrcSubresource(subresourceLayers);
-    copyRegion.setDstSubresource(subresourceLayers);
+    copyRegion.setSrcSubresource(_hp::SUBRESOURCE_LAYERS);
+    copyRegion.setDstSubresource(_hp::SUBRESOURCE_LAYERS);
     copyRegion.setExtent(srcImageBox.getExtent().extent3D());
 
     commandBuffer_.copyImage(srcImageBox.getVkImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageBox.getVkImage(),
@@ -266,13 +255,10 @@ void CommandBufferBox::recordCopyStorageToAnother(const StorageImageBox& srcImag
 template <CImageBox TImageBox>
 void CommandBufferBox::recordCopyStorageToAnotherWithRoi(const StorageImageBox& srcImageBox, TImageBox& dstImageBox,
                                                          const Roi& roi) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
     vk::ImageCopy copyRegion;
-    copyRegion.setSrcSubresource(subresourceLayers);
+    copyRegion.setSrcSubresource(_hp::SUBRESOURCE_LAYERS);
     copyRegion.setSrcOffset(roi.offset3D());
-    copyRegion.setDstSubresource(subresourceLayers);
+    copyRegion.setDstSubresource(_hp::SUBRESOURCE_LAYERS);
     copyRegion.setDstOffset(roi.offset3D());
     copyRegion.setExtent(srcImageBox.getExtent().extent3D());
 

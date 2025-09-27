@@ -22,6 +22,13 @@ concept CImageBox = requires {
 };
 
 template <typename Self>
+concept CBufferBox = requires {
+    requires requires(Self& self) {
+        { self.getVkBuffer() } noexcept -> std::same_as<vk::Buffer>;
+    };
+};
+
+template <typename Self>
 concept CQueryPoolBox = requires {
     requires requires(Self& self) {
         { self.addQueryIndex() } noexcept -> std::same_as<std::expected<void, Error>>;

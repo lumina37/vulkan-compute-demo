@@ -1,4 +1,3 @@
-#include <cstddef>
 #include <expected>
 #include <memory>
 #include <utility>
@@ -7,7 +6,7 @@
 #include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
-#include "vkc/resource/memory.hpp"
+#include "vkc/resource/image.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/resource/present_image.hpp"
@@ -48,18 +47,11 @@ std::expected<PresentImageBox, Error> PresentImageBox::create(std::shared_ptr<De
     vk::Device device = pDeviceBox->getDevice();
 
     // Image View
-    vk::ImageSubresourceRange subresourceRange;
-    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceRange.setBaseMipLevel(0);
-    subresourceRange.setLevelCount(1);
-    subresourceRange.setBaseArrayLayer(0);
-    subresourceRange.setLayerCount(1);
-
     vk::ImageViewCreateInfo imageViewInfo;
     imageViewInfo.setImage(image);
     imageViewInfo.setViewType(vk::ImageViewType::e2D);
     imageViewInfo.setFormat(extent.format());
-    imageViewInfo.setSubresourceRange(subresourceRange);
+    imageViewInfo.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
     const auto [imageViewRes, imageView] = device.createImageView(imageViewInfo);
     if (imageViewRes != vk::Result::eSuccess) {
         return std::unexpected{Error{ECate::eVk, imageViewRes}};

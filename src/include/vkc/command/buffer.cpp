@@ -13,6 +13,7 @@
 #include "vkc/helper/vulkan.hpp"
 #include "vkc/pipeline.hpp"
 #include "vkc/query_pool.hpp"
+#include "vkc/resource.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/command/buffer.hpp"
@@ -97,7 +98,7 @@ void CommandBufferBox::recordDstPrepareShaderWrite(
     barrierTemplate.setNewLayout(newImageLayout);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+    barrierTemplate.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
 
     const auto fillout = [&](const TStorageImageBoxRef boxRef) {
         auto& box = boxRef.get();
@@ -134,7 +135,7 @@ void CommandBufferBox::recordPrepareSendBeforeDispatch(
     barrierTemplate.setNewLayout(newImageLayout);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+    barrierTemplate.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
 
     const auto fillout = [&](const TStorageImageBoxRef boxRef) {
         auto& box = boxRef.get();
@@ -166,7 +167,7 @@ void CommandBufferBox::recordPrepareSendAfterDispatch(
     barrierTemplate.setNewLayout(newImageLayout);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+    barrierTemplate.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
 
     const auto fillout = [&](const TStorageImageBoxRef boxRef) {
         auto& box = boxRef.get();
@@ -198,7 +199,7 @@ void CommandBufferBox::recordPreparePresent(std::span<const TPresentImageBoxRef>
     barrierTemplate.setNewLayout(newImageLayout);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    barrierTemplate.setSubresourceRange(SUBRESOURCE_RANGE);
+    barrierTemplate.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
 
     const auto fillout = [&](const TPresentImageBoxRef boxRef) {
         auto& box = boxRef.get();
@@ -223,35 +224,28 @@ void CommandBufferBox::recordPreparePresent(std::span<const TPresentImageBoxRef>
 
 void CommandBufferBox::recordCopyDstToStaging(const StorageImageBox& dstImageBox,
                                               StagingBufferBox& stagingBufferBox) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
-    copyRegion.setImageSubresource(subresourceLayers);
+    copyRegion.setImageSubresource(_hp::SUBRESOURCE_LAYERS);
     copyRegion.setImageExtent(dstImageBox.getExtent().extent3D());
 
     commandBuffer_.copyImageToBuffer(dstImageBox.getVkImage(), vk::ImageLayout::eTransferSrcOptimal,
-                                     stagingBufferBox.getBufferBox().getVkBuffer(), 1, &copyRegion);
+                                     stagingBufferBox.getVkBuffer(), 1, &copyRegion);
 }
 
 void CommandBufferBox::recordCopyDstToStagingWithRoi(const StorageImageBox& dstImageBox,
                                                      StagingBufferBox& stagingBufferBox, const Roi& roi) noexcept {
-    vk::ImageSubresourceLayers subresourceLayers;
-    subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceLayers.setLayerCount(1);
     vk::BufferImageCopy copyRegion;
     const Extent& imageExtent = dstImageBox.getExtent();
     copyRegion.setBufferOffset(imageExtent.calculateBufferOffset(roi.offset()));
     copyRegion.setBufferRowLength(imageExtent.width());
     copyRegion.setBufferImageHeight(imageExtent.height());
-    copyRegion.setImageSubresource(subresourceLayers);
+    copyRegion.setImageSubresource(_hp::SUBRESOURCE_LAYERS);
     copyRegion.setImageOffset(roi.offset3D());
     copyRegion.setImageExtent(roi.extent3D());
 
     commandBuffer_.copyImageToBuffer(dstImageBox.getVkImage(), vk::ImageLayout::eTransferSrcOptimal,
-                                     stagingBufferBox.getBufferBox().getVkBuffer(), 1, &copyRegion);
+                                     stagingBufferBox.getVkBuffer(), 1, &copyRegion);
 }
-
 
 void CommandBufferBox::recordWaitDownloadComplete(
     const std::span<const TStagingBufferBoxRef> stagingBufferBoxRefs) noexcept {
@@ -265,7 +259,7 @@ void CommandBufferBox::recordWaitDownloadComplete(
         auto& box = boxRef.get();
 
         vk::BufferMemoryBarrier barrier = barrierTemplate;
-        barrier.setBuffer(box.getBufferBox().getVkBuffer());
+        barrier.setBuffer(box.getVkBuffer());
         barrier.setSize(box.getSize());
 
         return barrier;

@@ -24,9 +24,10 @@ public:
     [[nodiscard]] static std::expected<UniformBufferBox, Error> create(std::shared_ptr<DeviceBox>& pDeviceBox,
                                                                        vk::DeviceSize size) noexcept;
 
+
     template <typename Self>
-    [[nodiscard]] auto&& getBufferBox(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).bufferBox_;
+    [[nodiscard]] auto getVkBuffer(this Self&& self) noexcept {
+        return std::forward_like<Self>(self.bufferBox_).getVkBuffer();
     }
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return bufferBox_.getSize(); }

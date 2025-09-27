@@ -9,13 +9,14 @@
 #include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
+#include "vkc/resource/image.hpp"
 #include "vkc/resource/memory.hpp"
 
 namespace vkc {
 
 class SampledImageBox {
-    SampledImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image, vk::ImageView imageView,
-                    MemoryBox&& imageMemoryBox, vk::DescriptorImageInfo descImageInfo) noexcept;
+    SampledImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, ImageBox&& imageBox, vk::ImageView imageView,
+                    MemoryBox&& imageMemoryBox, const vk::DescriptorImageInfo& descImageInfo) noexcept;
 
 public:
     SampledImageBox(const SampledImageBox&) = delete;
@@ -27,10 +28,10 @@ public:
 
     template <typename Self>
     [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).extent_;
+        return std::forward_like<Self>(self.imageBox_).getExtent();
     }
 
-    [[nodiscard]] vk::Image getVkImage() const noexcept { return image_; }
+    [[nodiscard]] vk::Image getVkImage() const noexcept { return imageBox_.getVkImage(); }
     [[nodiscard]] vk::AccessFlags getImageAccessMask() const noexcept { return imageAccessMask_; }
     [[nodiscard]] vk::ImageLayout getImageLayout() const noexcept { return imageLayout_; }
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
@@ -40,7 +41,7 @@ public:
     [[nodiscard]] static constexpr vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() noexcept;
 
     [[nodiscard]] std::expected<void, Error> upload(const std::byte* pSrc) noexcept;
-    [[nodiscard]] std::expected<void, Error> uploadWithRoi(const std::byte* pSrc, Roi roi,
+    [[nodiscard]] std::expected<void, Error> uploadWithRoi(const std::byte* pSrc, const Roi& roi, size_t bufferOffset,
                                                            size_t bufferRowPitch) noexcept;
     void setImageAccessMask(vk::AccessFlags accessMask) noexcept { imageAccessMask_ = accessMask; }
     void setImageLayout(vk::ImageLayout imageLayout) noexcept { imageLayout_ = imageLayout; }
@@ -48,9 +49,7 @@ public:
 private:
     std::shared_ptr<DeviceBox> pDeviceBox_;
 
-    Extent extent_;
-
-    vk::Image image_;
+    ImageBox imageBox_;
     vk::ImageView imageView_;
     MemoryBox imageMemoryBox_;
 

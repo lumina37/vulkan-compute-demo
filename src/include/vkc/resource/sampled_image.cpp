@@ -7,6 +7,7 @@
 #include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
+#include "vkc/resource/image.hpp"
 #include "vkc/resource/memory.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
@@ -15,12 +16,10 @@
 
 namespace vkc {
 
-SampledImageBox::SampledImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image,
-                                 vk::ImageView imageView, MemoryBox&& imageMemoryBox,
-                                 vk::DescriptorImageInfo descImageInfo) noexcept
+SampledImageBox::SampledImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, ImageBox&& imageBox, vk::ImageView imageView,
+                                 MemoryBox&& imageMemoryBox, const vk::DescriptorImageInfo& descImageInfo) noexcept
     : pDeviceBox_(std::move(pDeviceBox)),
-      extent_(extent),
-      image_(image),
+      imageBox_(std::move(imageBox)),
       imageView_(imageView),
       imageMemoryBox_(std::move(imageMemoryBox)),
       descImageInfo_(descImageInfo),
@@ -29,8 +28,7 @@ SampledImageBox::SampledImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent
 
 SampledImageBox::SampledImageBox(SampledImageBox&& rhs) noexcept
     : pDeviceBox_(std::move(rhs.pDeviceBox_)),
-      extent_(rhs.extent_),
-      image_(std::exchange(rhs.image_, nullptr)),
+      imageBox_(std::move(rhs.imageBox_)),
       imageView_(std::exchange(rhs.imageView_, nullptr)),
       imageMemoryBox_(std::move(rhs.imageMemoryBox_)),
       descImageInfo_(std::exchange(rhs.descImageInfo_, {})),
@@ -38,17 +36,10 @@ SampledImageBox::SampledImageBox(SampledImageBox&& rhs) noexcept
       imageLayout_(rhs.imageLayout_) {}
 
 SampledImageBox::~SampledImageBox() noexcept {
-    if (pDeviceBox_ == nullptr) return;
+    if (imageView_ == nullptr) return;
     vk::Device device = pDeviceBox_->getDevice();
-
-    if (imageView_ != nullptr) {
-        device.destroyImageView(imageView_);
-        imageView_ = nullptr;
-    }
-    if (image_ != nullptr) {
-        device.destroyImage(image_);
-        image_ = nullptr;
-    }
+    device.destroyImageView(imageView_);
+    imageView_ = nullptr;
     descImageInfo_.setImageView(nullptr);
 }
 
@@ -60,47 +51,25 @@ std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<De
     constexpr vk::BufferUsageFlags bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
     constexpr vk::ImageLayout imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-    // Image
-    vk::ImageCreateInfo imageInfo;
-    imageInfo.setImageType(vk::ImageType::e2D);
-    imageInfo.setFormat(extent.format());
-    imageInfo.setExtent(extent.extent3D());
-    imageInfo.setMipLevels(1);
-    imageInfo.setArrayLayers(1);
-    imageInfo.setSamples(vk::SampleCountFlagBits::e1);
-    imageInfo.setTiling(vk::ImageTiling::eOptimal);
-    imageInfo.setUsage(imageUsage);
-    imageInfo.setSharingMode(vk::SharingMode::eExclusive);
-    imageInfo.setInitialLayout(vk::ImageLayout::eUndefined);
-    auto [imageRes, image] = device.createImage(imageInfo);
-    if (imageRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{ECate::eVk, imageRes}};
-    }
+    auto imageBoxRes = ImageBox::create(pDeviceBox, extent, imageUsage);
+    if (!imageBoxRes) return std::unexpected{std::move(imageBoxRes.error())};
+    ImageBox& imageBox = imageBoxRes.value();
 
     // Image Memory
-    const vk::MemoryRequirements imageMemoryReq = _hp::getMemoryRequirements(*pDeviceBox, image);
-    auto imageMemoryBoxRes = MemoryBox::create(pDeviceBox, imageMemoryReq, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    if (!imageMemoryBoxRes) return std::unexpected{std::move(imageMemoryBoxRes.error())};
-    MemoryBox& imageMemoryBox = imageMemoryBoxRes.value();
+    auto memoryBoxRes =
+        MemoryBox::create(pDeviceBox, imageBox.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
+    if (!memoryBoxRes) return std::unexpected{std::move(memoryBoxRes.error())};
+    MemoryBox& memoryBox = memoryBoxRes.value();
 
-    const auto bindRes = device.bindImageMemory(image, imageMemoryBox.getVkDeviceMemory(), 0);
-    if (bindRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{ECate::eVk, bindRes}};
-    }
+    const auto bindRes = imageBox.bind(memoryBox);
+    if (!bindRes) return std::unexpected{std::move(bindRes.error())};
 
     // Image View
-    vk::ImageSubresourceRange subresourceRange;
-    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    subresourceRange.setBaseMipLevel(0);
-    subresourceRange.setLevelCount(1);
-    subresourceRange.setBaseArrayLayer(0);
-    subresourceRange.setLayerCount(1);
-
     vk::ImageViewCreateInfo imageViewInfo;
-    imageViewInfo.setImage(image);
+    imageViewInfo.setImage(imageBox.getVkImage());
     imageViewInfo.setViewType(vk::ImageViewType::e2D);
     imageViewInfo.setFormat(extent.format());
-    imageViewInfo.setSubresourceRange(subresourceRange);
+    imageViewInfo.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
     const auto [imageViewRes, imageView] = device.createImageView(imageViewInfo);
     if (imageViewRes != vk::Result::eSuccess) {
         return std::unexpected{Error{ECate::eVk, imageViewRes}};
@@ -111,7 +80,7 @@ std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<De
     descImageInfo.setImageView(imageView);
     descImageInfo.setImageLayout(imageLayout);
 
-    return SampledImageBox{std::move(pDeviceBox), extent, image, imageView, std::move(imageMemoryBox), descImageInfo};
+    return SampledImageBox{std::move(pDeviceBox), std::move(imageBox), imageView, std::move(memoryBox), descImageInfo};
 }
 
 vk::WriteDescriptorSet SampledImageBox::draftWriteDescSet() const noexcept {
@@ -127,27 +96,27 @@ std::expected<void, Error> SampledImageBox::upload(const std::byte* pSrc) noexce
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     void* mapPtr = mmapRes.value();
 
-    std::memcpy(mapPtr, pSrc, extent_.size());
+    std::memcpy(mapPtr, pSrc, getExtent().size());
 
     imageMemoryBox_.memUnmap();
 
     return {};
 }
 
-std::expected<void, Error> SampledImageBox::uploadWithRoi(const std::byte* pSrc, const Roi roi,
-                                                          const size_t bufferRowPitch) noexcept {
+std::expected<void, Error> SampledImageBox::uploadWithRoi(const std::byte* pSrc, const Roi& roi, size_t bufferOffset,
+                                                          size_t bufferRowPitch) noexcept {
     auto mmapRes = imageMemoryBox_.memMap();
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     void* mapPtr = mmapRes.value();
 
     size_t srcOffset = 0;
-    size_t dstOffset = extent_.calculateBufferOffset(roi.offset());
+    size_t dstOffset = bufferOffset;
     for (int row = 0; row < (int)roi.extent().height; row++) {
         const std::byte* srcCursor = pSrc + srcOffset;
         std::byte* dstCursor = (std::byte*)mapPtr + dstOffset;
-        std::memcpy(dstCursor, srcCursor, roi.extent().width * extent_.bpp());
+        std::memcpy(dstCursor, srcCursor, roi.extent().width * getExtent().bpp());
         srcOffset += bufferRowPitch;
-        dstOffset += extent_.rowPitch();
+        dstOffset += getExtent().rowPitch();
     }
 
     imageMemoryBox_.memUnmap();

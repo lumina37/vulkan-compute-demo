@@ -9,14 +9,14 @@
 #include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
+#include "vkc/resource/image.hpp"
 #include "vkc/resource/memory.hpp"
 
 namespace vkc {
 
 class StorageImageBox {
-    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, const Extent& extent, vk::Image image,
-                    vk::ImageView imageView, MemoryBox&& imageMemoryBox,
-                    const vk::DescriptorImageInfo& descImageInfo) noexcept;
+    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, ImageBox&& imageBox, vk::ImageView imageView,
+                    MemoryBox&& imageMemoryBox, const vk::DescriptorImageInfo& descImageInfo) noexcept;
 
 public:
     StorageImageBox(const StorageImageBox&) = delete;
@@ -29,10 +29,10 @@ public:
 
     template <typename Self>
     [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).extent_;
+        return std::forward_like<Self>(self.imageBox_).getExtent();
     }
 
-    [[nodiscard]] vk::Image getVkImage() const noexcept { return image_; }
+    [[nodiscard]] vk::Image getVkImage() const noexcept { return imageBox_.getVkImage(); }
     [[nodiscard]] vk::AccessFlags getImageAccessMask() const noexcept { return imageAccessMask_; }
     [[nodiscard]] vk::ImageLayout getImageLayout() const noexcept { return imageLayout_; }
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
@@ -53,9 +53,7 @@ public:
 private:
     std::shared_ptr<DeviceBox> pDeviceBox_;
 
-    Extent extent_;
-
-    vk::Image image_;
+    ImageBox imageBox_;
     vk::ImageView imageView_;
     MemoryBox imageMemoryBox_;
 

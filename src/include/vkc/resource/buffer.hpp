@@ -23,9 +23,12 @@ public:
                                                                 vk::DeviceSize size,
                                                                 vk::BufferUsageFlags usage) noexcept;
 
+    template <typename Self>
+    [[nodiscard]] auto getVkBuffer(this Self&& self) noexcept {
+        return std::forward_like<Self>(self).buffer_;
+    }
+
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return size_; }
-    [[nodiscard]] vk::Buffer getVkBuffer() noexcept { return buffer_; }
-    [[nodiscard]] vk::Buffer getVkBuffer() const noexcept { return buffer_; }
     [[nodiscard]] vk::MemoryRequirements getMemoryRequirements() const noexcept;
     [[nodiscard]] std::expected<void, Error> bind(MemoryBox& memoryBox) noexcept;
 
