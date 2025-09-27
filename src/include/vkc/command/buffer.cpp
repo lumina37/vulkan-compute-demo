@@ -104,7 +104,7 @@ void CommandBufferBox::recordDstPrepareShaderWrite(
 
         vk::ImageMemoryBarrier barrier = barrierTemplate;
         barrier.setOldLayout(box.getImageLayout());
-        barrier.setImage(box.getImage());
+        barrier.setImage(box.getVkImage());
 
         box.setImageAccessMask(newAccessMask);
         box.setImageLayout(newImageLayout);
@@ -141,7 +141,7 @@ void CommandBufferBox::recordPrepareSendBeforeDispatch(
 
         vk::ImageMemoryBarrier barrier = barrierTemplate;
         barrier.setOldLayout(box.getImageLayout());
-        barrier.setImage(box.getImage());
+        barrier.setImage(box.getVkImage());
 
         box.setImageAccessMask(newAccessMask);
         box.setImageLayout(newImageLayout);
@@ -174,7 +174,7 @@ void CommandBufferBox::recordPrepareSendAfterDispatch(
         vk::ImageMemoryBarrier barrier = barrierTemplate;
         barrier.setSrcAccessMask(box.getImageAccessMask());
         barrier.setOldLayout(box.getImageLayout());
-        barrier.setImage(box.getImage());
+        barrier.setImage(box.getVkImage());
 
         box.setImageAccessMask(newAccessMask);
         box.setImageLayout(newImageLayout);
@@ -206,7 +206,7 @@ void CommandBufferBox::recordPreparePresent(std::span<const TPresentImageBoxRef>
         vk::ImageMemoryBarrier barrier = barrierTemplate;
         barrier.setSrcAccessMask(box.getImageAccessMask());
         barrier.setOldLayout(box.getImageLayout());
-        barrier.setImage(box.getImage());
+        barrier.setImage(box.getVkImage());
 
         box.setImageAccessMask(newAccessMask);
         box.setImageLayout(newImageLayout);
@@ -221,7 +221,8 @@ void CommandBufferBox::recordPreparePresent(std::span<const TPresentImageBoxRef>
                                    barriers.data());
 }
 
-void CommandBufferBox::recordCopyDstToStaging(StorageImageBox& dstImageBox) noexcept {
+void CommandBufferBox::recordCopyDstToStaging(const StorageImageBox& dstImageBox,
+                                              StagingBufferBox& stagingBufferBox) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -229,11 +230,12 @@ void CommandBufferBox::recordCopyDstToStaging(StorageImageBox& dstImageBox) noex
     copyRegion.setImageSubresource(subresourceLayers);
     copyRegion.setImageExtent(dstImageBox.getExtent().extent3D());
 
-    commandBuffer_.copyImageToBuffer(dstImageBox.getImage(), vk::ImageLayout::eTransferSrcOptimal,
-                                     dstImageBox.getStagingBuffer(), 1, &copyRegion);
+    commandBuffer_.copyImageToBuffer(dstImageBox.getVkImage(), vk::ImageLayout::eTransferSrcOptimal,
+                                     stagingBufferBox.getBufferBox().getVkBuffer(), 1, &copyRegion);
 }
 
-void CommandBufferBox::recordCopyDstToStagingWithRoi(StorageImageBox& dstImageBox, const Roi roi) noexcept {
+void CommandBufferBox::recordCopyDstToStagingWithRoi(const StorageImageBox& dstImageBox,
+                                                     StagingBufferBox& stagingBufferBox, const Roi& roi) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -246,32 +248,30 @@ void CommandBufferBox::recordCopyDstToStagingWithRoi(StorageImageBox& dstImageBo
     copyRegion.setImageOffset(roi.offset3D());
     copyRegion.setImageExtent(roi.extent3D());
 
-    commandBuffer_.copyImageToBuffer(dstImageBox.getImage(), vk::ImageLayout::eTransferSrcOptimal,
-                                     dstImageBox.getStagingBuffer(), 1, &copyRegion);
+    commandBuffer_.copyImageToBuffer(dstImageBox.getVkImage(), vk::ImageLayout::eTransferSrcOptimal,
+                                     stagingBufferBox.getBufferBox().getVkBuffer(), 1, &copyRegion);
 }
 
-void CommandBufferBox::recordWaitDownloadComplete(const std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept {
-    constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eHostRead;
 
+void CommandBufferBox::recordWaitDownloadComplete(
+    const std::span<const TStagingBufferBoxRef> stagingBufferBoxRefs) noexcept {
     vk::BufferMemoryBarrier barrierTemplate;
     barrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
-    barrierTemplate.setDstAccessMask(newAccessMask);
+    barrierTemplate.setDstAccessMask(vk::AccessFlagBits::eHostRead);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
 
-    const auto fillout = [&](const TStorageImageBoxRef boxRef) {
+    const auto fillout = [&](const TStagingBufferBoxRef boxRef) {
         auto& box = boxRef.get();
 
         vk::BufferMemoryBarrier barrier = barrierTemplate;
-        barrier.setBuffer(box.getStagingBuffer());
-        barrier.setSize(box.getExtent().size());
-
-        box.setStagingAccessMask(newAccessMask);
+        barrier.setBuffer(box.getBufferBox().getVkBuffer());
+        barrier.setSize(box.getSize());
 
         return barrier;
     };
 
-    const auto barriers = dstImageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = stagingBufferBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost,
                                    (vk::DependencyFlags)0, 0, nullptr, (uint32_t)barriers.size(), barriers.data(), 0,
@@ -343,7 +343,9 @@ template void CommandBufferBox::recordSrcPrepareShaderRead<SampledImageBox>(
 template void CommandBufferBox::recordSrcPrepareShaderRead<StorageImageBox>(
     std::span<const std::reference_wrapper<StorageImageBox>>) noexcept;
 
-template void CommandBufferBox::recordCopyStagingToSrc<SampledImageBox>(const SampledImageBox& srcImageBox) noexcept;
-template void CommandBufferBox::recordCopyStagingToSrc<StorageImageBox>(const StorageImageBox& srcImageBox) noexcept;
+template void CommandBufferBox::recordCopyStagingToSrc<SampledImageBox>(const StagingBufferBox& stagingBufferBox,
+                                                                        SampledImageBox& srcImageBox) noexcept;
+template void CommandBufferBox::recordCopyStagingToSrc<StorageImageBox>(const StagingBufferBox& stagingBufferBox,
+                                                                        StorageImageBox& srcImageBox) noexcept;
 
 }  // namespace vkc

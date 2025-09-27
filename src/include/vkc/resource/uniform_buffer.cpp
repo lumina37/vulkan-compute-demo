@@ -53,7 +53,7 @@ std::expected<UniformBufferBox, Error> UniformBufferBox::create(std::shared_ptr<
     if (!memoryBoxRes) return std::unexpected{std::move(memoryBoxRes.error())};
     MemoryBox& memoryBox = memoryBoxRes.value();
 
-    const auto bindRes = device.bindBufferMemory(buffer, memoryBox.getDeviceMemory(), 0);
+    const auto bindRes = device.bindBufferMemory(buffer, memoryBox.getVkDeviceMemory(), 0);
     if (bindRes != vk::Result::eSuccess) {
         return std::unexpected{Error{ECate::eVk, bindRes}};
     }

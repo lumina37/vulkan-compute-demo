@@ -32,14 +32,19 @@ int main() {
 
     // Descriptor & Layouts
     vkc::StorageImageBox srcImageBox =
-        vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent(), vkc::StorageImageType::Read) | unwrap;
+        vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StagingBufferBox srcStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcImageBoxRefs{std::ref(srcImageBox)};
     vkc::StorageImageBox dstImageBox = vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StagingBufferBox dstStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstImageBoxRefs{std::ref(dstImageBox)};
+    const std::array dstStagingBufferBoxRefs{std::ref(dstStagingBufferBox)};
 
     Timer uploadTimer;
     uploadTimer.begin();
-    srcImageBox.upload(srcImage.getPData()) | unwrap;
+    srcStagingBufferBox.upload(srcImage.getPData()) | unwrap;
     uploadTimer.end();
     std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
 
@@ -83,7 +88,7 @@ int main() {
         grayCmdBufBox.recordResetQueryPool(queryPoolBox);
         grayCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcImageBoxRefs);
         grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordCopyStagingToSrc(srcImageBox);
+        grayCmdBufBox.recordCopyStagingToSrc(srcStagingBufferBox, srcImageBox);
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         grayCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcImageBoxRefs);
         grayCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
@@ -92,9 +97,9 @@ int main() {
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         grayCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
         grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordCopyDstToStaging(dstImageBox);
+        grayCmdBufBox.recordCopyDstToStaging(dstImageBox, dstStagingBufferBox);
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);
+        grayCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
         grayCmdBufBox.end() | unwrap;
 
         queueBox.submit(grayCmdBufBox, fenceBox) | unwrap;
@@ -110,7 +115,7 @@ int main() {
 
     Timer downloadTimer;
     downloadTimer.begin();
-    dstImageBox.download(dstImage.getPData()) | unwrap;
+    dstStagingBufferBox.download(dstImage.getPData()) | unwrap;
     downloadTimer.end();
     std::println("Download from staging timecost: {} ms", downloadTimer.durationMs());
 

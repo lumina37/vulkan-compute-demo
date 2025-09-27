@@ -13,14 +13,11 @@ concept CImageBox = requires {
     requires requires(const Self& self) {
         { self.getImageAccessMask() } noexcept -> std::same_as<vk::AccessFlags>;
         { self.getImageLayout() } noexcept -> std::same_as<vk::ImageLayout>;
-        { self.getStagingAccessMask() } noexcept -> std::same_as<vk::AccessFlags>;
     };
     requires requires(Self& self) {
-        { self.getImage() } noexcept -> std::same_as<vk::Image>;
-        { self.getStagingBuffer() } noexcept -> std::same_as<vk::Buffer>;
+        { self.getVkImage() } noexcept -> std::same_as<vk::Image>;
         { self.setImageAccessMask(std::declval<vk::AccessFlags>()) } noexcept;
         { self.setImageLayout(std::declval<vk::ImageLayout>()) } noexcept;
-        { self.setStagingAccessMask(std::declval<vk::AccessFlags>()) } noexcept;
     };
 };
 

@@ -31,7 +31,7 @@ public:
         return std::forward_like<Self>(self).extent_;
     }
 
-    [[nodiscard]] vk::Image getImage() const noexcept { return image_; }
+    [[nodiscard]] vk::Image getVkImage() const noexcept { return image_; }
     [[nodiscard]] vk::Buffer getStagingBuffer() const noexcept { return stagingBuffer_; }
     [[nodiscard]] vk::AccessFlags getImageAccessMask() const noexcept { return imageAccessMask_; }
     [[nodiscard]] vk::ImageLayout getImageLayout() const noexcept { return imageLayout_; }

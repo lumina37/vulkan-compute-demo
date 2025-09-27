@@ -99,7 +99,7 @@ std::expected<PresentImageBox, Error> PresentImageBox::create(std::shared_ptr<De
     if (!stagingMemoryBoxRes) return std::unexpected{std::move(stagingMemoryBoxRes.error())};
     MemoryBox& stagingMemoryBox = stagingMemoryBoxRes.value();
 
-    const auto bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemoryBox.getDeviceMemory(), 0);
+    const auto bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemoryBox.getVkDeviceMemory(), 0);
     if (bindStagingRes != vk::Result::eSuccess) {
         return std::unexpected{Error{ECate::eVk, bindStagingRes}};
     }

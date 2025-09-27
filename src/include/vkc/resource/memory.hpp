@@ -10,6 +10,11 @@
 
 namespace vkc {
 
+enum class StorageType {
+    ReadOnly,
+    ReadWrite,
+};
+
 class MemoryBox {
     MemoryBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceMemory memory,
               const vk::MemoryRequirements& requirements) noexcept;
@@ -25,7 +30,7 @@ public:
                                                                 const vk::MemoryRequirements& requirements,
                                                                 vk::MemoryPropertyFlags props) noexcept;
 
-    [[nodiscard]] vk::DeviceMemory getDeviceMemory() const noexcept { return memory_; }
+    [[nodiscard]] vk::DeviceMemory getVkDeviceMemory() const noexcept { return memory_; }
     [[nodiscard]] const vk::MemoryRequirements& getRequirements() const noexcept { return requirements_; }
 
     [[nodiscard]] std::expected<void*, Error> memMap() noexcept;

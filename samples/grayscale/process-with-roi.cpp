@@ -39,15 +39,21 @@ int main() {
     vkc::PushConstantBox kernelSizePcBox{std::pair{kernelSize, sigma * sigma * 2.0f}};
 
     vkc::SampledImageBox srcImageBox = vkc::SampledImageBox::create(pDeviceBox, extent) | unwrap;
+    vkc::StagingBufferBox srcStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, extent.size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcImageBoxRefs{std::ref(srcImageBox)};
     vkc::StorageImageBox dstImageBox = vkc::StorageImageBox::create(pDeviceBox, extent) | unwrap;
+    vkc::StagingBufferBox dstStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, extent.size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstImageBoxRefs{std::ref(dstImageBox)};
+    const std::array dstStagingBufferBoxRefs{std::ref(dstStagingBufferBox)};
 
     Timer uploadTimer;
     uploadTimer.begin();
     constexpr vkc::Roi roi{100, 200, 300, 400};
-    srcImageBox.uploadWithRoi(srcImage.getPData() + extent.calculateBufferOffset(roi.offset()), roi,
-                              extent.rowPitch()) |
+    const size_t bufferOffset = extent.calculateBufferOffset(roi.offset());
+    srcStagingBufferBox.uploadWithRoi(srcImage.getPData() + bufferOffset, extent, roi, bufferOffset,
+                                      extent.rowPitch()) |
         unwrap;
     uploadTimer.end();
     std::println("Upload to staging timecost: {} ms", uploadTimer.durationMs());
@@ -96,7 +102,7 @@ int main() {
         grayCmdBufBox.recordResetQueryPool(queryPoolBox);
         grayCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
         grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordCopyStagingToSrcWithRoi(srcImageBox, roi);
+        grayCmdBufBox.recordCopyStagingToSrcWithRoi(srcStagingBufferBox, srcImageBox, roi);
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         grayCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
         grayCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
@@ -105,9 +111,9 @@ int main() {
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         grayCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
         grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordCopyDstToStagingWithRoi(dstImageBox, roi);
+        grayCmdBufBox.recordCopyDstToStagingWithRoi(dstImageBox, dstStagingBufferBox, roi);
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);
+        grayCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
         grayCmdBufBox.end() | unwrap;
 
         queueBox.submit(grayCmdBufBox, fenceBox) | unwrap;
@@ -123,8 +129,8 @@ int main() {
 
     Timer downloadTimer;
     downloadTimer.begin();
-    dstImageBox.downloadWithRoi(dstImage.getPData() + extent.calculateBufferOffset(roi.offset()), roi,
-                                extent.rowPitch()) |
+    dstStagingBufferBox.downloadWithRoi(dstImage.getPData() + extent.calculateBufferOffset(roi.offset()), extent, roi,
+                                        extent.calculateBufferOffset(roi.offset()), extent.rowPitch()) |
         unwrap;
     downloadTimer.end();
     std::println("Download from staging timecost: {} ms", downloadTimer.durationMs());

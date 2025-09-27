@@ -16,19 +16,16 @@
 namespace vkc {
 
 SampledImageBox::SampledImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, Extent extent, vk::Image image,
-                                 vk::ImageView imageView, MemoryBox&& imageMemoryBox, vk::Buffer stagingBuffer,
-                                 MemoryBox&& stagingMemoryBox, vk::DescriptorImageInfo descImageInfo) noexcept
+                                 vk::ImageView imageView, MemoryBox&& imageMemoryBox,
+                                 vk::DescriptorImageInfo descImageInfo) noexcept
     : pDeviceBox_(std::move(pDeviceBox)),
       extent_(extent),
       image_(image),
       imageView_(imageView),
       imageMemoryBox_(std::move(imageMemoryBox)),
-      stagingBuffer_(stagingBuffer),
-      stagingMemoryBox_(std::move(stagingMemoryBox)),
       descImageInfo_(descImageInfo),
       imageAccessMask_(vk::AccessFlagBits::eNone),
-      imageLayout_(vk::ImageLayout::eUndefined),
-      stagingAccessMask_(vk::AccessFlagBits::eNone) {}
+      imageLayout_(vk::ImageLayout::eUndefined) {}
 
 SampledImageBox::SampledImageBox(SampledImageBox&& rhs) noexcept
     : pDeviceBox_(std::move(rhs.pDeviceBox_)),
@@ -36,21 +33,14 @@ SampledImageBox::SampledImageBox(SampledImageBox&& rhs) noexcept
       image_(std::exchange(rhs.image_, nullptr)),
       imageView_(std::exchange(rhs.imageView_, nullptr)),
       imageMemoryBox_(std::move(rhs.imageMemoryBox_)),
-      stagingBuffer_(std::exchange(rhs.stagingBuffer_, nullptr)),
-      stagingMemoryBox_(std::move(rhs.stagingMemoryBox_)),
       descImageInfo_(std::exchange(rhs.descImageInfo_, {})),
       imageAccessMask_(rhs.imageAccessMask_),
-      imageLayout_(rhs.imageLayout_),
-      stagingAccessMask_(rhs.stagingAccessMask_) {}
+      imageLayout_(rhs.imageLayout_) {}
 
 SampledImageBox::~SampledImageBox() noexcept {
     if (pDeviceBox_ == nullptr) return;
     vk::Device device = pDeviceBox_->getDevice();
 
-    if (stagingBuffer_ != nullptr) {
-        device.destroyBuffer(stagingBuffer_);
-        stagingBuffer_ = nullptr;
-    }
     if (imageView_ != nullptr) {
         device.destroyImageView(imageView_);
         imageView_ = nullptr;
@@ -91,9 +81,9 @@ std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<De
     const vk::MemoryRequirements imageMemoryReq = _hp::getMemoryRequirements(*pDeviceBox, image);
     auto imageMemoryBoxRes = MemoryBox::create(pDeviceBox, imageMemoryReq, vk::MemoryPropertyFlagBits::eDeviceLocal);
     if (!imageMemoryBoxRes) return std::unexpected{std::move(imageMemoryBoxRes.error())};
-    MemoryBox imageMemoryBox = std::move(imageMemoryBoxRes.value());
+    MemoryBox& imageMemoryBox = imageMemoryBoxRes.value();
 
-    const auto bindRes = device.bindImageMemory(image, imageMemoryBox.getDeviceMemory(), 0);
+    const auto bindRes = device.bindImageMemory(image, imageMemoryBox.getVkDeviceMemory(), 0);
     if (bindRes != vk::Result::eSuccess) {
         return std::unexpected{Error{ECate::eVk, bindRes}};
     }
@@ -116,36 +106,12 @@ std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<De
         return std::unexpected{Error{ECate::eVk, imageViewRes}};
     }
 
-    // Staging Memory
-    vk::BufferCreateInfo bufferInfo;
-    bufferInfo.setSize(extent.size());
-    bufferInfo.setUsage(bufferUsage);
-    bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
-    auto [stagingBufferRes, stagingBuffer] = device.createBuffer(bufferInfo);
-    if (stagingBufferRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{ECate::eVk, stagingBufferRes}};
-    }
-
-    const vk::MemoryRequirements stagingMemoryReq = _hp::getMemoryRequirements(*pDeviceBox, stagingBuffer);
-    auto stagingMemoryBoxRes =
-        MemoryBox::create(pDeviceBox, stagingMemoryReq,
-                          vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-    if (!stagingMemoryBoxRes) return std::unexpected{std::move(stagingMemoryBoxRes.error())};
-    MemoryBox stagingMemoryBox = std::move(stagingMemoryBoxRes.value());
-
-    const auto bindStagingRes = device.bindBufferMemory(stagingBuffer, stagingMemoryBox.getDeviceMemory(), 0);
-    if (bindStagingRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{ECate::eVk, bindStagingRes}};
-    }
-
     // Descriptor Image Info
     vk::DescriptorImageInfo descImageInfo;
     descImageInfo.setImageView(imageView);
     descImageInfo.setImageLayout(imageLayout);
 
-    return SampledImageBox{
-        std::move(pDeviceBox),       extent,       image, imageView, std::move(imageMemoryBox), stagingBuffer,
-        std::move(stagingMemoryBox), descImageInfo};
+    return SampledImageBox{std::move(pDeviceBox), extent, image, imageView, std::move(imageMemoryBox), descImageInfo};
 }
 
 vk::WriteDescriptorSet SampledImageBox::draftWriteDescSet() const noexcept {
@@ -157,20 +123,20 @@ vk::WriteDescriptorSet SampledImageBox::draftWriteDescSet() const noexcept {
 }
 
 std::expected<void, Error> SampledImageBox::upload(const std::byte* pSrc) noexcept {
-    auto mmapRes = stagingMemoryBox_.memMap();
+    auto mmapRes = imageMemoryBox_.memMap();
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     void* mapPtr = mmapRes.value();
 
     std::memcpy(mapPtr, pSrc, extent_.size());
 
-    stagingMemoryBox_.memUnmap();
+    imageMemoryBox_.memUnmap();
 
     return {};
 }
 
 std::expected<void, Error> SampledImageBox::uploadWithRoi(const std::byte* pSrc, const Roi roi,
                                                           const size_t bufferRowPitch) noexcept {
-    auto mmapRes = stagingMemoryBox_.memMap();
+    auto mmapRes = imageMemoryBox_.memMap();
     if (!mmapRes) return std::unexpected{std::move(mmapRes.error())};
     void* mapPtr = mmapRes.value();
 
@@ -184,7 +150,7 @@ std::expected<void, Error> SampledImageBox::uploadWithRoi(const std::byte* pSrc,
         dstOffset += extent_.rowPitch();
     }
 
-    stagingMemoryBox_.memUnmap();
+    imageMemoryBox_.memUnmap();
 
     return {};
 }

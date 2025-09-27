@@ -13,15 +13,10 @@
 
 namespace vkc {
 
-typedef enum StorageImageType {
-    Write = 1 << 0,
-    Read = 1 << 1,
-    ReadWrite = Read | Write,
-} StorageImageType;
-
 class StorageImageBox {
-    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, const Extent& extent, vk::Image image, vk::ImageView imageView,
-                    MemoryBox&& imageMemoryBox, vk::Buffer stagingBuffer, MemoryBox&& stagingMemoryBox, const vk::DescriptorImageInfo& descImageInfo) noexcept;
+    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, const Extent& extent, vk::Image image,
+                    vk::ImageView imageView, MemoryBox&& imageMemoryBox,
+                    const vk::DescriptorImageInfo& descImageInfo) noexcept;
 
 public:
     StorageImageBox(const StorageImageBox&) = delete;
@@ -30,18 +25,16 @@ public:
 
     [[nodiscard]] static std::expected<StorageImageBox, Error> create(
         std::shared_ptr<DeviceBox> pDeviceBox, const Extent& extent,
-        StorageImageType imageType = StorageImageType::Write) noexcept;
+        StorageType imageType = StorageType::ReadWrite) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {
         return std::forward_like<Self>(self).extent_;
     }
 
-    [[nodiscard]] vk::Image getImage() const noexcept { return image_; }
-    [[nodiscard]] vk::Buffer getStagingBuffer() const noexcept { return stagingBuffer_; }
+    [[nodiscard]] vk::Image getVkImage() const noexcept { return image_; }
     [[nodiscard]] vk::AccessFlags getImageAccessMask() const noexcept { return imageAccessMask_; }
     [[nodiscard]] vk::ImageLayout getImageLayout() const noexcept { return imageLayout_; }
-    [[nodiscard]] vk::AccessFlags getStagingAccessMask() const noexcept { return stagingAccessMask_; }
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eStorageImage;
     }
@@ -49,13 +42,13 @@ public:
     [[nodiscard]] static constexpr vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() noexcept;
 
     [[nodiscard]] std::expected<void, Error> upload(const std::byte* pSrc) noexcept;
-    [[nodiscard]] std::expected<void, Error> uploadWithRoi(const std::byte* pSrc, Roi roi,
+    [[nodiscard]] std::expected<void, Error> uploadWithRoi(const std::byte* pSrc, const Roi& roi, size_t bufferOffset,
                                                            size_t bufferRowPitch) noexcept;
     [[nodiscard]] std::expected<void, Error> download(std::byte* pDst) noexcept;
-    [[nodiscard]] std::expected<void, Error> downloadWithRoi(std::byte* pDst, Roi roi, size_t bufferRowPitch) noexcept;
+    [[nodiscard]] std::expected<void, Error> downloadWithRoi(std::byte* pDst, const Roi& roi, size_t bufferOffset,
+                                                             size_t bufferRowPitch) noexcept;
     void setImageAccessMask(vk::AccessFlags accessMask) noexcept { imageAccessMask_ = accessMask; }
     void setImageLayout(vk::ImageLayout imageLayout) noexcept { imageLayout_ = imageLayout; }
-    void setStagingAccessMask(vk::AccessFlags accessMask) noexcept { stagingAccessMask_ = accessMask; }
 
 private:
     std::shared_ptr<DeviceBox> pDeviceBox_;
@@ -66,13 +59,9 @@ private:
     vk::ImageView imageView_;
     MemoryBox imageMemoryBox_;
 
-    vk::Buffer stagingBuffer_;
-    MemoryBox stagingMemoryBox_;
-
     vk::DescriptorImageInfo descImageInfo_;
     vk::AccessFlags imageAccessMask_;
     vk::ImageLayout imageLayout_;
-    vk::AccessFlags stagingAccessMask_;
 };
 
 constexpr vk::DescriptorSetLayoutBinding StorageImageBox::draftDescSetLayoutBinding() noexcept {

@@ -38,10 +38,15 @@ int main() {
     vkc::PushConstantBox kernelSizePcBox{std::pair{kernelSize, sigma * sigma * 2.0f}};
 
     vkc::SampledImageBox srcImageBox = vkc::SampledImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StagingBufferBox srcStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcImageBoxRefs{std::ref(srcImageBox)};
     vkc::StorageImageBox dstImageBox = vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StagingBufferBox dstStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstImageBoxRefs{std::ref(dstImageBox)};
-    srcImageBox.upload(srcImage.getPData()) | unwrap;
+    const std::array dstStagingBufferBoxRefs{std::ref(dstStagingBufferBox)};
+    srcStagingBufferBox.upload(srcImage.getPData()) | unwrap;
 
     const std::vector descPoolSizes =
         genPoolSizes(srcImageBox, samplerBox, dstImageBox, srcImageBox, samplerBox, dstImageBox);
@@ -103,7 +108,7 @@ int main() {
     gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
     gaussCmdBufBox.recordResetQueryPool(queryPoolBox);
     gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
-    gaussCmdBufBox.recordCopyStagingToSrc(srcImageBox);
+    gaussCmdBufBox.recordCopyStagingToSrc(srcStagingBufferBox, srcImageBox);
     gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
     gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
     gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
@@ -127,8 +132,8 @@ int main() {
     grayCmdBufBox.recordDispatch(groupNumX, groupNumY);
     grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     grayCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
-    grayCmdBufBox.recordCopyDstToStaging(dstImageBox);
-    grayCmdBufBox.recordWaitDownloadComplete(dstImageBoxRefs);
+    grayCmdBufBox.recordCopyDstToStaging(dstImageBox, dstStagingBufferBox);
+    grayCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
     grayCmdBufBox.end() | unwrap;
 
     queueBox.submitAndWaitSemaphore(grayCmdBufBox, semaphoreBox, vk::PipelineStageFlagBits::eTransfer, fenceBox) |
@@ -141,6 +146,6 @@ int main() {
     std::println("Storage to sampled transfer timecost: {} ms", elapsedTime[1]);
     std::println("Grayscale dispatch timecost: {} ms", elapsedTime[2]);
 
-    dstImageBox.download(dstImage.getPData()) | unwrap;
+    dstStagingBufferBox.download(dstImage.getPData()) | unwrap;
     dstImage.saveTo("out.png") | unwrap;
 }

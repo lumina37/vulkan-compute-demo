@@ -42,6 +42,7 @@ public:
 
     [[nodiscard]] std::expected<void, Error> begin() noexcept;
 
+    using TStagingBufferBoxRef = std::reference_wrapper<StagingBufferBox>;
     using TStorageImageBoxRef = std::reference_wrapper<StorageImageBox>;
     using TPresentImageBoxRef = std::reference_wrapper<PresentImageBox>;
 
@@ -63,22 +64,24 @@ public:
     void recordDispatch(int groupNumX, int groupNumY) noexcept;
 
     template <CImageBox TImageBox>
-    void recordCopyStagingToSrc(const TImageBox& srcImageBox) noexcept;
+    void recordCopyStagingToSrc(const StagingBufferBox& stagingBufferBox, TImageBox& srcImageBox) noexcept;
 
     template <CImageBox TImageBox>
-    void recordCopyStagingToSrcWithRoi(const TImageBox& srcImageBox, Roi roi) noexcept;
+    void recordCopyStagingToSrcWithRoi(const StagingBufferBox& stagingBufferBox, TImageBox& srcImageBox,
+                                       const Roi& roi) noexcept;
 
-    void recordCopyDstToStaging(StorageImageBox& dstImageBox) noexcept;
-    void recordCopyDstToStagingWithRoi(StorageImageBox& dstImageBox, Roi roi) noexcept;
+    void recordCopyDstToStaging(const StorageImageBox& dstImageBox, StagingBufferBox& stagingBufferBox) noexcept;
+    void recordCopyDstToStagingWithRoi(const StorageImageBox& dstImageBox, StagingBufferBox& stagingBufferBox,
+                                       const Roi& roi) noexcept;
 
     template <CImageBox TImageBox>
     void recordCopyStorageToAnother(const StorageImageBox& srcImageBox, TImageBox& dstImageBox) noexcept;
 
     template <CImageBox TImageBox>
     void recordCopyStorageToAnotherWithRoi(const StorageImageBox& srcImageBox, TImageBox& dstImageBox,
-                                           Roi roi) noexcept;
+                                           const Roi& roi) noexcept;
 
-    void recordWaitDownloadComplete(std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept;
+    void recordWaitDownloadComplete(std::span<const TStagingBufferBoxRef> stagingBufferBoxRefs) noexcept;
 
     template <CQueryPoolBox TQueryPoolBox>
     void recordResetQueryPool(TQueryPoolBox& queryPoolBox) noexcept;
@@ -128,7 +131,7 @@ void CommandBufferBox::recordPrepareReceiveBeforeDispatch(
         auto& box = boxRef.get();
 
         vk::ImageMemoryBarrier barrier = barrierTemplate;
-        barrier.setImage(box.getImage());
+        barrier.setImage(box.getVkImage());
 
         box.setImageAccessMask(newAccessMask);
         box.setImageLayout(newImageLayout);
@@ -162,7 +165,7 @@ void CommandBufferBox::recordPrepareReceiveAfterDispatch(
         vk::ImageMemoryBarrier barrier = barrierTemplate;
         barrier.setSrcAccessMask(box.getImageAccessMask());
         barrier.setOldLayout(box.getImageLayout());
-        barrier.setImage(box.getImage());
+        barrier.setImage(box.getVkImage());
 
         box.setImageAccessMask(newAccessMask);
         box.setImageLayout(newImageLayout);
@@ -198,7 +201,7 @@ void CommandBufferBox::recordSrcPrepareShaderRead(
         vk::ImageMemoryBarrier barrier = barrierTemplate;
         barrier.setSrcAccessMask(box.getImageAccessMask());
         barrier.setOldLayout(box.getImageLayout());
-        barrier.setImage(box.getImage());
+        barrier.setImage(box.getVkImage());
 
         box.setImageAccessMask(newAccessMask);
         box.setImageLayout(newImageLayout);
@@ -214,7 +217,8 @@ void CommandBufferBox::recordSrcPrepareShaderRead(
 }
 
 template <CImageBox TImageBox>
-void CommandBufferBox::recordCopyStagingToSrc(const TImageBox& srcImageBox) noexcept {
+void CommandBufferBox::recordCopyStagingToSrc(const StagingBufferBox& stagingBufferBox,
+                                              TImageBox& srcImageBox) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -222,12 +226,13 @@ void CommandBufferBox::recordCopyStagingToSrc(const TImageBox& srcImageBox) noex
     copyRegion.setImageSubresource(subresourceLayers);
     copyRegion.setImageExtent(srcImageBox.getExtent().extent3D());
 
-    commandBuffer_.copyBufferToImage(srcImageBox.getStagingBuffer(), srcImageBox.getImage(),
+    commandBuffer_.copyBufferToImage(stagingBufferBox.getBufferBox().getVkBuffer(), srcImageBox.getVkImage(),
                                      vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
 template <CImageBox TImageBox>
-void CommandBufferBox::recordCopyStagingToSrcWithRoi(const TImageBox& srcImageBox, const Roi roi) noexcept {
+void CommandBufferBox::recordCopyStagingToSrcWithRoi(const StagingBufferBox& stagingBufferBox, TImageBox& srcImageBox,
+                                                     const Roi& roi) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -240,7 +245,7 @@ void CommandBufferBox::recordCopyStagingToSrcWithRoi(const TImageBox& srcImageBo
     copyRegion.setImageOffset(roi.offset3D());
     copyRegion.setImageExtent(roi.extent3D());
 
-    commandBuffer_.copyBufferToImage(srcImageBox.getStagingBuffer(), srcImageBox.getImage(),
+    commandBuffer_.copyBufferToImage(stagingBufferBox.getBufferBox().getVkBuffer(), srcImageBox.getVkImage(),
                                      vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
@@ -254,13 +259,13 @@ void CommandBufferBox::recordCopyStorageToAnother(const StorageImageBox& srcImag
     copyRegion.setDstSubresource(subresourceLayers);
     copyRegion.setExtent(srcImageBox.getExtent().extent3D());
 
-    commandBuffer_.copyImage(srcImageBox.getImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageBox.getImage(),
+    commandBuffer_.copyImage(srcImageBox.getVkImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageBox.getVkImage(),
                              vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
 template <CImageBox TImageBox>
 void CommandBufferBox::recordCopyStorageToAnotherWithRoi(const StorageImageBox& srcImageBox, TImageBox& dstImageBox,
-                                                         const Roi roi) noexcept {
+                                                         const Roi& roi) noexcept {
     vk::ImageSubresourceLayers subresourceLayers;
     subresourceLayers.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceLayers.setLayerCount(1);
@@ -271,7 +276,7 @@ void CommandBufferBox::recordCopyStorageToAnotherWithRoi(const StorageImageBox& 
     copyRegion.setDstOffset(roi.offset3D());
     copyRegion.setExtent(srcImageBox.getExtent().extent3D());
 
-    commandBuffer_.copyImage(srcImageBox.getImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageBox.getImage(),
+    commandBuffer_.copyImage(srcImageBox.getVkImage(), vk::ImageLayout::eTransferSrcOptimal, dstImageBox.getVkImage(),
                              vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
