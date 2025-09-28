@@ -47,7 +47,7 @@ int main() {
 
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     vkc::PerfCounterProps perfProps = vkc::PerfCounterProps::create(phyDeviceBox, computeQFamilyIdx) | unwrap;
-    const int perfCounterCount = std::min((int)perfProps.perfCounters.size(), 11);
+    const int perfCounterCount = std::min((int)perfProps.perfCounters.size(), 1000);
     for (int i = 0; i < perfCounterCount; i++) {
         const auto& perfCounter = perfProps.perfCounters[i];
         std::println("===============");
@@ -110,7 +110,7 @@ int main() {
     perfQueryPoolBox.hostReset();
 
     // Pipeline
-    constexpr int TM = 4;
+    constexpr int TM = 1;
     constexpr int TN = TM;
     constexpr int TK = TM;
     constexpr int groupSizeX = 16;
@@ -151,6 +151,6 @@ int main() {
         std::println("============================");
         std::println("GPU Elapsed Time: {} ms", (float)std::get<0>(perfQueryResults[0]) / 1e6);
         std::println("Dispatched Threads: {}", std::get<1>(perfQueryResults[0]));
-        std::println("SM Active: {} %", std::get<2>(perfQueryResults[0]));
+        std::println("EU Active: {} %", std::get<2>(perfQueryResults[0]));
     }
 }
