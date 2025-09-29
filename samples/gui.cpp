@@ -64,8 +64,7 @@ int main() {
 
         std::println("Acquire image timecost: {} ms", loopTimer.durationMs());
 
-        loopTimer.begin();
-        vkc::PresentImageBox& presentImageBox = swapChainBox.getImageBox((int)imageIndex);
+        vkc::PresentImageBox& presentImageBox = swapChainBox.getImageBox(imageIndex);
         const std::array presentImageBoxRefs{std::ref(presentImageBox)};
 
         presentCmdBufBox.begin() | unwrap;
@@ -80,6 +79,7 @@ int main() {
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
+        loopTimer.begin();
         queueBox.present(swapChainBox, imageIndex) | unwrap;
         loopTimer.end();
 

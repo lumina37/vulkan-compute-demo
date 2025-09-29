@@ -35,7 +35,7 @@ public:
     [[nodiscard]] vk::SwapchainKHR getSwapchain() const noexcept { return swapchain_; }
 
     template <typename Self>
-    [[nodiscard]] auto&& getImageBox(this Self&& self, int i) noexcept {
+    [[nodiscard]] auto&& getImageBox(this Self&& self, uint32_t i) noexcept {
         return std::forward_like<Self>(self).imageBoxs_[i];
     }
 

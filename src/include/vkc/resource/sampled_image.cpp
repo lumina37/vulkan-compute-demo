@@ -48,7 +48,6 @@ std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<De
     vk::Device device = pDeviceBox->getDevice();
 
     constexpr vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
-    constexpr vk::BufferUsageFlags bufferUsage = vk::BufferUsageFlagBits::eTransferSrc;
     constexpr vk::ImageLayout imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
     auto imageBoxRes = ImageBox::create(pDeviceBox, extent, imageUsage);
@@ -61,7 +60,7 @@ std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<De
     if (!memoryBoxRes) return std::unexpected{std::move(memoryBoxRes.error())};
     MemoryBox& memoryBox = memoryBoxRes.value();
 
-    const auto bindRes = imageBox.bind(memoryBox);
+    auto bindRes = imageBox.bind(memoryBox);
     if (!bindRes) return std::unexpected{std::move(bindRes.error())};
 
     // Image View

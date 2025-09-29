@@ -35,7 +35,7 @@ std::expected<StagingBufferBox, Error> StagingBufferBox::create(std::shared_ptr<
     if (!memoryBoxRes) return std::unexpected{std::move(memoryBoxRes.error())};
     MemoryBox& memoryBox = memoryBoxRes.value();
 
-    const auto bindRes = bufferBox.bind(memoryBox);
+    auto bindRes = bufferBox.bind(memoryBox);
     if (!bindRes) return std::unexpected{std::move(bindRes.error())};
 
     return StagingBufferBox{std::move(bufferBox), std::move(memoryBox)};
