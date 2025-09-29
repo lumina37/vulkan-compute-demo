@@ -108,9 +108,9 @@ int main() {
     gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
     gaussCmdBufBox.recordResetQueryPool(queryPoolBox);
     gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
-    gaussCmdBufBox.recordCopyStagingToSrc(srcStagingBufferBox, srcImageBox);
-    gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
-    gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
+    gaussCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
+    gaussCmdBufBox.recordPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
+    gaussCmdBufBox.recordPrepareShaderWrite(dstImageBoxRefs);
     gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
     gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
@@ -126,13 +126,13 @@ int main() {
     grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
     grayCmdBufBox.recordCopyStorageToAnother(dstImageBox, srcImageBox);
     grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-    grayCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
-    grayCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
+    grayCmdBufBox.recordPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
+    grayCmdBufBox.recordPrepareShaderWrite(dstImageBoxRefs);
     grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     grayCmdBufBox.recordDispatch(groupNumX, groupNumY);
     grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     grayCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
-    grayCmdBufBox.recordCopyDstToStaging(dstImageBox, dstStagingBufferBox);
+    grayCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
     grayCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
     grayCmdBufBox.end() | unwrap;
 

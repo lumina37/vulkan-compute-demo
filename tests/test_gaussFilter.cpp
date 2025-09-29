@@ -155,12 +155,12 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
         gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
         gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
         gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
-        gaussCmdBufBox.recordCopyStagingToSrc(srcStagingBufferBox, srcImageBox);
-        gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
-        gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
+        gaussCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
+        gaussCmdBufBox.recordPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
+        gaussCmdBufBox.recordPrepareShaderWrite(dstImageBoxRefs);
         gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
         gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
-        gaussCmdBufBox.recordCopyDstToStaging(dstImageBox, dstStagingBufferBox);
+        gaussCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
         gaussCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
         gaussCmdBufBox.end() | unwrap;
 
@@ -198,12 +198,12 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
         gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
         gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
         gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
-        gaussCmdBufBox.recordCopyStagingToSrc(srcStagingBufferBox, srcImageBox);
-        gaussCmdBufBox.recordSrcPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
-        gaussCmdBufBox.recordDstPrepareShaderWrite(dstImageBoxRefs);
+        gaussCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
+        gaussCmdBufBox.recordPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
+        gaussCmdBufBox.recordPrepareShaderWrite(dstImageBoxRefs);
         gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
         gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
-        gaussCmdBufBox.recordCopyDstToStaging(dstImageBox, dstStagingBufferBox);
+        gaussCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
         gaussCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
         gaussCmdBufBox.end() | unwrap;
 

@@ -69,7 +69,7 @@ int main() {
 
         presentCmdBufBox.begin() | unwrap;
         presentCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::PresentImageBox>(presentImageBoxRefs);
-        presentCmdBufBox.recordCopyStagingToSrc(stagingBufferBox, presentImageBox);
+        presentCmdBufBox.recordCopyStagingToImage(stagingBufferBox, presentImageBox);
         presentCmdBufBox.recordPreparePresent(presentImageBoxRefs);
         presentCmdBufBox.end() | unwrap;
 

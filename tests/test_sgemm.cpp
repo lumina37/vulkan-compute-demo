@@ -163,13 +163,13 @@ TEST_CASE("GLSL-SGEMM", "") {
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
         sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatAStagingBufferBox, srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBStagingBufferBox, srcMatBBox);
-        sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToImage(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToImage(srcMatBStagingBufferBox, srcMatBBox);
+        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
         sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;
 
@@ -207,13 +207,13 @@ TEST_CASE("GLSL-SGEMM", "") {
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
         sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatAStagingBufferBox, srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBStagingBufferBox, srcMatBBox);
-        sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToImage(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToImage(srcMatBStagingBufferBox, srcMatBBox);
+        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
         sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;
 
@@ -254,13 +254,13 @@ TEST_CASE("GLSL-SGEMM", "") {
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
         sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatAStagingBufferBox, srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToSrc(srcMatBStagingBufferBox, srcMatBBox);
-        sgemmCmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToImage(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToImage(srcMatBStagingBufferBox, srcMatBBox);
+        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
         sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyDstToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;
 

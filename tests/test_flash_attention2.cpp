@@ -181,14 +181,14 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
         fa2CmdBufBox.bindPipeline(fa2PipelineBox);
         fa2CmdBufBox.bindDescSets(fa2DescSetsBox, fa2PLayoutBox, vk::PipelineBindPoint::eCompute);
         fa2CmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        fa2CmdBufBox.recordCopyStagingToSrc(srcMatQStagingBufferBox, srcMatQBox);
-        fa2CmdBufBox.recordCopyStagingToSrc(srcMatKStagingBufferBox, srcMatKBox);
-        fa2CmdBufBox.recordCopyStagingToSrc(srcMatVStagingBufferBox, srcMatVBox);
-        fa2CmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
-        fa2CmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        fa2CmdBufBox.recordCopyStagingToImage(srcMatQStagingBufferBox, srcMatQBox);
+        fa2CmdBufBox.recordCopyStagingToImage(srcMatKStagingBufferBox, srcMatKBox);
+        fa2CmdBufBox.recordCopyStagingToImage(srcMatVStagingBufferBox, srcMatVBox);
+        fa2CmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        fa2CmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         fa2CmdBufBox.recordDispatch(groupNumX, groupNumY);
         fa2CmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        fa2CmdBufBox.recordCopyDstToStaging(dstMatBox, dstMatStagingBufferBox);
+        fa2CmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
         fa2CmdBufBox.recordWaitDownloadComplete(dstMatStagingBufferBoxRefs);
         fa2CmdBufBox.end() | unwrap;
 
@@ -226,14 +226,14 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
         fa2CmdBufBox.bindPipeline(fa2PipelineBox);
         fa2CmdBufBox.bindDescSets(fa2DescSetsBox, fa2PLayoutBox, vk::PipelineBindPoint::eCompute);
         fa2CmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        fa2CmdBufBox.recordCopyStagingToSrc(srcMatQStagingBufferBox, srcMatQBox);
-        fa2CmdBufBox.recordCopyStagingToSrc(srcMatKStagingBufferBox, srcMatKBox);
-        fa2CmdBufBox.recordCopyStagingToSrc(srcMatVStagingBufferBox, srcMatVBox);
-        fa2CmdBufBox.recordSrcPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
-        fa2CmdBufBox.recordDstPrepareShaderWrite(dstMatBoxRefs);
+        fa2CmdBufBox.recordCopyStagingToImage(srcMatQStagingBufferBox, srcMatQBox);
+        fa2CmdBufBox.recordCopyStagingToImage(srcMatKStagingBufferBox, srcMatKBox);
+        fa2CmdBufBox.recordCopyStagingToImage(srcMatVStagingBufferBox, srcMatVBox);
+        fa2CmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        fa2CmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         fa2CmdBufBox.recordDispatch(groupNumX, 1);
         fa2CmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        fa2CmdBufBox.recordCopyDstToStaging(dstMatBox, dstMatStagingBufferBox);
+        fa2CmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
         fa2CmdBufBox.recordWaitDownloadComplete(dstMatStagingBufferBoxRefs);
         fa2CmdBufBox.end() | unwrap;
 

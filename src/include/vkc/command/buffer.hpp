@@ -47,32 +47,31 @@ public:
     using TPresentImageBoxRef = std::reference_wrapper<PresentImageBox>;
 
     template <CImageBox TImageBox>
-    void recordPrepareReceiveBeforeDispatch(
-        std::span<const std::reference_wrapper<TImageBox>> srcImageBoxRefs) noexcept;
+    void recordPrepareReceiveBeforeDispatch(std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept;
 
     template <CImageBox TImageBox>
-    void recordPrepareReceiveAfterDispatch(std::span<const std::reference_wrapper<TImageBox>> srcImageBoxRefs) noexcept;
+    void recordPrepareReceiveAfterDispatch(std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept;
 
     template <CImageBox TImageBox>
-    void recordSrcPrepareShaderRead(std::span<const std::reference_wrapper<TImageBox>> srcImageBoxRefs) noexcept;
+    void recordPrepareShaderRead(std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept;
 
-    void recordDstPrepareShaderWrite(std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept;
-    void recordPrepareSendBeforeDispatch(std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept;
-    void recordPrepareSendAfterDispatch(std::span<const TStorageImageBoxRef> dstImageBoxRefs) noexcept;
+    void recordPrepareShaderWrite(std::span<const TStorageImageBoxRef> imageBoxRefs) noexcept;
+    void recordPrepareSendBeforeDispatch(std::span<const TStorageImageBoxRef> imageBoxRefs) noexcept;
+    void recordPrepareSendAfterDispatch(std::span<const TStorageImageBoxRef> imageBoxRefs) noexcept;
     void recordPreparePresent(std::span<const TPresentImageBoxRef> imageBoxRefs) noexcept;
 
     void recordDispatch(int groupNumX, int groupNumY) noexcept;
 
     template <CImageBox TImageBox>
-    void recordCopyStagingToSrc(const StagingBufferBox& stagingBufferBox, TImageBox& srcImageBox) noexcept;
+    void recordCopyStagingToImage(const StagingBufferBox& stagingBufferBox, TImageBox& imageBox) noexcept;
 
     template <CImageBox TImageBox>
-    void recordCopyStagingToSrcWithRoi(const StagingBufferBox& stagingBufferBox, TImageBox& srcImageBox,
-                                       const Roi& roi) noexcept;
+    void recordCopyStagingToImageWithRoi(const StagingBufferBox& stagingBufferBox, TImageBox& imageBox,
+                                         const Roi& roi) noexcept;
 
-    void recordCopyDstToStaging(const StorageImageBox& dstImageBox, StagingBufferBox& stagingBufferBox) noexcept;
-    void recordCopyDstToStagingWithRoi(const StorageImageBox& dstImageBox, StagingBufferBox& stagingBufferBox,
-                                       const Roi& roi) noexcept;
+    void recordCopyImageToStaging(const StorageImageBox& imageBox, StagingBufferBox& stagingBufferBox) noexcept;
+    void recordCopyImageToStagingWithRoi(const StorageImageBox& imageBox, StagingBufferBox& stagingBufferBox,
+                                         const Roi& roi) noexcept;
 
     template <CImageBox TImageBox>
     void recordCopyStorageToAnother(const StorageImageBox& srcImageBox, TImageBox& dstImageBox) noexcept;
@@ -112,7 +111,7 @@ void CommandBufferBox::pushConstant(const PushConstantBox<TPc>& pushConstantBox,
 
 template <CImageBox TImageBox>
 void CommandBufferBox::recordPrepareReceiveBeforeDispatch(
-    const std::span<const std::reference_wrapper<TImageBox>> srcImageBoxRefs) noexcept {
+    const std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eTransferWrite;
     constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eTransferDstOptimal;
 
@@ -137,7 +136,7 @@ void CommandBufferBox::recordPrepareReceiveBeforeDispatch(
         return barrier;
     };
 
-    const auto barriers = srcImageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = imageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
@@ -146,7 +145,7 @@ void CommandBufferBox::recordPrepareReceiveBeforeDispatch(
 
 template <CImageBox TImageBox>
 void CommandBufferBox::recordPrepareReceiveAfterDispatch(
-    const std::span<const std::reference_wrapper<TImageBox>> srcImageBoxRefs) noexcept {
+    const std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eTransferWrite;
     constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eTransferDstOptimal;
 
@@ -171,7 +170,7 @@ void CommandBufferBox::recordPrepareReceiveAfterDispatch(
         return barrier;
     };
 
-    const auto barriers = srcImageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = imageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
@@ -179,8 +178,8 @@ void CommandBufferBox::recordPrepareReceiveAfterDispatch(
 }
 
 template <CImageBox TImageBox>
-void CommandBufferBox::recordSrcPrepareShaderRead(
-    const std::span<const std::reference_wrapper<TImageBox>> srcImageBoxRefs) noexcept {
+void CommandBufferBox::recordPrepareShaderRead(
+    const std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eShaderRead;
     constexpr vk::ImageLayout newImageLayout = std::is_same_v<TImageBox, SampledImageBox>
                                                    ? vk::ImageLayout::eShaderReadOnlyOptimal
@@ -207,7 +206,7 @@ void CommandBufferBox::recordSrcPrepareShaderRead(
         return barrier;
     };
 
-    const auto barriers = srcImageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = imageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
@@ -215,21 +214,21 @@ void CommandBufferBox::recordSrcPrepareShaderRead(
 }
 
 template <CImageBox TImageBox>
-void CommandBufferBox::recordCopyStagingToSrc(const StagingBufferBox& stagingBufferBox,
-                                              TImageBox& srcImageBox) noexcept {
+void CommandBufferBox::recordCopyStagingToImage(const StagingBufferBox& stagingBufferBox,
+                                                TImageBox& imageBox) noexcept {
     vk::BufferImageCopy copyRegion;
     copyRegion.setImageSubresource(_hp::SUBRESOURCE_LAYERS);
-    copyRegion.setImageExtent(srcImageBox.getExtent().extent3D());
+    copyRegion.setImageExtent(imageBox.getExtent().extent3D());
 
-    commandBuffer_.copyBufferToImage(stagingBufferBox.getVkBuffer(), srcImageBox.getVkImage(),
+    commandBuffer_.copyBufferToImage(stagingBufferBox.getVkBuffer(), imageBox.getVkImage(),
                                      vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
 template <CImageBox TImageBox>
-void CommandBufferBox::recordCopyStagingToSrcWithRoi(const StagingBufferBox& stagingBufferBox, TImageBox& srcImageBox,
-                                                     const Roi& roi) noexcept {
+void CommandBufferBox::recordCopyStagingToImageWithRoi(const StagingBufferBox& stagingBufferBox, TImageBox& imageBox,
+                                                       const Roi& roi) noexcept {
     vk::BufferImageCopy copyRegion;
-    const Extent& imageExtent = srcImageBox.getExtent();
+    const Extent& imageExtent = imageBox.getExtent();
     copyRegion.setBufferOffset(imageExtent.calculateBufferOffset(roi.offset()));
     copyRegion.setBufferRowLength(imageExtent.width());
     copyRegion.setBufferImageHeight(imageExtent.height());
@@ -237,7 +236,7 @@ void CommandBufferBox::recordCopyStagingToSrcWithRoi(const StagingBufferBox& sta
     copyRegion.setImageOffset(roi.offset3D());
     copyRegion.setImageExtent(roi.extent3D());
 
-    commandBuffer_.copyBufferToImage(stagingBufferBox.getVkBuffer(), srcImageBox.getVkImage(),
+    commandBuffer_.copyBufferToImage(stagingBufferBox.getVkBuffer(), imageBox.getVkImage(),
                                      vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 }
 
