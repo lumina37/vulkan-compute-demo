@@ -17,7 +17,7 @@ enum class StorageType {
 
 class MemoryBox {
     MemoryBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceMemory memory,
-              const vk::MemoryRequirements& requirements) noexcept;
+              const vk::MemoryRequirements& requirements, uint32_t memTypeIndex) noexcept;
 
 public:
     MemoryBox(MemoryBox&& rhs) noexcept;
@@ -32,6 +32,7 @@ public:
 
     [[nodiscard]] vk::DeviceMemory getVkDeviceMemory() const noexcept { return memory_; }
     [[nodiscard]] const vk::MemoryRequirements& getRequirements() const noexcept { return requirements_; }
+    [[nodiscard]] uint32_t getMemTypeIndex() const noexcept { return memTypeIndex_; }
 
     [[nodiscard]] std::expected<void*, Error> memMap() noexcept;
     void memUnmap() noexcept;
@@ -41,6 +42,7 @@ private:
 
     vk::DeviceMemory memory_;
     vk::MemoryRequirements requirements_;
+    uint32_t memTypeIndex_;
 };
 
 namespace _hp {

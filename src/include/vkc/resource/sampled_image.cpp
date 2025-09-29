@@ -16,37 +16,17 @@
 
 namespace vkc {
 
-SampledImageBox::SampledImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, ImageBox&& imageBox, vk::ImageView imageView,
-                                 MemoryBox&& imageMemoryBox, const vk::DescriptorImageInfo& descImageInfo) noexcept
-    : pDeviceBox_(std::move(pDeviceBox)),
-      imageBox_(std::move(imageBox)),
-      imageView_(imageView),
+SampledImageBox::SampledImageBox(ImageBox&& imageBox, ImageViewBox&& imageViewBox, MemoryBox&& imageMemoryBox,
+                                 const vk::DescriptorImageInfo& descImageInfo) noexcept
+    : imageBox_(std::move(imageBox)),
+      imageViewBox_(std::move(imageViewBox)),
       imageMemoryBox_(std::move(imageMemoryBox)),
       descImageInfo_(descImageInfo),
       imageAccessMask_(vk::AccessFlagBits::eNone),
       imageLayout_(vk::ImageLayout::eUndefined) {}
 
-SampledImageBox::SampledImageBox(SampledImageBox&& rhs) noexcept
-    : pDeviceBox_(std::move(rhs.pDeviceBox_)),
-      imageBox_(std::move(rhs.imageBox_)),
-      imageView_(std::exchange(rhs.imageView_, nullptr)),
-      imageMemoryBox_(std::move(rhs.imageMemoryBox_)),
-      descImageInfo_(std::exchange(rhs.descImageInfo_, {})),
-      imageAccessMask_(rhs.imageAccessMask_),
-      imageLayout_(rhs.imageLayout_) {}
-
-SampledImageBox::~SampledImageBox() noexcept {
-    if (imageView_ == nullptr) return;
-    vk::Device device = pDeviceBox_->getDevice();
-    device.destroyImageView(imageView_);
-    imageView_ = nullptr;
-    descImageInfo_.setImageView(nullptr);
-}
-
-std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<DeviceBox> pDeviceBox,
+std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<DeviceBox>& pDeviceBox,
                                                               const Extent& extent) noexcept {
-    vk::Device device = pDeviceBox->getDevice();
-
     constexpr vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
     constexpr vk::ImageLayout imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
@@ -54,7 +34,6 @@ std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<De
     if (!imageBoxRes) return std::unexpected{std::move(imageBoxRes.error())};
     ImageBox& imageBox = imageBoxRes.value();
 
-    // Image Memory
     auto memoryBoxRes =
         MemoryBox::create(pDeviceBox, imageBox.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
     if (!memoryBoxRes) return std::unexpected{std::move(memoryBoxRes.error())};
@@ -63,23 +42,16 @@ std::expected<SampledImageBox, Error> SampledImageBox::create(std::shared_ptr<De
     auto bindRes = imageBox.bind(memoryBox);
     if (!bindRes) return std::unexpected{std::move(bindRes.error())};
 
-    // Image View
-    vk::ImageViewCreateInfo imageViewInfo;
-    imageViewInfo.setImage(imageBox.getVkImage());
-    imageViewInfo.setViewType(vk::ImageViewType::e2D);
-    imageViewInfo.setFormat(extent.format());
-    imageViewInfo.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
-    const auto [imageViewRes, imageView] = device.createImageView(imageViewInfo);
-    if (imageViewRes != vk::Result::eSuccess) {
-        return std::unexpected{Error{ECate::eVk, imageViewRes}};
-    }
+    auto imageViewBoxRes = ImageViewBox::create(pDeviceBox, imageBox);
+    if (!imageViewBoxRes) return std::unexpected{std::move(imageViewBoxRes.error())};
+    ImageViewBox& imageViewBox = imageViewBoxRes.value();
 
     // Descriptor Image Info
     vk::DescriptorImageInfo descImageInfo;
-    descImageInfo.setImageView(imageView);
+    descImageInfo.setImageView(imageViewBox.getVkImageView());
     descImageInfo.setImageLayout(imageLayout);
 
-    return SampledImageBox{std::move(pDeviceBox), std::move(imageBox), imageView, std::move(memoryBox), descImageInfo};
+    return SampledImageBox{std::move(imageBox), std::move(imageViewBox), std::move(memoryBox), descImageInfo};
 }
 
 vk::WriteDescriptorSet SampledImageBox::draftWriteDescSet() const noexcept {

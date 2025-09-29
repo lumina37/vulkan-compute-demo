@@ -30,6 +30,7 @@ public:
     [[nodiscard]] static std::expected<ImageBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
                                                                const Extent& extent,
                                                                vk::ImageUsageFlags usage) noexcept;
+    [[nodiscard]] static ImageBox createWithoutOwning(vk::Image image, const Extent& extent) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto getVkImage(this Self&& self) noexcept {

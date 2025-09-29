@@ -15,13 +15,14 @@
 namespace vkc {
 
 MemoryBox::MemoryBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DeviceMemory memory,
-                     const vk::MemoryRequirements& requirements) noexcept
-    : pDeviceBox_(std::move(pDeviceBox)), memory_(memory), requirements_(requirements) {}
+                     const vk::MemoryRequirements& requirements, uint32_t memTypeIndex) noexcept
+    : pDeviceBox_(std::move(pDeviceBox)), memory_(memory), requirements_(requirements), memTypeIndex_(memTypeIndex) {}
 
 MemoryBox::MemoryBox(MemoryBox&& rhs) noexcept
     : pDeviceBox_(std::move(rhs.pDeviceBox_)),
       memory_(std::exchange(rhs.memory_, nullptr)),
-      requirements_(rhs.requirements_) {}
+      requirements_(rhs.requirements_),
+      memTypeIndex_(rhs.memTypeIndex_) {}
 
 MemoryBox::~MemoryBox() noexcept {
     if (memory_ == nullptr) return;
@@ -45,7 +46,7 @@ std::expected<MemoryBox, Error> MemoryBox::createByIndex(std::shared_ptr<DeviceB
         return std::unexpected{Error{ECate::eVk, memoryRes}};
     }
 
-    return MemoryBox{std::move(pDeviceBox), memory, requirements};
+    return MemoryBox{std::move(pDeviceBox), memory, requirements, memTypeIndex};
 }
 
 std::expected<MemoryBox, Error> MemoryBox::create(std::shared_ptr<DeviceBox> pDeviceBox,

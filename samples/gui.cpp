@@ -64,7 +64,7 @@ int main() {
 
         std::println("Acquire image timecost: {} ms", loopTimer.durationMs());
 
-        vkc::PresentImageBox& presentImageBox = swapChainBox.getImageBox(imageIndex);
+        vkc::PresentImageBox& presentImageBox = swapChainBox.getPresentImageBox(imageIndex);
         const std::array presentImageBoxRefs{std::ref(presentImageBox)};
 
         presentCmdBufBox.begin() | unwrap;

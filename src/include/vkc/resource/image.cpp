@@ -23,7 +23,7 @@ ImageBox::ImageBox(ImageBox&& rhs) noexcept
       usage_(rhs.usage_) {}
 
 ImageBox::~ImageBox() noexcept {
-    if (image_ == nullptr) return;
+    if (pDeviceBox_ == nullptr) return;
     vk::Device device = pDeviceBox_->getDevice();
     device.destroyImage(image_);
     image_ = nullptr;
@@ -50,6 +50,10 @@ std::expected<ImageBox, Error> ImageBox::create(std::shared_ptr<DeviceBox> pDevi
     }
 
     return ImageBox{std::move(pDeviceBox), image, extent, usage};
+}
+
+ImageBox ImageBox::createWithoutOwning(vk::Image image, const Extent& extent) noexcept {
+    return ImageBox{nullptr, image, extent, {}};
 }
 
 vk::MemoryRequirements ImageBox::getMemoryRequirements() const noexcept {

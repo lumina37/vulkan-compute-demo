@@ -1,36 +1,34 @@
 #pragma once
 
-#include <cstddef>
 #include <expected>
 #include <memory>
 #include <utility>
 
 #include "vkc/device.hpp"
-#include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
-#include "vkc/resource/memory.hpp"
+#include "vkc/resource/image.hpp"
+#include "vkc/resource/image_view.hpp"
 
 namespace vkc {
 
 class PresentImageBox {
-    PresentImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, const Extent& extent, vk::Image image,
-                    vk::ImageView imageView) noexcept;
+    PresentImageBox(ImageBox&& imageBox, ImageViewBox&& imageViewBox) noexcept;
 
 public:
     PresentImageBox(const PresentImageBox&) = delete;
-    PresentImageBox(PresentImageBox&& rhs) noexcept;
-    ~PresentImageBox() noexcept;
+    PresentImageBox(PresentImageBox&& rhs) noexcept = default;
+    ~PresentImageBox() noexcept = default;
 
-    [[nodiscard]] static std::expected<PresentImageBox, Error> create(std::shared_ptr<DeviceBox> pDeviceBox,
-                                                                      vk::Image image, const Extent& extent) noexcept;
+    [[nodiscard]] static std::expected<PresentImageBox, Error> create(std::shared_ptr<DeviceBox>& pDeviceBox,
+                                                                      ImageBox& imageBox) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto&& getExtent(this Self&& self) noexcept {
-        return std::forward_like<Self>(self).extent_;
+        return std::forward_like<Self>(self.imageBox_).getExtent();
     }
 
-    [[nodiscard]] vk::Image getVkImage() const noexcept { return image_; }
+    [[nodiscard]] vk::Image getVkImage() const noexcept { return imageBox_.getVkImage(); }
     [[nodiscard]] vk::AccessFlags getImageAccessMask() const noexcept { return imageAccessMask_; }
     [[nodiscard]] vk::ImageLayout getImageLayout() const noexcept { return imageLayout_; }
 
@@ -38,12 +36,8 @@ public:
     void setImageLayout(vk::ImageLayout imageLayout) noexcept { imageLayout_ = imageLayout; }
 
 private:
-    std::shared_ptr<DeviceBox> pDeviceBox_;
-
-    Extent extent_;
-
-    vk::Image image_;
-    vk::ImageView imageView_;
+    ImageBox imageBox_;
+    ImageViewBox imageViewBox_;
 
     vk::AccessFlags imageAccessMask_;
     vk::ImageLayout imageLayout_;

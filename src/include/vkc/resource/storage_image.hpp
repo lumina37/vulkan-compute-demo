@@ -10,21 +10,22 @@
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 #include "vkc/resource/image.hpp"
+#include "vkc/resource/image_view.hpp"
 #include "vkc/resource/memory.hpp"
 
 namespace vkc {
 
 class StorageImageBox {
-    StorageImageBox(std::shared_ptr<DeviceBox>&& pDeviceBox, ImageBox&& imageBox, vk::ImageView imageView,
-                    MemoryBox&& imageMemoryBox, const vk::DescriptorImageInfo& descImageInfo) noexcept;
+    StorageImageBox(ImageBox&& imageBox, ImageViewBox&& imageViewBox, MemoryBox&& imageMemoryBox,
+                    const vk::DescriptorImageInfo& descImageInfo) noexcept;
 
 public:
     StorageImageBox(const StorageImageBox&) = delete;
-    StorageImageBox(StorageImageBox&& rhs) noexcept;
-    ~StorageImageBox() noexcept;
+    StorageImageBox(StorageImageBox&& rhs) noexcept = default;
+    ~StorageImageBox() noexcept = default;
 
     [[nodiscard]] static std::expected<StorageImageBox, Error> create(
-        std::shared_ptr<DeviceBox> pDeviceBox, const Extent& extent,
+        std::shared_ptr<DeviceBox>& pDeviceBox, const Extent& extent,
         StorageType imageType = StorageType::ReadWrite) noexcept;
 
     template <typename Self>
@@ -51,10 +52,8 @@ public:
     void setImageLayout(vk::ImageLayout imageLayout) noexcept { imageLayout_ = imageLayout; }
 
 private:
-    std::shared_ptr<DeviceBox> pDeviceBox_;
-
     ImageBox imageBox_;
-    vk::ImageView imageView_;
+    ImageViewBox imageViewBox_;
     MemoryBox imageMemoryBox_;
 
     vk::DescriptorImageInfo descImageInfo_;

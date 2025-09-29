@@ -7,6 +7,7 @@
 #include "vkc/gui/surface.hpp"
 #include "vkc/gui/swapchain.hpp"
 #include "vkc/helper/error.hpp"
+#include "vkc/resource.hpp"
 
 #ifndef _VKC_LIB_HEADER_ONLY
 #    include "vkc/gui/swapchain.hpp"
@@ -16,12 +17,12 @@ namespace vkc {
 
 SwapchainBox::SwapchainBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::SwapchainKHR swapchain,
                            std::vector<PresentImageBox>&& imageBoxs) noexcept
-    : pDeviceBox_(std::move(pDeviceBox)), swapchain_(swapchain), imageBoxs_(std::move(imageBoxs)) {}
+    : pDeviceBox_(std::move(pDeviceBox)), swapchain_(swapchain), presentImageBoxs_(std::move(imageBoxs)) {}
 
 SwapchainBox::SwapchainBox(SwapchainBox&& rhs) noexcept
     : pDeviceBox_(std::move(rhs.pDeviceBox_)),
       swapchain_(std::exchange(rhs.swapchain_, nullptr)),
-      imageBoxs_(std::move(rhs.imageBoxs_)) {}
+      presentImageBoxs_(std::move(rhs.presentImageBoxs_)) {}
 
 SwapchainBox::~SwapchainBox() noexcept {
     if (swapchain_ == nullptr) return;
@@ -69,10 +70,11 @@ std::expected<SwapchainBox, Error> SwapchainBox::create(std::shared_ptr<DeviceBo
     imageBoxs.reserve(images.size());
 
     for (auto image : images) {
-        auto imageBoxRes = PresentImageBox::create(pDeviceBox, image, extent);
-        if (!imageBoxRes) return std::unexpected{std::move(imageBoxRes.error())};
-        auto& imageBox = imageBoxRes.value();
-        imageBoxs.emplace_back(std::move(imageBox));
+        ImageBox imageBox = ImageBox::createWithoutOwning(image, extent);
+        auto presentImageBoxRes = PresentImageBox::create(pDeviceBox, imageBox);
+        if (!presentImageBoxRes) return std::unexpected{std::move(presentImageBoxRes.error())};
+        auto& presentImageBox = presentImageBoxRes.value();
+        imageBoxs.emplace_back(std::move(presentImageBox));
     }
 
     return SwapchainBox{std::move(pDeviceBox), swapchain, std::move(imageBoxs)};

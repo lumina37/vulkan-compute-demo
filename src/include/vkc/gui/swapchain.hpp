@@ -14,7 +14,7 @@
 #include "vkc/extent.hpp"
 #include "vkc/gui/surface.hpp"
 #include "vkc/helper/error.hpp"
-#include "vkc/resource/present_image.hpp"
+#include "vkc/resource.hpp"
 #include "vkc/sync/semaphore.hpp"
 
 namespace vkc {
@@ -35,8 +35,8 @@ public:
     [[nodiscard]] vk::SwapchainKHR getSwapchain() const noexcept { return swapchain_; }
 
     template <typename Self>
-    [[nodiscard]] auto&& getImageBox(this Self&& self, uint32_t i) noexcept {
-        return std::forward_like<Self>(self).imageBoxs_[i];
+    [[nodiscard]] auto&& getPresentImageBox(this Self&& self, uint32_t i) noexcept {
+        return std::forward_like<Self>(self).presentImageBoxs_[i];
     }
 
     [[nodiscard]] std::expected<uint32_t, Error> acquireImageIndex(
@@ -46,7 +46,7 @@ private:
     std::shared_ptr<DeviceBox> pDeviceBox_;
 
     vk::SwapchainKHR swapchain_;
-    std::vector<PresentImageBox> imageBoxs_;
+    std::vector<PresentImageBox> presentImageBoxs_;
 };
 
 }  // namespace vkc
