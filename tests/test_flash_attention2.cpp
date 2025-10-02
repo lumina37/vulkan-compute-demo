@@ -126,23 +126,23 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
     vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Descriptor & Layouts
-    vkc::StorageImageBox srcMatQBox =
-        vkc::StorageImageBox::create(pDeviceBox, srcMatQ.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StorageBufferBox srcMatQBox =
+        vkc::StorageBufferBox::create(pDeviceBox, srcMatQ.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcMatQStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcMatQ.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
-    vkc::StorageImageBox srcMatKBox =
-        vkc::StorageImageBox::create(pDeviceBox, srcMatK.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, srcMatQBox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StorageBufferBox srcMatKBox =
+        vkc::StorageBufferBox::create(pDeviceBox, srcMatK.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcMatKStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcMatK.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
-    vkc::StorageImageBox srcMatVBox =
-        vkc::StorageImageBox::create(pDeviceBox, srcMatV.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, srcMatKBox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StorageBufferBox srcMatVBox =
+        vkc::StorageBufferBox::create(pDeviceBox, srcMatV.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcMatVStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcMatV.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, srcMatVBox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcMatQBox), std::ref(srcMatKBox), std::ref(srcMatVBox)};
-    vkc::StorageImageBox dstMatBox =
-        vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent(), vkc::StorageType::ReadWrite) | unwrap;
+    vkc::StorageBufferBox dstMatBox =
+        vkc::StorageBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstMatStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, dstMatBox.getSize(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstMatBoxRefs{std::ref(dstMatBox)};
     const std::array dstMatStagingBufferBoxRefs{std::ref(dstMatStagingBufferBox)};
     srcMatQStagingBufferBox.upload(srcMatQ.getPData()) | unwrap;
@@ -173,7 +173,7 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
         constexpr int groupNumX = vkc::ceilDiv(extent.width(), groupSizeX);
         constexpr int groupNumY = vkc::ceilDiv(extent.height(), groupSizeY);
         vkc::ShaderBox fa2ShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::flash_attention2::v0::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, d, N};
         vkc::PipelineBox fa2PipelineBox =
             vkc::PipelineBox::createCompute(pDeviceBox, fa2PLayoutBox, fa2ShaderBox, specConstantBox.getSpecInfo()) |
             unwrap;
@@ -181,15 +181,15 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
         fa2CmdBufBox.begin() | unwrap;
         fa2CmdBufBox.bindPipeline(fa2PipelineBox);
         fa2CmdBufBox.bindDescSets(fa2DescSetsBox, fa2PLayoutBox, vk::PipelineBindPoint::eCompute);
-        fa2CmdBufBox.recordPrepareReceive<vkc::StorageImageBox>(srcMatBoxRefs);
-        fa2CmdBufBox.recordCopyStagingToImage(srcMatQStagingBufferBox, srcMatQBox);
-        fa2CmdBufBox.recordCopyStagingToImage(srcMatKStagingBufferBox, srcMatKBox);
-        fa2CmdBufBox.recordCopyStagingToImage(srcMatVStagingBufferBox, srcMatVBox);
-        fa2CmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        fa2CmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
+        fa2CmdBufBox.recordCopyStagingToBuffer(srcMatQStagingBufferBox, srcMatQBox);
+        fa2CmdBufBox.recordCopyStagingToBuffer(srcMatKStagingBufferBox, srcMatKBox);
+        fa2CmdBufBox.recordCopyStagingToBuffer(srcMatVStagingBufferBox, srcMatVBox);
+        fa2CmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
         fa2CmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         fa2CmdBufBox.recordDispatch(groupNumX, groupNumY);
         fa2CmdBufBox.recordPrepareSend(dstMatBoxRefs);
-        fa2CmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
+        fa2CmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
         fa2CmdBufBox.recordWaitDownloadComplete(dstMatStagingBufferBoxRefs);
         fa2CmdBufBox.end() | unwrap;
 
@@ -218,7 +218,7 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
         constexpr int BcForKV = 16;
         constexpr int groupNumX = vkc::ceilDiv(extent.height(), BrForQ);
         vkc::ShaderBox fa2ShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::flash_attention2::v1::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, d, BrForQ, BcForKV};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, d, N, BrForQ, BcForKV};
         vkc::PipelineBox fa2PipelineBox =
             vkc::PipelineBox::createCompute(pDeviceBox, fa2PLayoutBox, fa2ShaderBox, specConstantBox.getSpecInfo()) |
             unwrap;
@@ -226,15 +226,15 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
         fa2CmdBufBox.begin() | unwrap;
         fa2CmdBufBox.bindPipeline(fa2PipelineBox);
         fa2CmdBufBox.bindDescSets(fa2DescSetsBox, fa2PLayoutBox, vk::PipelineBindPoint::eCompute);
-        fa2CmdBufBox.recordPrepareReceive<vkc::StorageImageBox>(srcMatBoxRefs);
-        fa2CmdBufBox.recordCopyStagingToImage(srcMatQStagingBufferBox, srcMatQBox);
-        fa2CmdBufBox.recordCopyStagingToImage(srcMatKStagingBufferBox, srcMatKBox);
-        fa2CmdBufBox.recordCopyStagingToImage(srcMatVStagingBufferBox, srcMatVBox);
-        fa2CmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        fa2CmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
+        fa2CmdBufBox.recordCopyStagingToBuffer(srcMatQStagingBufferBox, srcMatQBox);
+        fa2CmdBufBox.recordCopyStagingToBuffer(srcMatKStagingBufferBox, srcMatKBox);
+        fa2CmdBufBox.recordCopyStagingToBuffer(srcMatVStagingBufferBox, srcMatVBox);
+        fa2CmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
         fa2CmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         fa2CmdBufBox.recordDispatch(groupNumX, 1);
         fa2CmdBufBox.recordPrepareSend(dstMatBoxRefs);
-        fa2CmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
+        fa2CmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
         fa2CmdBufBox.recordWaitDownloadComplete(dstMatStagingBufferBoxRefs);
         fa2CmdBufBox.end() | unwrap;
 

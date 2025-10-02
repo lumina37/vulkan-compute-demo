@@ -2,14 +2,15 @@
 
 layout (local_size_x_id = 0) in;
 
-layout (binding = 0, r32f) uniform readonly image2D srcQ;
-layout (binding = 1, r32f) uniform readonly image2D srcK;
-layout (binding = 2, r32f) uniform readonly image2D srcV;
-layout (binding = 3, r32f) uniform writeonly image2D dstO;
+layout (binding = 0, std430) readonly buffer SrcQ { float srcQ[]; };
+layout (binding = 1, std430) readonly buffer SrcK { float srcK[]; };
+layout (binding = 2, std430) readonly buffer SrcV { float srcV[]; };
+layout (binding = 3, std430) writeonly buffer DstO { float dstO[]; };
 
 layout (constant_id = 1) const int d = 128;// head dim
-layout (constant_id = 2) const int BrForQ = 16;// divides Q
-layout (constant_id = 3) const int BcForKV = 16;// divides K/V
+layout (constant_id = 2) const int N = 0;// seq len
+layout (constant_id = 3) const int BrForQ = 16;// divides Q
+layout (constant_id = 4) const int BcForKV = 16;// divides K/V
 
 shared float sQ[BrForQ][d];
 shared float sK[BcForKV][d];
@@ -24,8 +25,6 @@ void main() {
     const int groupSize = int(gl_WorkGroupSize.x);
     const int localID = int(gl_LocalInvocationID.x);
     const int groupID = int(gl_WorkGroupID.x);
-    const ivec2 matSize = imageSize(dstO);
-    const int N = matSize.y;
     const float invSqrtD = sqrt(1.0f / float(d));
 
     const int KVIterCount = N / BcForKV;
@@ -45,8 +44,8 @@ void main() {
         const int y = linearIdx / d;
         const int srcX = x;
         const int srcY = groupID * BrForQ + y;
-        const vec4 srcVal = imageLoad(srcQ, ivec2(srcX, srcY));
-        sQ[y][x] = srcVal.x;
+        const int srcIndex = srcY * d + srcX;
+        sQ[y][x] = srcQ[srcIndex];
         sO[y][x] = 0;
     }
 
@@ -60,10 +59,9 @@ void main() {
             const int y = linearIdx / d;
             const int srcX = x;
             const int srcY = iterKV * BcForKV + y;
-            const vec4 srcKVal = imageLoad(srcK, ivec2(srcX, srcY));
-            const vec4 srcVVal = imageLoad(srcV, ivec2(srcX, srcY));
-            sK[y][x] = srcKVal.x;
-            sV[y][x] = srcVVal.x;
+            const int srcIndex = srcY * d + srcX;
+            sK[y][x] = srcK[srcIndex];
+            sV[y][x] = srcV[srcIndex];
         }
         barrier();
 
@@ -135,8 +133,8 @@ void main() {
         const int y = linearIdx / d;
         const int dstX = x;
         const int dstY = groupID * BrForQ + y;
-        const float finalVal = sO[y][x] / sRowExpSum[y];
-        const vec4 dstVal = vec4(finalVal, 0.0, 0.0, 0.0);
-        imageStore(dstO, ivec2(dstX, dstY), dstVal);
+        const int dstIndex = dstY * d + dstX;
+        const float dstVal = sO[y][x] / sRowExpSum[y];
+        dstO[dstIndex] = dstVal;
     }
 }

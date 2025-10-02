@@ -8,11 +8,13 @@
 
 layout (local_size_x = 32, local_size_y = 1) in;
 
-layout (binding = 0, r32f) uniform readonly image2D srcMatA;
-layout (binding = 1, r32f) uniform readonly image2D srcMatB;
-layout (binding = 2, r32f) uniform writeonly image2D dstMat;
+layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
+layout (binding = 1, std430) readonly buffer SrcMatB { float srcMatB[]; };
+layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 
-layout (constant_id = 0) const int K = 0;
+layout (constant_id = 0) const int M = 0;
+layout (constant_id = 1) const int N = 0;
+layout (constant_id = 2) const int K = 0;
 const int MMA_M = 16;
 const int MMA_N = 16;
 const int MMA_K = 16;
@@ -25,11 +27,6 @@ void main() {
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
-
-    const ivec2 sizeA = imageSize(srcMatA);
-    const ivec2 sizeB = imageSize(srcMatB);
-    const int M = sizeA.y;
-    const int N = sizeB.x;
 
     coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA;
     coopmat<float16_t, gl_ScopeSubgroup, MMA_K, MMA_N, gl_MatrixUseB> matB;
@@ -46,8 +43,8 @@ void main() {
             const int linearIdx = localID.x * loadsPerThreadA + i;
             const int srcX = baseK + linearIdx % MMA_K;
             const int srcY = baseM + linearIdx / MMA_K;
-            const vec4 srcVal = imageLoad(srcMatA, ivec2(srcX, srcY));
-            sharedA[linearIdx] = float16_t(srcVal.x);
+            const int srcAIndex = srcY * K + srcX;
+            sharedA[linearIdx] = float16_t(srcMatA[srcAIndex]);
         }
 
         const int loadsPerThreadB = MMA_K * MMA_N / groupSize.x;
@@ -55,8 +52,8 @@ void main() {
             const int linearIdx = localID.x * loadsPerThreadB + i;
             const int srcX = baseN + linearIdx % MMA_N;
             const int srcY = baseK + linearIdx / MMA_N;
-            const vec4 srcVal = imageLoad(srcMatB, ivec2(srcX, srcY));
-            sharedB[linearIdx] = float16_t(srcVal.x);
+            const int srcBIndex = srcY * N + srcX;
+            sharedB[linearIdx] = float16_t(srcMatB[srcBIndex]);
         }
         barrier();
 
@@ -74,7 +71,7 @@ void main() {
         const int linearIdx = localID.x * storesPerThread + i;
         const int dstX = baseN + linearIdx % MMA_K;
         const int dstY = baseM + linearIdx / MMA_K;
-        const vec4 dstVal = vec4(sharedC[linearIdx], 0.0, 0.0, 0.0);
-        imageStore(dstMat, ivec2(dstX, dstY), dstVal);
+        const int dstIndex = dstY * N + dstX;
+        dstMat[dstIndex] = sharedC[linearIdx];
     }
 }
