@@ -40,16 +40,17 @@ int main() {
     vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Descriptor & Layouts
-    vkc::StorageImageBox srcMatABox =
-        vkc::StorageImageBox::create(pDeviceBox, srcMatA.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StorageBufferBox srcMatABox =
+        vkc::StorageBufferBox::create(pDeviceBox, srcMatA.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcMatAStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcMatA.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
-    vkc::StorageImageBox srcMatBBox =
-        vkc::StorageImageBox::create(pDeviceBox, srcMatB.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, srcMatABox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StorageBufferBox srcMatBBox =
+        vkc::StorageBufferBox::create(pDeviceBox, srcMatB.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcMatBStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcMatB.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, srcMatBBox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
-    vkc::StorageImageBox dstMatBox = vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent()) | unwrap;
+    vkc::StorageBufferBox dstMatBox =
+        vkc::StorageBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstMatStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstMatBoxRefs{std::ref(dstMatBox)};
@@ -85,7 +86,7 @@ int main() {
     constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX);
     constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY);
     vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v0::code) | unwrap;
-    vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY};
+    vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K};
     vkc::PipelineBox sgemmPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
@@ -96,16 +97,16 @@ int main() {
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
         sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
-        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToImage(srcMatAStagingBufferBox, srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToImage(srcMatBStagingBufferBox, srcMatBBox);
-        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
+        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
         sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;
 

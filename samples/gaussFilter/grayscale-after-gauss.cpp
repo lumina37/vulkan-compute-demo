@@ -41,7 +41,8 @@ int main() {
     vkc::StagingBufferBox srcStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcImageBoxRefs{std::ref(srcImageBox)};
-    vkc::StorageImageBox dstImageBox = vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StorageImageBox dstImageBox =
+        vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent(), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstImageBoxRefs{std::ref(dstImageBox)};
@@ -107,7 +108,7 @@ int main() {
     gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
     gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
     gaussCmdBufBox.recordResetQueryPool(queryPoolBox);
-    gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
+    gaussCmdBufBox.recordPrepareReceive<vkc::SampledImageBox>(srcImageBoxRefs);
     gaussCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
     gaussCmdBufBox.recordPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
     gaussCmdBufBox.recordPrepareShaderWrite(dstImageBoxRefs);
@@ -121,8 +122,8 @@ int main() {
     grayCmdBufBox.begin() | unwrap;
     grayCmdBufBox.bindPipeline(grayPipelineBox);
     grayCmdBufBox.bindDescSets(grayDescSetsBox, grayPLayoutBox, vk::PipelineBindPoint::eCompute);
-    grayCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
-    grayCmdBufBox.recordPrepareSendBeforeDispatch(dstImageBoxRefs);
+    grayCmdBufBox.recordPrepareReceive<vkc::SampledImageBox>(srcImageBoxRefs);
+    grayCmdBufBox.recordPrepareSend(dstImageBoxRefs);
     grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
     grayCmdBufBox.recordCopyStorageToAnother(dstImageBox, srcImageBox);
     grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
@@ -131,7 +132,7 @@ int main() {
     grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
     grayCmdBufBox.recordDispatch(groupNumX, groupNumY);
     grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-    grayCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
+    grayCmdBufBox.recordPrepareSend(dstImageBoxRefs);
     grayCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
     grayCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
     grayCmdBufBox.end() | unwrap;

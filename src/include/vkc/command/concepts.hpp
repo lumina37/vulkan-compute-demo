@@ -3,6 +3,7 @@
 #include <concepts>
 #include <expected>
 
+#include "vkc/extent.hpp"
 #include "vkc/helper/error.hpp"
 #include "vkc/helper/vulkan.hpp"
 
@@ -11,20 +12,27 @@ namespace vkc {
 template <typename Self>
 concept CImageBox = requires {
     requires requires(const Self& self) {
-        { self.getImageAccessMask() } noexcept -> std::same_as<vk::AccessFlags>;
+        { self.getExtent() } noexcept -> std::same_as<const Extent&>;
+        { self.getAccessMask() } noexcept -> std::same_as<vk::AccessFlags>;
         { self.getImageLayout() } noexcept -> std::same_as<vk::ImageLayout>;
     };
     requires requires(Self& self) {
         { self.getVkImage() } noexcept -> std::same_as<vk::Image>;
-        { self.setImageAccessMask(std::declval<vk::AccessFlags>()) } noexcept;
+        { self.getExtent() } noexcept -> std::same_as<Extent&>;
+        { self.setAccessMask(std::declval<vk::AccessFlags>()) } noexcept;
         { self.setImageLayout(std::declval<vk::ImageLayout>()) } noexcept;
     };
 };
 
 template <typename Self>
 concept CBufferBox = requires {
+    requires requires(const Self& self) {
+        { self.getSize() } noexcept -> std::same_as<vk::DeviceSize>;
+        { self.getAccessMask() } noexcept -> std::same_as<vk::AccessFlags>;
+    };
     requires requires(Self& self) {
         { self.getVkBuffer() } noexcept -> std::same_as<vk::Buffer>;
+        { self.setAccessMask(std::declval<vk::AccessFlags>()) } noexcept;
     };
 };
 

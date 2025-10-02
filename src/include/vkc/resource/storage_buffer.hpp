@@ -21,8 +21,9 @@ public:
     StorageBufferBox(StorageBufferBox&& rhs) noexcept = default;
     ~StorageBufferBox() noexcept = default;
 
-    [[nodiscard]] static std::expected<StorageBufferBox, Error> create(std::shared_ptr<DeviceBox>& pDeviceBox,
-                                                                       vk::DeviceSize size) noexcept;
+    [[nodiscard]] static std::expected<StorageBufferBox, Error> create(
+        std::shared_ptr<DeviceBox>& pDeviceBox, vk::DeviceSize size,
+        StorageType bufferType = StorageType::ReadOnly) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto getVkBuffer(this Self&& self) noexcept {
@@ -30,6 +31,7 @@ public:
     }
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return bufferBox_.getSize(); }
+    [[nodiscard]] vk::AccessFlags getAccessMask() const noexcept { return accessMask_; }
 
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eStorageBuffer;
@@ -39,11 +41,14 @@ public:
 
     [[nodiscard]] std::expected<void, Error> upload(const std::byte* pSrc) noexcept;
     [[nodiscard]] std::expected<void, Error> download(std::byte* pDst) noexcept;
+    void setAccessMask(vk::AccessFlags accessMask) noexcept { accessMask_ = accessMask; }
 
 private:
     BufferBox bufferBox_;
     MemoryBox memoryBox_;
+
     vk::DescriptorBufferInfo descBufferInfo_;
+    vk::AccessFlags accessMask_;
 };
 
 constexpr vk::DescriptorSetLayoutBinding StorageBufferBox::draftDescSetLayoutBinding() noexcept {

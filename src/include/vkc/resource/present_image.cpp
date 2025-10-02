@@ -16,7 +16,7 @@ namespace vkc {
 PresentImageBox::PresentImageBox(ImageBox&& imageBox, ImageViewBox&& imageViewBox) noexcept
     : imageBox_(std::move(imageBox)),
       imageViewBox_(std::move(imageViewBox)),
-      imageAccessMask_(vk::AccessFlagBits::eNone),
+      accessMask_(vk::AccessFlagBits::eNone),
       imageLayout_(vk::ImageLayout::eUndefined) {}
 
 std::expected<PresentImageBox, Error> PresentImageBox::create(std::shared_ptr<DeviceBox>& pDeviceBox,

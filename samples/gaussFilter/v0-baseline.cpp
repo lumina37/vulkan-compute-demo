@@ -41,7 +41,8 @@ int main() {
     vkc::StagingBufferBox srcStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcImageBoxRefs{std::ref(srcImageBox)};
-    vkc::StorageImageBox dstImageBox = vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StorageImageBox dstImageBox =
+        vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent(), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstImageBoxRefs{std::ref(dstImageBox)};
@@ -96,7 +97,7 @@ int main() {
         gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
         gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
         gaussCmdBufBox.recordResetQueryPool(queryPoolBox);
-        gaussCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::SampledImageBox>(srcImageBoxRefs);
+        gaussCmdBufBox.recordPrepareReceive<vkc::SampledImageBox>(srcImageBoxRefs);
         gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
         gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
@@ -105,7 +106,7 @@ int main() {
         gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
         gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
+        gaussCmdBufBox.recordPrepareSend(dstImageBoxRefs);
         gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         gaussCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
         gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;

@@ -36,7 +36,8 @@ int main() {
     vkc::StagingBufferBox srcStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcImageBoxRefs{std::ref(srcImageBox)};
-    vkc::StorageImageBox dstImageBox = vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent()) | unwrap;
+    vkc::StorageImageBox dstImageBox =
+        vkc::StorageImageBox::create(pDeviceBox, srcImage.getExtent(), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, srcImage.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstImageBoxRefs{std::ref(dstImageBox)};
@@ -86,7 +87,7 @@ int main() {
         grayCmdBufBox.bindPipeline(grayPipelineBox);
         grayCmdBufBox.bindDescSets(grayDescSetsBox, grayPLayoutBox, vk::PipelineBindPoint::eCompute);
         grayCmdBufBox.recordResetQueryPool(queryPoolBox);
-        grayCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcImageBoxRefs);
+        grayCmdBufBox.recordPrepareReceive<vkc::StorageImageBox>(srcImageBoxRefs);
         grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         grayCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
@@ -95,7 +96,7 @@ int main() {
         grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         grayCmdBufBox.recordDispatch(groupNumX, groupNumY);
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        grayCmdBufBox.recordPrepareSendAfterDispatch(dstImageBoxRefs);
+        grayCmdBufBox.recordPrepareSend(dstImageBoxRefs);
         grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
         grayCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
         grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;

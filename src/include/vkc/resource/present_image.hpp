@@ -29,17 +29,17 @@ public:
     }
 
     [[nodiscard]] vk::Image getVkImage() const noexcept { return imageBox_.getVkImage(); }
-    [[nodiscard]] vk::AccessFlags getImageAccessMask() const noexcept { return imageAccessMask_; }
+    [[nodiscard]] vk::AccessFlags getAccessMask() const noexcept { return accessMask_; }
     [[nodiscard]] vk::ImageLayout getImageLayout() const noexcept { return imageLayout_; }
 
-    void setImageAccessMask(vk::AccessFlags accessMask) noexcept { imageAccessMask_ = accessMask; }
+    void setAccessMask(vk::AccessFlags accessMask) noexcept { accessMask_ = accessMask; }
     void setImageLayout(vk::ImageLayout imageLayout) noexcept { imageLayout_ = imageLayout; }
 
 private:
     ImageBox imageBox_;
     ImageViewBox imageViewBox_;
 
-    vk::AccessFlags imageAccessMask_;
+    vk::AccessFlags accessMask_;
     vk::ImageLayout imageLayout_;
 };
 

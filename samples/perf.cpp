@@ -130,7 +130,7 @@ int main() {
         sgemmCmdBufBox.begin() | unwrap;
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
-        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareReceive<vkc::StorageImageBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordCopyStagingToImage(srcMatAStagingBufferBox, srcMatABox);
         sgemmCmdBufBox.recordCopyStagingToImage(srcMatBStagingBufferBox, srcMatBBox);
         sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
@@ -138,7 +138,7 @@ int main() {
         sgemmCmdBufBox.recordPerfQueryStart(perfQueryPoolBox) | unwrap;
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
         sgemmCmdBufBox.recordPerfQueryEnd(perfQueryPoolBox) | unwrap;
-        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
         sgemmCmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;

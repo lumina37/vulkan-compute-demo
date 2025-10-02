@@ -24,13 +24,14 @@ public:
     [[nodiscard]] static std::expected<UniformBufferBox, Error> create(std::shared_ptr<DeviceBox>& pDeviceBox,
                                                                        vk::DeviceSize size) noexcept;
 
-
     template <typename Self>
     [[nodiscard]] auto getVkBuffer(this Self&& self) noexcept {
         return std::forward_like<Self>(self.bufferBox_).getVkBuffer();
     }
 
     [[nodiscard]] vk::DeviceSize getSize() const noexcept { return bufferBox_.getSize(); }
+    [[nodiscard]] vk::AccessFlags getAccessMask() const noexcept { return accessMask_; }
+
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eUniformBuffer;
     }
@@ -38,11 +39,14 @@ public:
     [[nodiscard]] static constexpr vk::DescriptorSetLayoutBinding draftDescSetLayoutBinding() noexcept;
 
     [[nodiscard]] std::expected<void, Error> upload(const std::byte* pSrc) noexcept;
+    void setAccessMask(vk::AccessFlags accessMask) noexcept { accessMask_ = accessMask; }
 
 private:
     BufferBox bufferBox_;
     MemoryBox memoryBox_;
+
     vk::DescriptorBufferInfo descBufferInfo_;
+    vk::AccessFlags accessMask_;
 };
 
 constexpr vk::DescriptorSetLayoutBinding UniformBufferBox::draftDescSetLayoutBinding() noexcept {

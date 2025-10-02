@@ -17,11 +17,20 @@ namespace vkc {
 
 StorageBufferBox::StorageBufferBox(BufferBox&& bufferBox, MemoryBox&& memoryBox,
                                    const vk::DescriptorBufferInfo& descBufferInfo) noexcept
-    : bufferBox_(std::move(bufferBox)), memoryBox_(std::move(memoryBox)), descBufferInfo_(descBufferInfo) {}
+    : bufferBox_(std::move(bufferBox)),
+      memoryBox_(std::move(memoryBox)),
+      descBufferInfo_(descBufferInfo),
+      accessMask_(vk::AccessFlagBits::eNone) {}
 
 std::expected<StorageBufferBox, Error> StorageBufferBox::create(std::shared_ptr<DeviceBox>& pDeviceBox,
-                                                                vk::DeviceSize size) noexcept {
-    auto bufferBoxRes = BufferBox::create(pDeviceBox, size, vk::BufferUsageFlagBits::eStorageBuffer);
+                                                                vk::DeviceSize size, StorageType bufferType) noexcept {
+    vk::BufferUsageFlags bufferUsage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst;
+
+    if (StorageType::ReadWrite == bufferType) {
+        bufferUsage |= vk::BufferUsageFlagBits::eTransferSrc;
+    }
+
+    auto bufferBoxRes = BufferBox::create(pDeviceBox, size, bufferUsage);
     if (!bufferBoxRes) return std::unexpected{std::move(bufferBoxRes.error())};
     BufferBox& bufferBox = bufferBoxRes.value();
 

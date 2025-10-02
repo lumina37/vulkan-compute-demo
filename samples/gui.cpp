@@ -68,7 +68,7 @@ int main() {
         const std::array presentImageBoxRefs{std::ref(presentImageBox)};
 
         presentCmdBufBox.begin() | unwrap;
-        presentCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::PresentImageBox>(presentImageBoxRefs);
+        presentCmdBufBox.recordPrepareReceive<vkc::PresentImageBox>(presentImageBoxRefs);
         presentCmdBufBox.recordCopyStagingToImage(stagingBufferBox, presentImageBox);
         presentCmdBufBox.recordPreparePresent(presentImageBoxRefs);
         presentCmdBufBox.end() | unwrap;

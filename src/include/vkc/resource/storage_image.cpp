@@ -22,7 +22,7 @@ StorageImageBox::StorageImageBox(ImageBox&& imageBox, ImageViewBox&& imageViewBo
       imageViewBox_(std::move(imageViewBox)),
       imageMemoryBox_(std::move(imageMemoryBox)),
       descImageInfo_(descImageInfo),
-      imageAccessMask_(vk::AccessFlagBits::eNone),
+      accessMask_(vk::AccessFlagBits::eNone),
       imageLayout_(vk::ImageLayout::eUndefined) {}
 
 std::expected<StorageImageBox, Error> StorageImageBox::create(std::shared_ptr<DeviceBox>& pDeviceBox,

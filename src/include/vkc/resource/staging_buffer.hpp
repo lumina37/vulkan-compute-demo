@@ -23,7 +23,7 @@ public:
 
     [[nodiscard]] static std::expected<StagingBufferBox, Error> create(
         std::shared_ptr<DeviceBox>& pDeviceBox, vk::DeviceSize size,
-        StorageType bufferType = StorageType::ReadWrite) noexcept;
+        StorageType bufferType = StorageType::ReadOnly) noexcept;
 
     template <typename Self>
     [[nodiscard]] auto getVkBuffer(this Self&& self) noexcept {

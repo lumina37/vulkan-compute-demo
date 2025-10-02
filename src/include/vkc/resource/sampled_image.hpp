@@ -33,7 +33,7 @@ public:
     }
 
     [[nodiscard]] vk::Image getVkImage() const noexcept { return imageBox_.getVkImage(); }
-    [[nodiscard]] vk::AccessFlags getImageAccessMask() const noexcept { return imageAccessMask_; }
+    [[nodiscard]] vk::AccessFlags getAccessMask() const noexcept { return accessMask_; }
     [[nodiscard]] vk::ImageLayout getImageLayout() const noexcept { return imageLayout_; }
     [[nodiscard]] static constexpr vk::DescriptorType getDescType() noexcept {
         return vk::DescriptorType::eSampledImage;
@@ -44,7 +44,7 @@ public:
     [[nodiscard]] std::expected<void, Error> upload(const std::byte* pSrc) noexcept;
     [[nodiscard]] std::expected<void, Error> uploadWithRoi(const std::byte* pSrc, const Roi& roi, size_t bufferOffset,
                                                            size_t bufferRowPitch) noexcept;
-    void setImageAccessMask(vk::AccessFlags accessMask) noexcept { imageAccessMask_ = accessMask; }
+    void setAccessMask(vk::AccessFlags accessMask) noexcept { accessMask_ = accessMask; }
     void setImageLayout(vk::ImageLayout imageLayout) noexcept { imageLayout_ = imageLayout; }
 
 private:
@@ -53,7 +53,7 @@ private:
     MemoryBox imageMemoryBox_;
 
     vk::DescriptorImageInfo descImageInfo_;
-    vk::AccessFlags imageAccessMask_;
+    vk::AccessFlags accessMask_;
     vk::ImageLayout imageLayout_;
 };
 

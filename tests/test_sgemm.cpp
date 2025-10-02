@@ -112,16 +112,17 @@ TEST_CASE("GLSL-SGEMM", "") {
     vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Descriptor & Layouts
-    vkc::StorageImageBox srcMatABox =
-        vkc::StorageImageBox::create(pDeviceBox, srcMatA.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StorageBufferBox srcMatABox =
+        vkc::StorageBufferBox::create(pDeviceBox, srcMatA.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcMatAStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcMatA.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
-    vkc::StorageImageBox srcMatBBox =
-        vkc::StorageImageBox::create(pDeviceBox, srcMatB.getExtent(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, srcMatABox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StorageBufferBox srcMatBBox =
+        vkc::StorageBufferBox::create(pDeviceBox, srcMatB.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcMatBStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcMatB.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, srcMatBBox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
-    vkc::StorageImageBox dstMatBox = vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent()) | unwrap;
+    vkc::StorageBufferBox dstMatBox =
+        vkc::StorageBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstMatStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstMatBoxRefs{std::ref(dstMatBox)};
@@ -154,7 +155,7 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY);
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v0::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -162,14 +163,10 @@ TEST_CASE("GLSL-SGEMM", "") {
         sgemmCmdBufBox.begin() | unwrap;
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
-        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToImage(srcMatAStagingBufferBox, srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToImage(srcMatBStagingBufferBox, srcMatBBox);
-        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
-        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;
 
@@ -198,7 +195,7 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY);
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v1::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, K};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -206,14 +203,10 @@ TEST_CASE("GLSL-SGEMM", "") {
         sgemmCmdBufBox.begin() | unwrap;
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
-        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToImage(srcMatAStagingBufferBox, srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToImage(srcMatBStagingBufferBox, srcMatBBox);
-        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
-        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;
 
@@ -245,7 +238,7 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX * TN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY * TM);
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v2::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, K, TM, TN, TK};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K, TM, TN, TK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -253,14 +246,10 @@ TEST_CASE("GLSL-SGEMM", "") {
         sgemmCmdBufBox.begin() | unwrap;
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
-        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToImage(srcMatAStagingBufferBox, srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToImage(srcMatBStagingBufferBox, srcMatBBox);
-        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
-        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;
 

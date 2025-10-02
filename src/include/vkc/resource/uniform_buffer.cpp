@@ -17,11 +17,17 @@ namespace vkc {
 
 UniformBufferBox::UniformBufferBox(BufferBox&& bufferBox, MemoryBox&& memoryBox,
                                    const vk::DescriptorBufferInfo& descBufferInfo) noexcept
-    : bufferBox_(std::move(bufferBox)), memoryBox_(std::move(memoryBox)), descBufferInfo_(descBufferInfo) {}
+    : bufferBox_(std::move(bufferBox)),
+      memoryBox_(std::move(memoryBox)),
+      descBufferInfo_(descBufferInfo),
+      accessMask_(vk::AccessFlagBits::eNone) {}
 
 std::expected<UniformBufferBox, Error> UniformBufferBox::create(std::shared_ptr<DeviceBox>& pDeviceBox,
                                                                 vk::DeviceSize size) noexcept {
-    auto bufferBoxRes = BufferBox::create(pDeviceBox, size, vk::BufferUsageFlagBits::eUniformBuffer);
+    constexpr vk::BufferUsageFlags bufferUsage =
+        vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst;
+
+    auto bufferBoxRes = BufferBox::create(pDeviceBox, size, bufferUsage);
     if (!bufferBoxRes) return std::unexpected{std::move(bufferBoxRes.error())};
     BufferBox& bufferBox = bufferBoxRes.value();
 

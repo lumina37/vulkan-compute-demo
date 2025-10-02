@@ -107,7 +107,8 @@ TEST_CASE("GLSL-SGEMM", "") {
     vkc::StagingBufferBox srcMatBStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, srcMatB.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
-    vkc::StorageImageBox dstMatBox = vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent()) | unwrap;
+    vkc::StorageImageBox dstMatBox =
+        vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent(), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstMatStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstMatBoxRefs{std::ref(dstMatBox)};
@@ -148,13 +149,13 @@ TEST_CASE("GLSL-SGEMM", "") {
         sgemmCmdBufBox.begin() | unwrap;
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
-        sgemmCmdBufBox.recordPrepareReceiveBeforeDispatch<vkc::StorageImageBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareReceive<vkc::StorageImageBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordCopyStagingToImage(srcMatAStagingBufferBox, srcMatABox);
         sgemmCmdBufBox.recordCopyStagingToImage(srcMatBStagingBufferBox, srcMatBBox);
         sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageImageBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
-        sgemmCmdBufBox.recordPrepareSendAfterDispatch(dstMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
         sgemmCmdBufBox.recordCopyImageToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
         sgemmCmdBufBox.end() | unwrap;

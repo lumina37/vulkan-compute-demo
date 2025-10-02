@@ -42,22 +42,27 @@ public:
 
     [[nodiscard]] std::expected<void, Error> begin() noexcept;
 
-    using TStagingBufferBoxRef = std::reference_wrapper<StagingBufferBox>;
-    using TStorageImageBoxRef = std::reference_wrapper<StorageImageBox>;
-    using TPresentImageBoxRef = std::reference_wrapper<PresentImageBox>;
-
+    // ========== Memory Operations ==========
     template <CImageBox TImageBox>
-    void recordPrepareReceiveBeforeDispatch(std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept;
+    void recordPrepareReceive(std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept;
 
-    template <CImageBox TImageBox>
-    void recordPrepareReceiveAfterDispatch(std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept;
+    template <CBufferBox TBufferBox>
+    void recordPrepareReceive(std::span<const std::reference_wrapper<TBufferBox>> bufferBoxRefs) noexcept;
 
     template <CImageBox TImageBox>
     void recordPrepareShaderRead(std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept;
 
+    template <CBufferBox TBufferBox>
+    void recordPrepareShaderRead(std::span<const std::reference_wrapper<TBufferBox>> bufferBoxRefs) noexcept;
+
+    using TStorageImageBoxRef = std::reference_wrapper<StorageImageBox>;
+    using TStorageBufferBoxRef = std::reference_wrapper<StorageBufferBox>;
     void recordPrepareShaderWrite(std::span<const TStorageImageBoxRef> imageBoxRefs) noexcept;
-    void recordPrepareSendBeforeDispatch(std::span<const TStorageImageBoxRef> imageBoxRefs) noexcept;
-    void recordPrepareSendAfterDispatch(std::span<const TStorageImageBoxRef> imageBoxRefs) noexcept;
+    void recordPrepareShaderWrite(std::span<const TStorageBufferBoxRef> bufferBoxRefs) noexcept;
+    void recordPrepareSend(std::span<const TStorageImageBoxRef> imageBoxRefs) noexcept;
+    void recordPrepareSend(std::span<const TStorageBufferBoxRef> bufferBoxRefs) noexcept;
+
+    using TPresentImageBoxRef = std::reference_wrapper<PresentImageBox>;
     void recordPreparePresent(std::span<const TPresentImageBoxRef> imageBoxRefs) noexcept;
 
     void recordDispatch(int groupNumX, int groupNumY) noexcept;
@@ -69,9 +74,13 @@ public:
     void recordCopyStagingToImageWithRoi(const StagingBufferBox& stagingBufferBox, TImageBox& imageBox,
                                          const Roi& roi) noexcept;
 
+    template <CBufferBox TBufferBox>
+    void recordCopyStagingToBuffer(const StagingBufferBox& stagingBufferBox, TBufferBox& bufferBox) noexcept;
+
     void recordCopyImageToStaging(const StorageImageBox& imageBox, StagingBufferBox& stagingBufferBox) noexcept;
     void recordCopyImageToStagingWithRoi(const StorageImageBox& imageBox, StagingBufferBox& stagingBufferBox,
                                          const Roi& roi) noexcept;
+    void recordCopyBufferToStaging(const StorageBufferBox& bufferBox, StagingBufferBox& stagingBufferBox) noexcept;
 
     template <CImageBox TImageBox>
     void recordCopyStorageToAnother(const StorageImageBox& srcImageBox, TImageBox& dstImageBox) noexcept;
@@ -80,7 +89,9 @@ public:
     void recordCopyStorageToAnotherWithRoi(const StorageImageBox& srcImageBox, TImageBox& dstImageBox,
                                            const Roi& roi) noexcept;
 
+    using TStagingBufferBoxRef = std::reference_wrapper<StagingBufferBox>;
     void recordWaitDownloadComplete(std::span<const TStagingBufferBoxRef> stagingBufferBoxRefs) noexcept;
+    // =======================================
 
     template <CQueryPoolBox TQueryPoolBox>
     void recordResetQueryPool(TQueryPoolBox& queryPoolBox) noexcept;
@@ -99,6 +110,7 @@ private:
     std::shared_ptr<CommandPoolBox> pCommandPoolBox_;
 
     vk::CommandBuffer commandBuffer_;
+    bool dispatchRecorded_;
 };
 
 template <typename TPc>
@@ -110,15 +122,13 @@ void CommandBufferBox::pushConstant(const PushConstantBox<TPc>& pushConstantBox,
 }
 
 template <CImageBox TImageBox>
-void CommandBufferBox::recordPrepareReceiveBeforeDispatch(
+void CommandBufferBox::recordPrepareReceive(
     const std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eTransferWrite;
     constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eTransferDstOptimal;
 
     vk::ImageMemoryBarrier barrierTemplate;
-    barrierTemplate.setSrcAccessMask(vk::AccessFlagBits::eNone);
     barrierTemplate.setDstAccessMask(newAccessMask);
-    barrierTemplate.setOldLayout(vk::ImageLayout::eUndefined);
     barrierTemplate.setNewLayout(newImageLayout);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
@@ -128,9 +138,13 @@ void CommandBufferBox::recordPrepareReceiveBeforeDispatch(
         auto& box = boxRef.get();
 
         vk::ImageMemoryBarrier barrier = barrierTemplate;
+        barrier.setOldLayout(box.getImageLayout());
+        if (dispatchRecorded_) {
+            barrier.setSrcAccessMask(box.getAccessMask());
+        }
         barrier.setImage(box.getVkImage());
 
-        box.setImageAccessMask(newAccessMask);
+        box.setAccessMask(newAccessMask);
         box.setImageLayout(newImageLayout);
 
         return barrier;
@@ -138,43 +152,53 @@ void CommandBufferBox::recordPrepareReceiveBeforeDispatch(
 
     const auto barriers = imageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
-    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
-                                   barriers.data());
+    vk::PipelineStageFlags srcStageMask;
+    if (dispatchRecorded_) {
+        srcStageMask = vk::PipelineStageFlagBits::eComputeShader;
+    } else {
+        srcStageMask = vk::PipelineStageFlagBits::eTopOfPipe;
+    }
+
+    commandBuffer_.pipelineBarrier(srcStageMask, vk::PipelineStageFlagBits::eTransfer, (vk::DependencyFlags)0, 0,
+                                   nullptr, 0, nullptr, (uint32_t)barriers.size(), barriers.data());
 }
 
-template <CImageBox TImageBox>
-void CommandBufferBox::recordPrepareReceiveAfterDispatch(
-    const std::span<const std::reference_wrapper<TImageBox>> imageBoxRefs) noexcept {
+template <CBufferBox TBufferBox>
+void CommandBufferBox::recordPrepareReceive(
+    std::span<const std::reference_wrapper<TBufferBox>> bufferBoxRefs) noexcept {
     constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eTransferWrite;
-    constexpr vk::ImageLayout newImageLayout = vk::ImageLayout::eTransferDstOptimal;
 
-    vk::ImageMemoryBarrier barrierTemplate;
+    vk::BufferMemoryBarrier barrierTemplate;
     barrierTemplate.setDstAccessMask(newAccessMask);
-    barrierTemplate.setNewLayout(newImageLayout);
     barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
     barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
-    barrierTemplate.setSubresourceRange(_hp::SUBRESOURCE_RANGE);
 
-    const auto fillout = [&](const std::reference_wrapper<TImageBox> boxRef) {
+    const auto fillout = [&](const std::reference_wrapper<TBufferBox> boxRef) {
         auto& box = boxRef.get();
 
-        vk::ImageMemoryBarrier barrier = barrierTemplate;
-        barrier.setSrcAccessMask(box.getImageAccessMask());
-        barrier.setOldLayout(box.getImageLayout());
-        barrier.setImage(box.getVkImage());
+        vk::BufferMemoryBarrier barrier = barrierTemplate;
+        if (dispatchRecorded_) {
+            barrier.setSrcAccessMask(box.getAccessMask());
+        }
+        barrier.setBuffer(box.getVkBuffer());
+        barrier.setSize(box.getSize());
 
-        box.setImageAccessMask(newAccessMask);
-        box.setImageLayout(newImageLayout);
+        box.setAccessMask(newAccessMask);
 
         return barrier;
     };
 
-    const auto barriers = imageBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+    const auto barriers = bufferBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
 
-    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
-                                   (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
-                                   barriers.data());
+    vk::PipelineStageFlags srcStageMask;
+    if (dispatchRecorded_) {
+        srcStageMask = vk::PipelineStageFlagBits::eComputeShader;
+    } else {
+        srcStageMask = vk::PipelineStageFlagBits::eTopOfPipe;
+    }
+
+    commandBuffer_.pipelineBarrier(srcStageMask, vk::PipelineStageFlagBits::eTransfer, (vk::DependencyFlags)0, 0,
+                                   nullptr, (uint32_t)barriers.size(), barriers.data(), 0, nullptr);
 }
 
 template <CImageBox TImageBox>
@@ -196,11 +220,11 @@ void CommandBufferBox::recordPrepareShaderRead(
         auto& box = boxRef.get();
 
         vk::ImageMemoryBarrier barrier = barrierTemplate;
-        barrier.setSrcAccessMask(box.getImageAccessMask());
+        barrier.setSrcAccessMask(box.getAccessMask());
         barrier.setOldLayout(box.getImageLayout());
         barrier.setImage(box.getVkImage());
 
-        box.setImageAccessMask(newAccessMask);
+        box.setAccessMask(newAccessMask);
         box.setImageLayout(newImageLayout);
 
         return barrier;
@@ -211,6 +235,36 @@ void CommandBufferBox::recordPrepareShaderRead(
     commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
                                    (vk::DependencyFlags)0, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(),
                                    barriers.data());
+}
+
+template <CBufferBox TBufferBox>
+void CommandBufferBox::recordPrepareShaderRead(
+    std::span<const std::reference_wrapper<TBufferBox>> bufferBoxRefs) noexcept {
+    constexpr vk::AccessFlags newAccessMask = vk::AccessFlagBits::eShaderRead;
+
+    vk::BufferMemoryBarrier barrierTemplate;
+    barrierTemplate.setDstAccessMask(newAccessMask);
+    barrierTemplate.setSrcQueueFamilyIndex(vk::QueueFamilyIgnored);
+    barrierTemplate.setDstQueueFamilyIndex(vk::QueueFamilyIgnored);
+
+    const auto fillout = [&](const std::reference_wrapper<TBufferBox> boxRef) {
+        auto& box = boxRef.get();
+
+        vk::BufferMemoryBarrier barrier = barrierTemplate;
+        barrier.setSrcAccessMask(box.getAccessMask());
+        barrier.setBuffer(box.getVkBuffer());
+        barrier.setSize(box.getSize());
+
+        box.setAccessMask(newAccessMask);
+
+        return barrier;
+    };
+
+    const auto barriers = bufferBoxRefs | rgs::views::transform(fillout) | rgs::to<std::vector>();
+
+    commandBuffer_.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
+                                   (vk::DependencyFlags)0, 0, nullptr, (uint32_t)barriers.size(), barriers.data(), 0,
+                                   nullptr);
 }
 
 template <CImageBox TImageBox>
@@ -238,6 +292,15 @@ void CommandBufferBox::recordCopyStagingToImageWithRoi(const StagingBufferBox& s
 
     commandBuffer_.copyBufferToImage(stagingBufferBox.getVkBuffer(), imageBox.getVkImage(),
                                      vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
+}
+
+template <CBufferBox TBufferBox>
+void CommandBufferBox::recordCopyStagingToBuffer(const StagingBufferBox& stagingBufferBox,
+                                                 TBufferBox& bufferBox) noexcept {
+    vk::BufferCopy copyRegion;
+    copyRegion.setSize(bufferBox.getSize());
+
+    commandBuffer_.copyBuffer(stagingBufferBox.getVkBuffer(), bufferBox.getVkBuffer(), 1, &copyRegion);
 }
 
 template <CImageBox TImageBox>
