@@ -139,7 +139,8 @@ TEST_CASE("GLSL-FlashAttention-2", "") {
     vkc::StagingBufferBox srcMatVStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, srcMatV.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcMatQBox), std::ref(srcMatKBox), std::ref(srcMatVBox)};
-    vkc::StorageImageBox dstMatBox = vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent()) | unwrap;
+    vkc::StorageImageBox dstMatBox =
+        vkc::StorageImageBox::create(pDeviceBox, dstMatVk.getExtent(), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstMatStagingBufferBox =
         vkc::StagingBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstMatBoxRefs{std::ref(dstMatBox)};
