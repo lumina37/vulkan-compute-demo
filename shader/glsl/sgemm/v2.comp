@@ -1,5 +1,7 @@
 #version 460
 
+#extension GL_EXT_control_flow_attributes : enable
+
 layout (local_size_x_id = 0, local_size_y_id = 1) in;
 
 layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
@@ -26,8 +28,8 @@ void main() {
 
     // Accumulation registers for thread tile
     float acc[THREAD_TILE_M][THREAD_TILE_N];
-    for (int tm = 0; tm < THREAD_TILE_M; tm++) {
-        for (int tn = 0; tn < THREAD_TILE_N; tn++) {
+    [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
+        [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
             acc[tm][tn] = 0.0;
         }
     }
@@ -60,11 +62,11 @@ void main() {
         barrier();
 
         // Compute
-        for (int tm = 0; tm < THREAD_TILE_M; tm++) {
+        [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
             const int yA = localID.y * THREAD_TILE_M + tm;
-            for (int tn = 0; tn < THREAD_TILE_N; tn++) {
+            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
                 const int yB = localID.x * THREAD_TILE_N + tn;
-                for (int tk = 0; tk < THREAD_TILE_K; tk++) {
+                [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
                     const float valA = sharedA[yA][tk];
                     const float valB = sharedB[yB][tk];
                     acc[tm][tn] += valA * valB;
@@ -75,8 +77,8 @@ void main() {
     }
 
     // Store results
-    for (int tm = 0; tm < THREAD_TILE_M; tm++) {
-        for (int tn = 0; tn < THREAD_TILE_N; tn++) {
+    [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
+        [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
             const int globalRow = globalID.y * THREAD_TILE_M + tm;
             const int globalCol = globalID.x * THREAD_TILE_N + tn;
             const int dstIdx = globalRow * N + globalCol;

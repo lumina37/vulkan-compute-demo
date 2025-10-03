@@ -1,5 +1,7 @@
 #version 460
 
+#extension GL_EXT_control_flow_attributes : enable
+
 layout (local_size_x_id = 0, local_size_y_id = 1) in;
 
 layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
@@ -36,7 +38,7 @@ void main() {
         barrier();
 
         // Compute
-        for (int k = 0; k < groupSize.x; k++) {
+        [[unroll]] for (int k = 0; k < groupSize.x; k++) {
             const float valA = sharedA[localID.y][k];
             const float valB = sharedB[localID.x][k];// transposed
             acc += valA * valB;
