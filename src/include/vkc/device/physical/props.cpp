@@ -23,7 +23,7 @@ std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(const 
     if (!extEntriesRes) return std::unexpected{std::move(extEntriesRes.error())};
     props.extensions = std::move(extEntriesRes.value());
 
-    vk::StructureChain<vk::PhysicalDeviceProperties2> propsChain;
+    vk::StructureChain<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceSubgroupProperties> propsChain;
     phyDevice.getProperties2(&propsChain.get());
 
     const auto& phyDeviceProps2 = propsChain.get<vk::PhysicalDeviceProperties2>().properties;
@@ -32,6 +32,9 @@ std::expected<DefaultPhyDeviceProps, Error> DefaultPhyDeviceProps::create(const 
     props.maxSharedMemSize = phyDeviceProps2.limits.maxComputeSharedMemorySize;
     props.timestampPeriod = phyDeviceProps2.limits.timestampPeriod;
     props.supportTimeQuery = (bool)phyDeviceProps2.limits.timestampComputeAndGraphics;
+
+    const auto& subgroupProps = propsChain.get<vk::PhysicalDeviceSubgroupProperties>();
+    props.subgroupSize = subgroupProps.subgroupSize;
 
     return props;
 }

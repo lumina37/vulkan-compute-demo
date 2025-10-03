@@ -35,9 +35,9 @@ auto PhyDeviceFeatures_<TFeat...>::create(const PhyDeviceBox& phyDeviceBox) noex
 }
 
 using DefaultPhyDeviceFeatures =
-    PhyDeviceFeatures_<vk::PhysicalDeviceFeatures2, vk::PhysicalDevicePerformanceQueryFeaturesKHR,
-                       vk::PhysicalDeviceShaderFloat16Int8Features, vk::PhysicalDeviceHostQueryResetFeatures,
-                       vk::PhysicalDeviceVulkanMemoryModelFeatures, vk::PhysicalDeviceCooperativeMatrixFeaturesKHR>;
+    PhyDeviceFeatures_<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceHostQueryResetFeatures,
+                       vk::PhysicalDeviceShaderFloat16Int8Features, vk::PhysicalDeviceVulkanMemoryModelFeatures,
+                       vk::PhysicalDeviceCooperativeMatrixFeaturesKHR, vk::PhysicalDevicePerformanceQueryFeaturesKHR>;
 
 }  // namespace vkc
 

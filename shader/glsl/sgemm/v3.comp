@@ -6,15 +6,15 @@
 #extension GL_KHR_memory_scope_semantics: require
 #extension GL_KHR_cooperative_matrix: require
 
-layout (local_size_x = 32, local_size_y = 1) in;
+layout (local_size_x_id = 0) in;
 
 layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
 layout (binding = 1, std430) readonly buffer SrcMatB { float srcMatB[]; };
 layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 
-layout (constant_id = 0) const int M = 0;
-layout (constant_id = 1) const int N = 0;
-layout (constant_id = 2) const int K = 0;
+layout (constant_id = 1) const int M = 0;
+layout (constant_id = 2) const int N = 0;
+layout (constant_id = 3) const int K = 0;
 const int MMA_M = 16;
 const int MMA_N = 16;
 const int MMA_K = 16;
@@ -24,7 +24,7 @@ shared float16_t sharedB[MMA_K * MMA_N];
 shared float sharedC[MMA_M * MMA_N];
 
 void main() {
-    const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
+    const int groupSize = int(gl_WorkGroupSize.x);
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
 
@@ -38,7 +38,7 @@ void main() {
     const int baseN = groupID.x * MMA_N;
     for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
         const int baseK = iBlkTile * MMA_K;
-        const int loadsPerThreadA = MMA_M * MMA_K / groupSize.x;
+        const int loadsPerThreadA = MMA_M * MMA_K / groupSize;
         for (int i = 0; i < loadsPerThreadA; i++) {
             const int linearIdx = localID.x * loadsPerThreadA + i;
             const int srcX = baseK + linearIdx % MMA_K;
@@ -47,7 +47,7 @@ void main() {
             sharedA[linearIdx] = float16_t(srcMatA[srcAIndex]);
         }
 
-        const int loadsPerThreadB = MMA_K * MMA_N / groupSize.x;
+        const int loadsPerThreadB = MMA_K * MMA_N / groupSize;
         for (int i = 0; i < loadsPerThreadB; i++) {
             const int linearIdx = localID.x * loadsPerThreadB + i;
             const int srcX = baseN + linearIdx % MMA_N;
@@ -66,7 +66,7 @@ void main() {
     coopMatStore(matAcc, sharedC, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
     barrier();
 
-    int storesPerThread = MMA_M * MMA_N / groupSize.x;
+    int storesPerThread = MMA_M * MMA_N / groupSize;
     for (int i = 0; i < storesPerThread; i++) {
         const int linearIdx = localID.x * storesPerThread + i;
         const int dstX = baseN + linearIdx % MMA_K;

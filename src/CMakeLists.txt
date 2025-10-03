@@ -33,8 +33,14 @@ endfunction()
 
 file(GLOB_RECURSE _VKC_SRCS "include/*.cpp")
 
+add_library(vkc-pch INTERFACE)
+target_precompile_headers(vkc-pch INTERFACE
+        include/vkc/helper/vulkan.hpp
+)
+
 add_library(vkc-lib-static STATIC ${_VKC_SRCS})
 vkc_common_lib_setting(vkc-lib-static)
+target_link_libraries(vkc-lib-static PRIVATE vkc-pch)
 add_library(vkc::lib::static ALIAS vkc-lib-static)
 
 add_library(vkc-lib-header-only INTERFACE)

@@ -100,10 +100,11 @@ int main() {
     // Pipeline
     constexpr int MNN_N = 16;
     constexpr int MNN_M = 16;
+    const uint32_t groupSizeX = phyDeviceProps.subgroupSize;
     constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), MNN_N);
     constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), MNN_M);
     vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v3::code) | unwrap;
-    vkc::SpecConstantBox specConstantBox{M, N, K};
+    vkc::SpecConstantBox specConstantBox{groupSizeX, M, N, K};
     vkc::PipelineBox sgemmPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
