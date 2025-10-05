@@ -13,10 +13,6 @@ layout (constant_id = 4) const int K = 0;
 void main() {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
 
-    if (globalID.x >= N || globalID.y >= M) {
-        return;
-    }
-
     float acc = 0.0;
     for (int i = 0; i < K; i++) {
         const int indexA = globalID.y * K + i;

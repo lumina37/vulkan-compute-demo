@@ -11,12 +11,47 @@ layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 layout (constant_id = 2) const int M = 0;
 layout (constant_id = 3) const int N = 0;
 layout (constant_id = 4) const int K = 0;
-layout (constant_id = 5) const int THREAD_TILE_M = 4;
-layout (constant_id = 6) const int THREAD_TILE_N = 4;
-layout (constant_id = 7) const int THREAD_TILE_K = 4;
+layout (constant_id = 5) const int THREAD_TILE_M = 1;
+layout (constant_id = 6) const int THREAD_TILE_N = 1;
+layout (constant_id = 7) const int BLOCK_TILE_K = 1;
 
-shared float sharedA[gl_WorkGroupSize.y * THREAD_TILE_M][THREAD_TILE_K];
-shared float sharedB[gl_WorkGroupSize.x * THREAD_TILE_N][THREAD_TILE_K];
+shared float sharedA[gl_WorkGroupSize.y * THREAD_TILE_M][BLOCK_TILE_K];
+shared float sharedB[gl_WorkGroupSize.x * THREAD_TILE_N][BLOCK_TILE_K];
+
+void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStride, bool transposed, bool loadA) {
+    const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
+    const int localIndex = int(gl_LocalInvocationIndex);
+
+    const int groupThreadCount = int(groupSize.x * groupSize.y);
+    const int loadsPerThread = globalExtent.x * globalExtent.y / groupThreadCount;
+
+    ivec2 sharedExtent;
+    if (transposed) {
+        sharedExtent = globalExtent.yx;
+    } else {
+        sharedExtent = globalExtent;
+    }
+
+    for (int i = 0; i < loadsPerThread; i++) {
+        const int linearIdx = i * groupThreadCount + localIndex;
+        const ivec2 srcOffset = ivec2(linearIdx % globalExtent.x, linearIdx / globalExtent.x);
+        const ivec2 srcCoord = globalCoord + srcOffset;
+        const int srcIndex = srcCoord.y * globalRowStride + srcCoord.x;
+
+        ivec2 dstCoord;
+        if (transposed) {
+            dstCoord = srcOffset.yx;
+        } else {
+            dstCoord = srcOffset;
+        }
+
+        if (loadA) {
+            sharedA[dstCoord.y][dstCoord.x] = srcMatA[srcIndex];
+        } else {
+            sharedB[dstCoord.y][dstCoord.x] = srcMatB[srcIndex];
+        }
+    }
+}
 
 void main() {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
@@ -34,31 +69,16 @@ void main() {
         }
     }
 
-    const int blockTileCount = K / THREAD_TILE_K;
-    for (int iBlkTile = 0; iBlkTile < blockTileCount; iBlkTile++) {
-        // Load from srcMatA
-        const int loadsPerThreadA = (THREAD_TILE_M * groupSize.y) * THREAD_TILE_K / groupThreadCount;
-        for (int i = 0; i < loadsPerThreadA; i++) {
-            const int linearIdx = i * groupThreadCount + localIndex;
-            const int tk = linearIdx % THREAD_TILE_K;
-            const int tm = linearIdx / THREAD_TILE_K;
-            const int srcCol = iBlkTile * THREAD_TILE_K + tk;
-            const int srcRow = (groupID.y * groupSize.y) * THREAD_TILE_M + tm;
-            const int srcAIndex = srcRow * K + srcCol;
-            sharedA[tm][tk] = srcMatA[srcAIndex];
-        }
+    const int splitKCount = K / BLOCK_TILE_K;
+    for (int iSplitK = 0; iSplitK < splitKCount; iSplitK++) {
+        const ivec2 globalCoordA = ivec2(iSplitK * BLOCK_TILE_K, (groupID.y * groupSize.y) * THREAD_TILE_M);
+        const ivec2 extentA = ivec2(BLOCK_TILE_K, groupSize.y * THREAD_TILE_M);
+        loadGlobalToShared(globalCoordA, extentA, K, false, true);// loadA without transpose
 
-        // Load from srcMatB
-        const int loadsPerThreadB = (THREAD_TILE_N * groupSize.x) * THREAD_TILE_K / groupThreadCount;
-        for (int i = 0; i < loadsPerThreadB; i++) {
-            const int linearIdx = i * groupThreadCount + localIndex;
-            const int tn = linearIdx % (THREAD_TILE_N * groupSize.x);
-            const int tk = linearIdx / (THREAD_TILE_N * groupSize.x);
-            const int srcCol = (groupID.x * groupSize.x) * THREAD_TILE_N + tn;
-            const int srcRow = iBlkTile * THREAD_TILE_K + tk;
-            const int srcBIndex = srcRow * N + srcCol;
-            sharedB[tn][tk] = srcMatB[srcBIndex];// transpose
-        }
+        const ivec2 globalCoordB = ivec2((groupID.x * groupSize.x) * THREAD_TILE_N, iSplitK * BLOCK_TILE_K);
+        const ivec2 extentB = ivec2(groupSize.x * THREAD_TILE_N, BLOCK_TILE_K);
+        loadGlobalToShared(globalCoordB, extentB, N, true, false);// loadB with transpose
+
         barrier();
 
         // Compute
@@ -66,7 +86,7 @@ void main() {
             const int yA = localID.y * THREAD_TILE_M + tm;
             [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
                 const int yB = localID.x * THREAD_TILE_N + tn;
-                [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
+                [[unroll]] for (int tk = 0; tk < BLOCK_TILE_K; tk++) {
                     const float valA = sharedA[yA][tk];
                     const float valB = sharedB[yB][tk];
                     acc[tm][tn] += valA * valB;

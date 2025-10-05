@@ -17,22 +17,19 @@ shared float sharedB[gl_WorkGroupSize.x][gl_WorkGroupSize.y];
 
 void main() {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
-    if (globalID.x >= N || globalID.y >= M) {
-        return;
-    }
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
 
     float acc = 0.0;
-    const int tileCount = K / groupSize.x;
-    for (int iTile = 0; iTile < tileCount; iTile++) {
+    const int splitKCount = K / groupSize.x;
+    for (int iSplitK = 0; iSplitK < splitKCount; iSplitK++) {
         // Load from srcMatA
-        const int srcX = iTile * groupSize.x + localID.x;
+        const int srcX = iSplitK * groupSize.x + localID.x;
         const int srcAIndex = globalID.y * K + srcX;
         sharedA[localID.y][localID.x] = srcMatA[srcAIndex];
 
         // Load from srcMatB
-        const int srcY = iTile * groupSize.y + localID.y;
+        const int srcY = iSplitK * groupSize.y + localID.y;
         const int srcBIndex = srcY * N + globalID.x;
         sharedB[localID.x][localID.y] = srcMatB[srcBIndex];// transposed
         barrier();

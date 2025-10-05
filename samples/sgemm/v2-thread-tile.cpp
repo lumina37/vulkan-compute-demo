@@ -81,15 +81,15 @@ int main() {
         unwrap;
 
     // Pipeline
-    constexpr int TM = 4;
-    constexpr int TN = TM;
-    constexpr int TK = TM;
+    constexpr int threadTileM = 4;
+    constexpr int threadTileN = 4;
+    constexpr int blockTileK = 8;
     constexpr int groupSizeX = 16;
     constexpr int groupSizeY = 16;
-    constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX * TN);
-    constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY * TM);
+    constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX * threadTileN);
+    constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY * threadTileM);
     vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v2::code) | unwrap;
-    vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K, TM, TN, TK};
+    vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K, threadTileM, threadTileN, blockTileK};
     vkc::PipelineBox sgemmPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
