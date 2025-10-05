@@ -45,4 +45,14 @@ const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)
 
 }  // namespace v3
 
+namespace v4 {
+
+namespace _detail {
+#include "spirv/sgemm/v4.h"
+}
+
+const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
+
+}  // namespace v4
+
 }  // namespace shader::sgemm

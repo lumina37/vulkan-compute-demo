@@ -16,8 +16,9 @@ vkc_add_sample(vkc-bin-grayscale-process-with-roi grayscale/process-with-roi.cpp
 
 vkc_add_sample(vkc-bin-sgemm-v0 sgemm/v0-naive.cpp)
 vkc_add_sample(vkc-bin-sgemm-v1 sgemm/v1-block-tile.cpp)
-vkc_add_sample(vkc-bin-sgemm-v2 sgemm/v2-thread-tile.cpp)
-vkc_add_sample(vkc-bin-sgemm-v3 sgemm/v3-tensor-core.cpp)
+vkc_add_sample(vkc-bin-sgemm-v2 sgemm/v2-thread-tile-shm.cpp)
+vkc_add_sample(vkc-bin-sgemm-v3 sgemm/v3-thread-tile-reg.cpp)
+vkc_add_sample(vkc-bin-sgemm-v4 sgemm/v4-tensor-core.cpp)
 
 vkc_add_sample(vkc-bin-gui gui.cpp)
 vkc_add_sample(vkc-bin-perf perf.cpp)

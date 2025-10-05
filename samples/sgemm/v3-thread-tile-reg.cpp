@@ -33,27 +33,10 @@ int main() {
     vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
-
-    auto& phyDeviceProps = phyDeviceWithProps.getPhyDeviceProps();
-    if (!phyDeviceProps.extensions.has(vk::KHRCooperativeMatrixExtensionName)) {
-        std::println(std::cerr, "VK_KHR_cooperative_matrix not supported");
-        return -1;
-    }
-    if (!phyDeviceProps.extensions.has(vk::KHRVulkanMemoryModelExtensionName)) {
-        std::println(std::cerr, "VK_KHR_vulkan_memory_model not supported");
-        return -1;
-    }
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
-    vkc::DefaultPhyDeviceFeatures phyDeviceFeatures = vkc::DefaultPhyDeviceFeatures::create(phyDeviceBox) | unwrap;
-
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
-    constexpr std::string_view coopMatExtName{vk::KHRCooperativeMatrixExtensionName};
-    constexpr std::string_view memModelExtName{vk::KHRVulkanMemoryModelExtensionName};
-    constexpr std::array deviceExtNames{coopMatExtName, memModelExtName};
     auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
-        vkc::DeviceBox::createWithExts(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}, deviceExtNames,
-                                       phyDeviceFeatures.getPFeature()) |
-        unwrap);
+        vkc::DeviceBox::create(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}) | unwrap);
     vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Descriptor & Layouts
@@ -98,13 +81,17 @@ int main() {
         unwrap;
 
     // Pipeline
-    constexpr int MNN_N = 16;
-    constexpr int MNN_M = 16;
-    const uint32_t groupSizeX = phyDeviceProps.subgroupSize;
-    constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), MNN_N);
-    constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), MNN_M);
+    constexpr int blockTileM = 64;
+    constexpr int blockTileN = 64;
+    constexpr int blockTileK = 32;
+    constexpr int threadTileK = 8;
+    constexpr int groupSizeX = 16;
+    constexpr int groupSizeY = 16;
+    constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
+    constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
     vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v3::code) | unwrap;
-    vkc::SpecConstantBox specConstantBox{groupSizeX, M, N, K};
+    vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,          K,
+                                         blockTileM, blockTileN, blockTileK, threadTileK};
     vkc::PipelineBox sgemmPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
