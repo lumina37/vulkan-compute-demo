@@ -11,12 +11,15 @@ layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 layout (constant_id = 2) const int M = 0;
 layout (constant_id = 3) const int N = 0;
 layout (constant_id = 4) const int K = 0;
-layout (constant_id = 5) const int THREAD_TILE_M = 1;
-layout (constant_id = 6) const int THREAD_TILE_N = 1;
+layout (constant_id = 5) const int BLOCK_TILE_M = 1;
+layout (constant_id = 6) const int BLOCK_TILE_N = 1;
 layout (constant_id = 7) const int BLOCK_TILE_K = 1;
 
-shared float sharedA[gl_WorkGroupSize.y * THREAD_TILE_M][BLOCK_TILE_K];
-shared float sharedB[gl_WorkGroupSize.x * THREAD_TILE_N][BLOCK_TILE_K];
+const int THREAD_TILE_M = int(BLOCK_TILE_M / gl_WorkGroupSize.y);
+const int THREAD_TILE_N = int(BLOCK_TILE_N / gl_WorkGroupSize.x);
+
+shared float sharedA[BLOCK_TILE_M][BLOCK_TILE_K];
+shared float sharedB[BLOCK_TILE_N][BLOCK_TILE_K];
 
 void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStride, bool transposed, bool loadA) {
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
@@ -71,12 +74,12 @@ void main() {
 
     const int splitKCount = K / BLOCK_TILE_K;
     for (int iSplitK = 0; iSplitK < splitKCount; iSplitK++) {
-        const ivec2 globalCoordA = ivec2(iSplitK * BLOCK_TILE_K, (groupID.y * groupSize.y) * THREAD_TILE_M);
-        const ivec2 extentA = ivec2(BLOCK_TILE_K, groupSize.y * THREAD_TILE_M);
+        const ivec2 globalCoordA = ivec2(iSplitK * BLOCK_TILE_K, groupID.y * BLOCK_TILE_M);
+        const ivec2 extentA = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
         loadGlobalToShared(globalCoordA, extentA, K, false, true);// loadA without transpose
 
-        const ivec2 globalCoordB = ivec2((groupID.x * groupSize.x) * THREAD_TILE_N, iSplitK * BLOCK_TILE_K);
-        const ivec2 extentB = ivec2(groupSize.x * THREAD_TILE_N, BLOCK_TILE_K);
+        const ivec2 globalCoordB = ivec2(groupID.x * BLOCK_TILE_N, iSplitK * BLOCK_TILE_K);
+        const ivec2 extentB = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
         loadGlobalToShared(globalCoordB, extentB, N, true, false);// loadB with transpose
 
         barrier();
