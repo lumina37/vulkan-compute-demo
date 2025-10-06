@@ -71,9 +71,9 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
     constexpr float maxValidDiff = 0.0001f;
     constexpr float maxValidAvgDiff = 0.000001f;
 
-    constexpr int M = 128;
+    constexpr int M = 256;
     constexpr int K = 64;
-    constexpr int N = 256;
+    constexpr int N = 512;
     constexpr vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
     constexpr vkc::Extent extentB{N, K, vk::Format::eR32Sfloat};
     constexpr vkc::Extent extentDst{extentB.width(), extentA.height(), vk::Format::eR32Sfloat};
@@ -284,10 +284,10 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
     }
 
     SECTION("v3") {
-        constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
-        constexpr int blockTileK = 32;
-        constexpr int threadTileK = 8;
+        constexpr int blockTileM = 128;
+        constexpr int blockTileN = 128;
+        constexpr int blockTileK = 16;
+        constexpr int threadTileK = 16;
         constexpr int groupSizeX = 16;
         constexpr int groupSizeY = 8;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
@@ -330,5 +330,55 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
 
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v3 - average diff = {}", avgDiff);
+    }
+
+    SECTION("v4") {
+        constexpr int blockTileM = 64;
+        constexpr int blockTileN = 64;
+        constexpr int blockTileK = 16;
+        constexpr int threadTileK = 16;
+        constexpr int stages = 2;
+        constexpr int groupSizeX = 16;
+        constexpr int groupSizeY = 8;
+        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
+        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v4::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,           K,
+                                             blockTileM, blockTileN, blockTileK, threadTileK, stages};
+        vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
+                                                                            specConstantBox.getSpecInfo()) |
+                                            unwrap;
+
+        sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
+        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+        sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
+        sgemmCmdBufBox.end() | unwrap;
+
+        queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
+
+        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
+
+        float diffAcc = 0;
+        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+            const float diff = std::abs(lhs - rhs);
+            REQUIRE(diff <= maxValidDiff);
+            diffAcc += diff;
+        }
+        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+
+        REQUIRE(avgDiff < maxValidAvgDiff);
+        std::println("v4 - average diff = {}", avgDiff);
     }
 }

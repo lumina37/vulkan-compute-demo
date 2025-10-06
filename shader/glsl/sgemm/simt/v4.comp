@@ -1,4 +1,4 @@
-// Thread-tile with Registers
+// Double-buffer & float4
 
 #version 460
 
@@ -20,13 +20,14 @@ layout (constant_id = 7) const int BLOCK_TILE_K = 128;
 const int THREAD_TILE_M = int(BLOCK_TILE_M / gl_WorkGroupSize.y);
 const int THREAD_TILE_N = int(BLOCK_TILE_N / gl_WorkGroupSize.x);
 layout (constant_id = 8) const int THREAD_TILE_K = 8;
+layout (constant_id = 9) const int STAGES = 2;
 
 const ivec2 EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
 const ivec2 EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
-shared float sharedA[EXTENT_A.y][EXTENT_A.x];
-shared float sharedB[EXTENT_B.y][EXTENT_B.x];
+shared float sharedA[STAGES][EXTENT_A.y][EXTENT_A.x];
+shared float sharedB[STAGES][EXTENT_B.y][EXTENT_B.x];
 
-void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStride, bool loadA) {
+void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStride, bool loadA, int stage) {
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
     const int localIndex = int(gl_LocalInvocationIndex);
 
@@ -41,14 +42,14 @@ void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStri
 
         const ivec2 dstCoord = srcOffset;
         if (loadA) {
-            sharedA[dstCoord.y][dstCoord.x] = srcMatA[srcIndex];
+            sharedA[stage][dstCoord.y][dstCoord.x] = srcMatA[srcIndex];
         } else {
-            sharedB[dstCoord.y][dstCoord.x] = srcMatB[srcIndex];
+            sharedB[stage][dstCoord.y][dstCoord.x] = srcMatB[srcIndex];
         }
     }
 }
 
-void computeWithShared(inout float acc[THREAD_TILE_M][THREAD_TILE_N]) {
+void computeWithShared(inout float acc[THREAD_TILE_M][THREAD_TILE_N], int stage) {
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
 
     float regA[THREAD_TILE_K];// Only cache one row for row-major A
@@ -60,7 +61,7 @@ void computeWithShared(inout float acc[THREAD_TILE_M][THREAD_TILE_N]) {
         const ivec2 sharedCoordB = ivec2(localID.x * THREAD_TILE_N, iThreadSplitK * THREAD_TILE_K);
         [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
             [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
-                regB[tk][tn] = sharedB[sharedCoordB.y + tk][sharedCoordB.x + tn];
+                regB[tk][tn] = sharedB[stage][sharedCoordB.y + tk][sharedCoordB.x + tn];
             }
         }
 
@@ -69,7 +70,7 @@ void computeWithShared(inout float acc[THREAD_TILE_M][THREAD_TILE_N]) {
         [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
             // Load A
             [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
-                regA[tk] = sharedA[sharedCoordA.y + tm][sharedCoordA.x + tk];
+                regA[tk] = sharedA[stage][sharedCoordA.y + tm][sharedCoordA.x + tk];
             }
 
             // Actual compute
@@ -98,18 +99,34 @@ void main() {
         }
     }
 
+    // Prologue
+    int stage = 0;
+    const ivec2 globalCoordA = ivec2(0, groupID.y * BLOCK_TILE_M);
+    loadGlobalToShared(globalCoordA, EXTENT_A, K, true, stage);// Load A
+
+    const ivec2 globalCoordB = ivec2(groupID.x * BLOCK_TILE_N, 0);
+    loadGlobalToShared(globalCoordB, EXTENT_B, N, false, stage);// Load B
+    barrier();
+
+    // Main-loop
     const int blockSplitKCount = K / BLOCK_TILE_K;
-    for (int iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
+    for (int iBlockSplitK = 1; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
+        int nextStage = (stage + 1) % STAGES;
+
         const ivec2 globalCoordA = ivec2(iBlockSplitK * BLOCK_TILE_K, groupID.y * BLOCK_TILE_M);
-        loadGlobalToShared(globalCoordA, EXTENT_A, K, true);// Load A
+        loadGlobalToShared(globalCoordA, EXTENT_A, K, true, nextStage);// Load A
 
         const ivec2 globalCoordB = ivec2(groupID.x * BLOCK_TILE_N, iBlockSplitK * BLOCK_TILE_K);
-        loadGlobalToShared(globalCoordB, EXTENT_B, N, false);// Load B
+        loadGlobalToShared(globalCoordB, EXTENT_B, N, false, nextStage);// Load B
+
+        computeWithShared(acc, stage);
         barrier();
 
-        computeWithShared(acc);
-        barrier();
+        stage = nextStage;
     }
+
+    // Epilogue
+    computeWithShared(acc, stage);
 
     // Store results
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {

@@ -7,6 +7,7 @@ set(_VKC_GLSL_SRCS
         sgemm/simt/v1
         sgemm/simt/v2
         sgemm/simt/v3
+        sgemm/simt/v4
         sgemm/tcore/v0
         flash_attention2/v0
         flash_attention2/v1
