@@ -71,9 +71,9 @@ void main() {
 
     const int blockSplitKCount = K / BLOCK_TILE_K;
     for (int iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
-        // Load from global to shared
         const ivec2 globalCoordA = ivec2(iBlockSplitK * BLOCK_TILE_K, groupID.y * BLOCK_TILE_M);
         loadGlobalToShared(globalCoordA, EXTENT_A, K, false, true);// loadA without transpose
+
         const ivec2 globalCoordB = ivec2(groupID.x * BLOCK_TILE_N, iBlockSplitK * BLOCK_TILE_K);
         loadGlobalToShared(globalCoordB, EXTENT_B, N, true, false);// loadB with transpose
         barrier();

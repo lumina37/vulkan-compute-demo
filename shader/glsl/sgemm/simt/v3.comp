@@ -54,6 +54,40 @@ void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStri
     }
 }
 
+void computeWithShared(inout float acc[THREAD_TILE_M][THREAD_TILE_N]) {
+    const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
+
+    float regA[THREAD_TILE_K];// Only cache one row for row-major A
+    float regB[THREAD_TILE_K][THREAD_TILE_N];// Cache the whole B
+
+    const int threadSplitKCount = BLOCK_TILE_K / THREAD_TILE_K;
+    for (int iThreadSplitK = 0; iThreadSplitK < threadSplitKCount; iThreadSplitK++) {
+        // Load B
+        const ivec2 sharedCoordB = ivec2(localID.x * THREAD_TILE_N, iThreadSplitK * THREAD_TILE_K);
+        [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
+            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
+                regB[tk][tn] = sharedB[sharedCoordB.y + tk][sharedCoordB.x + tn];
+            }
+        }
+
+        // For each row in A
+        const ivec2 sharedCoordA = ivec2(iThreadSplitK * THREAD_TILE_K, localID.y * THREAD_TILE_M);
+        [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
+            // Load A
+            [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
+                regA[tk] = sharedA[sharedCoordA.y + tm][sharedCoordA.x + tk];
+            }
+
+            // Actual compute
+            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
+                [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
+                    acc[tm][tn] += regA[tk] * regB[tk][tn];
+                }
+            }
+        }
+    }
+}
+
 void main() {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
@@ -70,46 +104,16 @@ void main() {
         }
     }
 
-
     const int blockSplitKCount = K / BLOCK_TILE_K;
     for (int iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
-        // Load from global to shared
         const ivec2 globalCoordA = ivec2(iBlockSplitK * BLOCK_TILE_K, groupID.y * BLOCK_TILE_M);
         loadGlobalToShared(globalCoordA, EXTENT_A, K, false, true);// Load A
+
         const ivec2 globalCoordB = ivec2(groupID.x * BLOCK_TILE_N, iBlockSplitK * BLOCK_TILE_K);
         loadGlobalToShared(globalCoordB, EXTENT_B, N, false, false);// Load B
         barrier();
 
-        // Compute
-        float regA[THREAD_TILE_K];// Only cache one row for row-major A
-        float regB[THREAD_TILE_K][THREAD_TILE_N];// Cache the whole B
-
-        const int threadSplitKCount = BLOCK_TILE_K / THREAD_TILE_K;
-        for (int iThreadSplitK = 0; iThreadSplitK < threadSplitKCount; iThreadSplitK++) {
-            // Load B
-            const ivec2 sharedCoordB = ivec2(localID.x * THREAD_TILE_N, iThreadSplitK * THREAD_TILE_K);
-            [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
-                [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
-                    regB[tk][tn] = sharedB[sharedCoordB.y + tk][sharedCoordB.x + tn];
-                }
-            }
-
-            // For each row in A
-            const ivec2 sharedCoordA = ivec2(iThreadSplitK * THREAD_TILE_K, localID.y * THREAD_TILE_M);
-            [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
-                // Load A
-                [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
-                    regA[tk] = sharedA[sharedCoordA.y + tm][sharedCoordA.x + tk];
-                }
-
-                // Actual compute
-                [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
-                    [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
-                        acc[tm][tn] += regA[tk] * regB[tk][tn];
-                    }
-                }
-            }
-        }
+        computeWithShared(acc);
         barrier();
     }
 
