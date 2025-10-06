@@ -9,21 +9,21 @@ layout (constant_id = 1) const int N = 0;
 layout (constant_id = 2) const int topk = 1;
 
 // 共享内存用于存储局部最大值和索引
-shared float sharedValues[128];
-shared int sharedIndices[128];
+shared float sharedValues[gl_WorkGroupSize.x];
+shared int sharedIndices[gl_WorkGroupSize.x];
 
 // 用于存储当前工作组的 top-k 结果
-shared float topkValues[topk];  // 假设 topk <= 16
+shared float topkValues[topk];// 假设 topk <= 16
 shared int topkIndices[topk];
 
 void main() {
-    const uint tid = gl_LocalInvocationID.x;
-    const uint bid = gl_WorkGroupID.x;
-    const uint gid = gl_GlobalInvocationID.x;
-    const uint blockSize = gl_WorkGroupSize.x;
+    const int tid = int(gl_LocalInvocationID.x);
+    const int bid = int(gl_WorkGroupID.x);
+    const int gid = int(gl_GlobalInvocationID.x);
+    const int blockSize = int(gl_WorkGroupSize.x);
 
     // 每个 batch 的偏移
-    const int batchOffset = int(bid) * N;
+    const int batchOffset = bid * (N / blockSize);
 
     // 初始化共享内存
     float maxVal = -1e38;
@@ -31,7 +31,7 @@ void main() {
 
     // 第一阶段：每个线程在其负责的数据范围内找最大值
     // 每个线程处理多个元素（stride访问）
-    for (int i = int(tid); i < N; i += int(blockSize)) {
+    for (int i = tid; i < N; i += blockSize) {
         int idx = batchOffset + i;
         float val = srcArr[idx];
         if (val > maxVal) {
@@ -48,7 +48,7 @@ void main() {
     // 使用迭代方法：找到最大值，标记它，然后找下一个
     for (int k = 0; k < topk; k++) {
         // 归约找到当前最大值
-        for (uint stride = blockSize / 2; stride > 0; stride >>= 1) {
+        for (int stride = blockSize / 2; stride > 0; stride >>= 1) {
             if (tid < stride) {
                 if (sharedValues[tid + stride] > sharedValues[tid]) {
                     sharedValues[tid] = sharedValues[tid + stride];
@@ -72,11 +72,11 @@ void main() {
         barrier();
 
         // 重新加载每个线程负责范围内的下一个最大值
-        if (k < topk - 1) {  // 最后一次迭代不需要重新加载
+        if (k < topk - 1) { // 最后一次迭代不需要重新加载
             maxVal = -1e38;
             maxIdx = -1;
 
-            for (int i = int(tid); i < N; i += int(blockSize)) {
+            for (int i = tid; i < N; i += blockSize) {
                 int idx = batchOffset + i;
                 float val = srcArr[idx];
 
@@ -85,7 +85,6 @@ void main() {
                 for (int j = 0; j <= k; j++) {
                     if (i == topkIndices[j]) {
                         alreadySelected = true;
-                        break;
                     }
                 }
 
@@ -107,9 +106,6 @@ void main() {
             int outIdx = int(bid) * topk + k;
             // 写入值
             dstArr[outIdx] = topkValues[k];
-            // 如果需要索引，可以存储在另一个buffer中
-            // 这里假设 dstArr 后半部分存储索引
-            // dstArr[outIdx + gl_NumWorkGroups.x * topk] = float(topkIndices[k]);
         }
     }
 }
