@@ -10,7 +10,7 @@ enum class ECode {
     eUnexValue = 1,        // Unexpected Value
     eNoSupport = 2,        // Feature Not Supported
     eNoImpl = 3,           // Not Implemented
-    eResourceInvalid = 3,  // Resource is Invalid
+    eResourceInvalid = 4,  // Resource is Invalid
 };
 
 enum class ECate {

@@ -11,7 +11,7 @@ std::expected<void, Error> initVulkan() noexcept {
     static vk::detail::DynamicLoader dl;
     auto vkGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
     if (vkGetInstanceProcAddr == nullptr) {
-        return std::unexpected{Error{ECate::eVkC, -1, "Vulkan dynlib not exists"}};
+        return std::unexpected{Error{ECate::eVkC, ECode::eNoSupport, "Vulkan dynlib not exists"}};
     }
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
     return {};
