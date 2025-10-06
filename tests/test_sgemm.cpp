@@ -195,7 +195,7 @@ TEST_CASE("GLSL-SGEMM", "") {
 
     SECTION("v1") {
         constexpr int groupSizeX = 16;
-        constexpr int groupSizeY = 16;
+        constexpr int groupSizeY = 8;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY);
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v1::code) | unwrap;
@@ -242,7 +242,7 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int blockTileN = 64;
         constexpr int blockTileK = 32;
         constexpr int groupSizeX = 16;
-        constexpr int groupSizeY = 16;
+        constexpr int groupSizeY = 8;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v2::code) | unwrap;
@@ -290,7 +290,7 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int blockTileK = 32;
         constexpr int threadTileK = 8;
         constexpr int groupSizeX = 16;
-        constexpr int groupSizeY = 16;
+        constexpr int groupSizeY = 8;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v3::code) | unwrap;

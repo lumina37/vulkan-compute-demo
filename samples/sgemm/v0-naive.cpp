@@ -82,7 +82,7 @@ int main() {
 
     // Pipeline
     constexpr int groupSizeX = 16;
-    constexpr int groupSizeY = 16;
+    constexpr int groupSizeY = 8;
     constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX);
     constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY);
     vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v0::code) | unwrap;

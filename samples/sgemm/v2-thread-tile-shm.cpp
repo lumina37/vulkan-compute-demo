@@ -85,7 +85,7 @@ int main() {
     constexpr int blockTileN = 64;
     constexpr int blockTileK = 32;
     constexpr int groupSizeX = 16;
-    constexpr int groupSizeY = 16;
+    constexpr int groupSizeY = 8;
     constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
     constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
     vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v2::code) | unwrap;
