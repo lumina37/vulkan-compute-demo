@@ -1,0 +1,96 @@
+#version 460
+
+layout (local_size_x_id = 0) in;
+
+layout (binding = 0, std430) readonly buffer SrcArr { float srcArr[]; };
+layout (binding = 1, std430) writeonly buffer DstArr { float dstArr[]; };
+
+layout (constant_id = 1) const int N = 0;
+
+// 共享内存用于工作组内的并行扫描
+shared float temp[256]; // 128 * 2，用于存储up-sweep和down-sweep的临时数据
+
+void main() {
+    const uint gid = gl_GlobalInvocationID.x;
+    const uint lid = gl_LocalInvocationID.x;
+    const uint blockSize = gl_WorkGroupSize.x; // 128
+    const uint blockID = gl_WorkGroupID.x;
+    const uint blockOffset = blockID * blockSize * 2;
+
+    // 每个线程加载两个元素到共享内存
+    uint ai = lid;
+    uint bi = lid + blockSize;
+    uint bankOffsetA = ai >> 5; // 避免bank conflict (可选优化)
+    uint bankOffsetB = bi >> 5;
+
+    // 加载数据到共享内存
+    if (blockOffset + ai < N) {
+        temp[ai + bankOffsetA] = srcArr[blockOffset + ai];
+    } else {
+        temp[ai + bankOffsetA] = 0.0;
+    }
+
+    if (blockOffset + bi < N) {
+        temp[bi + bankOffsetB] = srcArr[blockOffset + bi];
+    } else {
+        temp[bi + bankOffsetB] = 0.0;
+    }
+
+    // Up-sweep (reduce) 阶段 - 构建部分和树
+    uint offset = 1;
+    for (uint d = blockSize; d > 0; d >>= 1) {
+        barrier();
+        memoryBarrierShared();
+
+        if (lid < d) {
+            uint ai = offset * (2 * lid + 1) - 1;
+            uint bi = offset * (2 * lid + 2) - 1;
+            ai += ai >> 5;
+            bi += bi >> 5;
+            temp[bi] += temp[ai];
+        }
+        offset *= 2;
+    }
+
+    // Down-sweep 阶段 - 转换为inclusive scan
+    for (uint d = 1; d < blockSize * 2; d *= 2) {
+        offset >>= 1;
+        barrier();
+        memoryBarrierShared();
+
+        if (lid < d) {
+            uint ai = offset * (2 * lid + 1) - 1;
+            uint bi = offset * (2 * lid + 2) - 1;
+            ai += ai >> 5;
+            bi += bi >> 5;
+
+            float t = temp[ai];
+            temp[ai] = temp[bi];
+            temp[bi] += t;
+        }
+    }
+
+    // 修正为inclusive scan（每个元素加上原始值）
+    barrier();
+    memoryBarrierShared();
+
+    if (blockOffset + ai < N) {
+        temp[ai + bankOffsetA] += srcArr[blockOffset + ai];
+    }
+
+    if (blockOffset + bi < N) {
+        temp[bi + bankOffsetB] += srcArr[blockOffset + bi];
+    }
+
+    barrier();
+    memoryBarrierShared();
+
+    // 写回结果
+    if (blockOffset + ai < N) {
+        dstArr[blockOffset + ai] = temp[ai + bankOffsetA];
+    }
+
+    if (blockOffset + bi < N) {
+        dstArr[blockOffset + bi] = temp[bi + bankOffsetB];
+    }
+}
