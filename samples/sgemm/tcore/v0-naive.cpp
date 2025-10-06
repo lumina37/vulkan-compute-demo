@@ -1,92 +1,51 @@
-#include <expected>
-#include <filesystem>
+#include <array>
+#include <iostream>
+#include <memory>
 #include <print>
-#include <random>
-#include <ranges>
 #include <span>
+#include <vector>
 
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_test_macros.hpp>
-
-#include "spirv/sgemm.hpp"
+#include "../../vkc_helper.hpp"
+#include "shader.hpp"
 #include "vkc.hpp"
-#include "vkc_helper.hpp"
 
-namespace fs = std::filesystem;
-namespace rgs = std::ranges;
-
-void sgemmRefImpl(const std::span<const float> srcMatA, const std::span<const float> srcMatB,
-                  const std::span<float> dstMat, const vkc::Extent extentA, const vkc::Extent extentB) {
-    const int M = extentA.height();
-    const int N = extentB.width();
-    const int K = extentA.width();
-
-    const auto kernelFn = [&](int tx, int ty) {
-        float acc = 0;
-        for (int k = 0; k < K; k++) {
-            acc += srcMatA[ty * K + k] * srcMatB[k * N + tx];
-        }
-        dstMat[ty * N + tx] = acc;
-    };
-
-    for (int dstX = 0; dstX < N; dstX++) {
-        for (int dstY = 0; dstY < M; dstY++) {
-            kernelFn(dstX, dstY);
-        }
-    }
-}
-
-TEST_CASE("GLSL-SGEMM", "") {
+int main() {
     vkc::initVulkan() | unwrap;
 
-    constexpr float maxValidDiff = 0.01f;
-    constexpr float maxValidAvgDiff = 0.001f;
-
-    constexpr int M = 128;
-    constexpr int K = 64;
-    constexpr int N = 256;
+    constexpr int M = 2048;
+    constexpr int K = 2048;
+    constexpr int N = 2048;
     constexpr vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
     constexpr vkc::Extent extentB{N, K, vk::Format::eR32Sfloat};
     constexpr vkc::Extent extentDst{extentB.width(), extentA.height(), vk::Format::eR32Sfloat};
 
     // Src data
     vkc::StbImageBox srcMatA = vkc::StbImageBox::createWithExtent(extentA) | unwrap;
-    std::span<float> srcSpanA = std::span{(float*)srcMatA.getPData(), extentA.elemCount()};
     vkc::StbImageBox srcMatB = vkc::StbImageBox::createWithExtent(extentB) | unwrap;
-    std::span<float> srcSpanB = std::span{(float*)srcMatB.getPData(), extentB.elemCount()};
-    std::mt19937 rdEngine;
-    rdEngine.seed(37);
-    std::uniform_real_distribution dist(0.0f, 1.0f);
-    for (auto& val : srcSpanA) {
-        val = dist(rdEngine);
-    }
-    for (auto& val : srcSpanB) {
-        val = dist(rdEngine);
-    }
-
-    // CPU Reference
-    vkc::StbImageBox dstMatCpuRef = vkc::StbImageBox::createWithExtent(extentDst) | unwrap;
-    std::span<float> dstMatCpuRefSpan = std::span{(float*)dstMatCpuRef.getPData(), extentDst.elemCount()};
-
-    sgemmRefImpl(srcSpanA, srcSpanB, dstMatCpuRefSpan, extentA, extentB);
-
     vkc::StbImageBox dstMatVk = vkc::StbImageBox::createWithExtent(extentDst) | unwrap;
 
     // Device
+    vkc::DefaultInstanceProps instProps = vkc::DefaultInstanceProps::create() | unwrap;
+    if (!instProps.layers.has("VK_LAYER_KHRONOS_validation")) {
+        std::println(std::cerr, "VK_LAYER_KHRONOS_validation not supported");
+        return -1;
+    }
     vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
+
     auto& phyDeviceProps = phyDeviceWithProps.getPhyDeviceProps();
     if (!phyDeviceProps.extensions.has(vk::KHRCooperativeMatrixExtensionName)) {
         std::println(std::cerr, "VK_KHR_cooperative_matrix not supported");
-        return;
+        return -1;
     }
     if (!phyDeviceProps.extensions.has(vk::KHRVulkanMemoryModelExtensionName)) {
         std::println(std::cerr, "VK_KHR_vulkan_memory_model not supported");
-        return;
+        return -1;
     }
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
     vkc::DefaultPhyDeviceFeatures phyDeviceFeatures = vkc::DefaultPhyDeviceFeatures::create(phyDeviceBox) | unwrap;
+
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     constexpr std::string_view coopMatExtName{vk::KHRCooperativeMatrixExtensionName};
     constexpr std::string_view memModelExtName{vk::KHRVulkanMemoryModelExtensionName};
@@ -134,28 +93,36 @@ TEST_CASE("GLSL-SGEMM", "") {
     auto pCommandPoolBox =
         std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
     vkc::CommandBufferBox sgemmCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
+    vkc::TimestampQueryPoolBox queryPoolBox =
+        vkc::TimestampQueryPoolBox::create(pDeviceBox, 6, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
+        unwrap;
 
-    SECTION("v4") {
-        constexpr int MNN_M = 16;
-        constexpr int MNN_N = 16;
-        const uint32_t groupSizeX = phyDeviceProps.subgroupSize;
-        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), MNN_N);
-        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), MNN_M);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v4::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, M, N, K};
-        vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
-                                                                            specConstantBox.getSpecInfo()) |
-                                            unwrap;
+    // Pipeline
+    constexpr int MNN_N = 16;
+    constexpr int MNN_M = 16;
+    const uint32_t groupSizeX = phyDeviceProps.subgroupSize;
+    constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), MNN_N);
+    constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), MNN_M);
+    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::tcore::v0::code) | unwrap;
+    vkc::SpecConstantBox specConstantBox{groupSizeX, M, N, K};
+    vkc::PipelineBox sgemmPipelineBox =
+        vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
+        unwrap;
 
+    // Record Command Buffer
+    for (int i = 0; i < 15; i++) {
         sgemmCmdBufBox.begin() | unwrap;
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
         sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
         sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
         sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+        sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
         sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
         sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
@@ -165,18 +132,8 @@ TEST_CASE("GLSL-SGEMM", "") {
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
-
-        float diffAcc = 0;
-        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
-        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
-            const float diff = std::abs(lhs - rhs);
-            REQUIRE(diff <= maxValidDiff);
-            diffAcc += diff;
-        }
-        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
-
-        REQUIRE(avgDiff < maxValidAvgDiff);
-        std::println("v2 - average diff = {}", avgDiff);
+        auto elapsedTime = queryPoolBox.getElaspedTimes() | unwrap;
+        std::println("============================");
+        std::println("Dispatch timecost: {} ms", elapsedTime[0]);
     }
 }

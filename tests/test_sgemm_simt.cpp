@@ -65,7 +65,7 @@ TEST_CASE("CPU-SGEMM", "") {
     REQUIRE(dstSpan[1] == Catch::Approx(32.f));
 }
 
-TEST_CASE("GLSL-SGEMM", "") {
+TEST_CASE("GLSL-SGEMM-SIMT", "") {
     vkc::initVulkan() | unwrap;
 
     constexpr float maxValidDiff = 0.0001f;
@@ -154,7 +154,7 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int groupSizeY = 16;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v0::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v0::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
@@ -197,7 +197,7 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int groupSize = 16;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSize);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSize);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v1::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v1::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSize, M, N, K};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
@@ -244,7 +244,7 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int groupSizeY = 8;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v2::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v2::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K, blockTileM, blockTileN, blockTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
@@ -292,7 +292,7 @@ TEST_CASE("GLSL-SGEMM", "") {
         constexpr int groupSizeY = 8;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v3::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v3::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,          K,
                                              blockTileM, blockTileN, blockTileK, threadTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,

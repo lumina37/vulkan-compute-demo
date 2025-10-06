@@ -111,15 +111,17 @@ int main() {
     perfQueryPoolBox.hostReset();
 
     // Pipeline
-    constexpr int TM = 1;
-    constexpr int TN = TM;
-    constexpr int TK = TM;
+    constexpr int blockTileM = 64;
+    constexpr int blockTileN = 64;
+    constexpr int blockTileK = 32;
+    constexpr int threadTileK = 8;
     constexpr int groupSizeX = 16;
-    constexpr int groupSizeY = 16;
-    constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX * TN);
-    constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY * TM);
-    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v2::code) | unwrap;
-    vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K, TM, TN, TK};
+    constexpr int groupSizeY = 8;
+    constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
+    constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
+    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v3::code) | unwrap;
+    vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,          K,
+                                         blockTileM, blockTileN, blockTileK, threadTileK};
     vkc::PipelineBox sgemmPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;

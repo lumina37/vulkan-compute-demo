@@ -3,11 +3,11 @@ set(_VKC_GLSL_SRCS
         gauss_filter/v1
         grayscale/ro
         grayscale/rw
-        sgemm/v0
-        sgemm/v1
-        sgemm/v2
-        sgemm/v3
-        sgemm/v4
+        sgemm/simt/v0
+        sgemm/simt/v1
+        sgemm/simt/v2
+        sgemm/simt/v3
+        sgemm/tcore/v0
         flash_attention2/v0
         flash_attention2/v1
         prefix_sum/v0

@@ -14,11 +14,12 @@ vkc_add_sample(vkc-bin-grayscale-common grayscale/common.cpp)
 vkc_add_sample(vkc-bin-grayscale-storage-image-as-input grayscale/storage-image-as-input.cpp)
 vkc_add_sample(vkc-bin-grayscale-process-with-roi grayscale/process-with-roi.cpp)
 
-vkc_add_sample(vkc-bin-sgemm-v0 sgemm/v0-naive.cpp)
-vkc_add_sample(vkc-bin-sgemm-v1 sgemm/v1-block-tile.cpp)
-vkc_add_sample(vkc-bin-sgemm-v2 sgemm/v2-thread-tile-shm.cpp)
-vkc_add_sample(vkc-bin-sgemm-v3 sgemm/v3-thread-tile-reg.cpp)
-vkc_add_sample(vkc-bin-sgemm-v4 sgemm/v4-tensor-core.cpp)
+vkc_add_sample(vkc-bin-sgemm-simt-v0 sgemm/simt/v0-naive.cpp)
+vkc_add_sample(vkc-bin-sgemm-simt-v1 sgemm/simt/v1-block-tile.cpp)
+vkc_add_sample(vkc-bin-sgemm-simt-v2 sgemm/simt/v2-thread-tile-shm.cpp)
+vkc_add_sample(vkc-bin-sgemm-simt-v3 sgemm/simt/v3-thread-tile-reg.cpp)
+
+vkc_add_sample(vkc-bin-sgemm-tcore-v0 sgemm/tcore/v0-naive.cpp)
 
 vkc_add_sample(vkc-bin-gui gui.cpp)
 vkc_add_sample(vkc-bin-perf perf.cpp)

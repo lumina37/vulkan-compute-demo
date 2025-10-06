@@ -1,14 +1,14 @@
 #include <cstddef>
 #include <span>
 
-#include "spirv/sgemm.hpp"
+#include "spirv/sgemm/simt.hpp"
 
-namespace shader::sgemm {
+namespace shader::sgemm::simt {
 
 namespace v0 {
 
 namespace _detail {
-#include "spirv/sgemm/v0.h"
+#include "spirv/sgemm/simt/v0.h"
 }
 
 const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
@@ -18,7 +18,7 @@ const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)
 namespace v1 {
 
 namespace _detail {
-#include "spirv/sgemm/v1.h"
+#include "spirv/sgemm/simt/v1.h"
 }
 
 const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
@@ -28,7 +28,7 @@ const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)
 namespace v2 {
 
 namespace _detail {
-#include "spirv/sgemm/v2.h"
+#include "spirv/sgemm/simt/v2.h"
 }
 
 const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
@@ -38,21 +38,11 @@ const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)
 namespace v3 {
 
 namespace _detail {
-#include "spirv/sgemm/v3.h"
+#include "spirv/sgemm/simt/v3.h"
 }
 
 const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
 
 }  // namespace v3
 
-namespace v4 {
-
-namespace _detail {
-#include "spirv/sgemm/v4.h"
-}
-
-const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
-
-}  // namespace v4
-
-}  // namespace shader::sgemm
+}  // namespace shader::sgemm::simt

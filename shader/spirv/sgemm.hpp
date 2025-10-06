@@ -1,38 +1,4 @@
 #pragma once
 
-#include <cstddef>
-#include <span>
-
-namespace shader::sgemm {
-
-namespace v0 {
-
-extern const std::span<std::byte> code;
-
-}  // namespace v0
-
-namespace v1 {
-
-extern const std::span<std::byte> code;
-
-}  // namespace v1
-
-namespace v2 {
-
-extern const std::span<std::byte> code;
-
-}  // namespace v2
-
-namespace v3 {
-
-extern const std::span<std::byte> code;
-
-}  // namespace v3
-
-namespace v4 {
-
-extern const std::span<std::byte> code;
-
-}  // namespace v4
-
-}  // namespace shader::sgemm
+#include "spirv/sgemm/simt.hpp"
+#include "spirv/sgemm/tcore.hpp"
