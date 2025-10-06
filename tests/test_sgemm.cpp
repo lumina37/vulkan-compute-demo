@@ -194,12 +194,11 @@ TEST_CASE("GLSL-SGEMM", "") {
     }
 
     SECTION("v1") {
-        constexpr int groupSizeX = 16;
-        constexpr int groupSizeY = 8;
-        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSizeX);
-        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSizeY);
+        constexpr int groupSize = 16;
+        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSize);
+        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSize);
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::v1::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K};
+        vkc::SpecConstantBox specConstantBox{groupSize, M, N, K};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
