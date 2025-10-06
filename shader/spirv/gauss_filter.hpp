@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <span>
 
-namespace shader::gaussFilter {
+namespace shader::gauss_filter {
 
 namespace v0 {
 
@@ -17,4 +17,4 @@ extern const std::span<std::byte> code;
 
 }  // namespace v1
 
-}  // namespace shader::gaussFilter
+}  // namespace shader::gauss_filter

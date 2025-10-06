@@ -11,7 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "spirv/gaussFilter.hpp"
+#include "spirv/gauss_filter.hpp"
 #include "vkc.hpp"
 #include "vkc_helper.hpp"
 
@@ -145,7 +145,7 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
         constexpr int groupSizeY = 16;
         const int groupNumX = vkc::ceilDiv(dstImageVk.getExtent().width(), groupSizeX);
         const int groupNumY = vkc::ceilDiv(dstImageVk.getExtent().height(), groupSizeY);
-        vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gaussFilter::v0::code) | unwrap;
+        vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gauss_filter::v0::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY};
         vkc::PipelineBox gaussPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
@@ -188,7 +188,7 @@ TEST_CASE("GLSL-Gaussian-Blur", "") {
         constexpr int groupSizeX = 256;
         const int groupNumX = vkc::ceilDiv(dstImageVk.getExtent().width(), groupSizeX);
         const int groupNumY = dstImageVk.getExtent().height();
-        vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gaussFilter::v1::code) | unwrap;
+        vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gauss_filter::v1::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSizeX};
         vkc::PipelineBox gaussPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox,
                                                                             specConstantBox.getSpecInfo()) |

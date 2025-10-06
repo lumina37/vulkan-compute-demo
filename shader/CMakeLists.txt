@@ -1,6 +1,6 @@
 set(_VKC_GLSL_SRCS
-        gaussFilter/v0
-        gaussFilter/v1
+        gauss_filter/v0
+        gauss_filter/v1
         grayscale/ro
         grayscale/rw
         sgemm/v0

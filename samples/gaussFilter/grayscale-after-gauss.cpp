@@ -91,7 +91,7 @@ int main() {
     constexpr int groupSizeY = 16;
     const int groupNumX = vkc::ceilDiv(dstImage.getExtent().width(), groupSizeX);
     const int groupNumY = vkc::ceilDiv(dstImage.getExtent().height(), groupSizeY);
-    vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gaussFilter::v0::code) | unwrap;
+    vkc::ShaderBox gaussShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::gauss_filter::v0::code) | unwrap;
     vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY};
     vkc::PipelineBox gaussPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, gaussPLayoutBox, gaussShaderBox, specConstantBox.getSpecInfo()) |
