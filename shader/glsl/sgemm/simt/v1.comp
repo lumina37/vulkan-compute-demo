@@ -40,7 +40,7 @@ void main() {
         [[unroll]] for (int k = 0; k < groupSize.x; k++) {
             const float valA = sharedA[localID.y][k];
             const float valB = sharedB[localID.x][k];// transposed
-            acc += valA * valB;
+            acc = fma(valA, valB, acc);
         }
         barrier();
     }

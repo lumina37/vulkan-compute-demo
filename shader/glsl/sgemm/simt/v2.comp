@@ -53,15 +53,27 @@ void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStri
     }
 }
 
+void computeWithShared(inout float acc[THREAD_TILE_M][THREAD_TILE_N]) {
+    const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
+
+    [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
+        const int yA = localID.y * THREAD_TILE_M + tm;
+        [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
+            const int yB = localID.x * THREAD_TILE_N + tn;
+            [[unroll]] for (int tk = 0; tk < BLOCK_TILE_K; tk++) {
+                const float valA = sharedA[yA][tk];
+                const float valB = sharedB[yB][tk];
+                acc[tm][tn] = fma(valA, valB, acc[tm][tn]);
+            }
+        }
+    }
+}
+
 void main() {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
-    const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
-    const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
-    const int localIndex = int(gl_LocalInvocationIndex);
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
-    const int groupThreadCount = groupSize.x * groupSize.y;
 
-    // Accumulation registers for thread tile
+    // Accumulator
     float acc[THREAD_TILE_M][THREAD_TILE_N];
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
         [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
@@ -78,18 +90,7 @@ void main() {
         loadGlobalToShared(globalCoordB, EXTENT_B, N, true, false);// loadB with transpose
         barrier();
 
-        // Compute
-        [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
-            const int yA = localID.y * THREAD_TILE_M + tm;
-            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
-                const int yB = localID.x * THREAD_TILE_N + tn;
-                [[unroll]] for (int tk = 0; tk < BLOCK_TILE_K; tk++) {
-                    const float valA = sharedA[yA][tk];
-                    const float valB = sharedB[yB][tk];
-                    acc[tm][tn] += valA * valB;
-                }
-            }
-        }
+        computeWithShared(acc);
         barrier();
     }
 

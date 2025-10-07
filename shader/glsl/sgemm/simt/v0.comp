@@ -23,7 +23,7 @@ void main() {
         const int indexB = i * N + globalID.x;
         const float valB = srcMatB[indexB];
 
-        acc += valA * valB;
+        acc = fma(valA, valB, acc);
     }
 
     const int indexDst = globalID.y * N + globalID.x;

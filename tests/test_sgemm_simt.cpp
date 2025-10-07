@@ -431,4 +431,54 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v5 - average diff = {}", avgDiff);
     }
+
+    SECTION("v6") {
+        constexpr int blockTileM = 64;
+        constexpr int blockTileN = 64;
+        constexpr int blockTileK = 16;
+        constexpr int threadTileK = 16;
+        constexpr int stages = 2;
+        constexpr int groupSizeX = 8;
+        constexpr int groupSizeY = 8;
+        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
+        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v6::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,           K,
+                                             blockTileM, blockTileN, blockTileK, threadTileK, stages};
+        vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
+                                                                            specConstantBox.getSpecInfo()) |
+                                            unwrap;
+
+        sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
+        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+        sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
+        sgemmCmdBufBox.end() | unwrap;
+
+        queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
+
+        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
+
+        float diffAcc = 0;
+        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+            const float diff = std::abs(lhs - rhs);
+            REQUIRE(diff <= maxValidDiff);
+            diffAcc += diff;
+        }
+        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+
+        REQUIRE(avgDiff < maxValidAvgDiff);
+        std::println("v6 - average diff = {}", avgDiff);
+    }
 }

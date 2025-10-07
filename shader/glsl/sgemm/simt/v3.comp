@@ -75,7 +75,7 @@ void computeWithShared(inout float acc[THREAD_TILE_M][THREAD_TILE_N]) {
             // Actual compute
             [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
                 [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
-                    acc[tm][tn] += regA[tk] * regB[tk][tn];
+                    acc[tm][tn] = fma(regA[tk], regB[tk][tn], acc[tm][tn]);
                 }
             }
         }
@@ -84,13 +84,9 @@ void computeWithShared(inout float acc[THREAD_TILE_M][THREAD_TILE_N]) {
 
 void main() {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
-    const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
-    const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
-    const int localIndex = int(gl_LocalInvocationIndex);
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
-    const int groupThreadCount = groupSize.x * groupSize.y;
 
-    // Accumulation registers for thread tile
+    // Accumulator
     float acc[THREAD_TILE_M][THREAD_TILE_N];
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
         [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
