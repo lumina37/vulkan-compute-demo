@@ -24,8 +24,8 @@ layout (constant_id = 9) const int STAGES = 2;
 
 const ivec2 EXTENT_A = ivec2(BLOCK_TILE_K / 4, BLOCK_TILE_M);
 const ivec2 EXTENT_B = ivec2(BLOCK_TILE_N / 4, BLOCK_TILE_K);
-shared vec4 sharedA[STAGES][EXTENT_A.y][EXTENT_A.x];
-shared vec4 sharedB[STAGES][EXTENT_B.y][EXTENT_B.x];
+shared vec4 sharedA[STAGES][BLOCK_TILE_M][BLOCK_TILE_K / 4];
+shared vec4 sharedB[STAGES][BLOCK_TILE_K][BLOCK_TILE_N / 4];
 
 void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStride, bool loadA, int stage) {
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);

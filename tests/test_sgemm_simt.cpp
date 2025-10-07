@@ -72,7 +72,7 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
     constexpr float maxValidAvgDiff = 0.000001f;
 
     constexpr int M = 256;
-    constexpr int K = 64;
+    constexpr int K = 128;
     constexpr int N = 512;
     constexpr vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
     constexpr vkc::Extent extentB{N, K, vk::Format::eR32Sfloat};
@@ -338,7 +338,7 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         constexpr int blockTileK = 16;
         constexpr int threadTileK = 16;
         constexpr int stages = 2;
-        constexpr int groupSizeX = 16;
+        constexpr int groupSizeX = 8;
         constexpr int groupSizeY = 8;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
@@ -383,12 +383,12 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
     }
 
     SECTION("v5") {
-        constexpr int blockTileM = 128;
-        constexpr int blockTileN = 128;
+        constexpr int blockTileM = 64;
+        constexpr int blockTileN = 64;
         constexpr int blockTileK = 16;
         constexpr int threadTileK = 16;
         constexpr int stages = 2;
-        constexpr int groupSizeX = 16;
+        constexpr int groupSizeX = 8;
         constexpr int groupSizeY = 8;
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
