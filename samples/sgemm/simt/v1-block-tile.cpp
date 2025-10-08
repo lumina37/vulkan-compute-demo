@@ -91,24 +91,24 @@ int main() {
         unwrap;
 
     // Record Command Buffer
-    for (int i = 0; i < 15; i++) {
-        sgemmCmdBufBox.begin() | unwrap;
-        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
-        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
-        sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
-        sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
-        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
-        sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
-        sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
-        sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
-        sgemmCmdBufBox.end() | unwrap;
+    sgemmCmdBufBox.begin() | unwrap;
+    sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+    sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+    sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
+    sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
+    sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+    sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
+    sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
+    sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+    sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+    sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
+    sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
+    sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
+    sgemmCmdBufBox.end() | unwrap;
 
+    for (int i = 0; i < 15; i++) {
         queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;

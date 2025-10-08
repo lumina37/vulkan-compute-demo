@@ -127,24 +127,25 @@ int main() {
         unwrap;
 
     // Record Command Buffer
+    sgemmCmdBufBox.begin() | unwrap;
+    sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+    sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+    sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
+    sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+    sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
+    sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
+    sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+    sgemmCmdBufBox.recordPerfQueryStart(perfQueryPoolBox) | unwrap;
+    sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+    sgemmCmdBufBox.recordPerfQueryEnd(perfQueryPoolBox) | unwrap;
+    sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
+    sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
+    sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
+    sgemmCmdBufBox.end() | unwrap;
+
     const vkc::ProfilingLockBox lock = vkc::ProfilingLockBox::create(pDeviceBox) | unwrap;
     for (int i = 0; i < 10; i++) {
         perfQueryPoolBox.hostReset();
-        sgemmCmdBufBox.begin() | unwrap;
-        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
-        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
-        sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
-        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
-        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
-        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
-        sgemmCmdBufBox.recordPerfQueryStart(perfQueryPoolBox) | unwrap;
-        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
-        sgemmCmdBufBox.recordPerfQueryEnd(perfQueryPoolBox) | unwrap;
-        sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
-        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
-        sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
-        sgemmCmdBufBox.end() | unwrap;
 
         queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
         fenceBox.wait() | unwrap;

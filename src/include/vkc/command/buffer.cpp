@@ -82,7 +82,7 @@ std::expected<void, Error> CommandBufferBox::begin() noexcept {
     }
 
     vk::CommandBufferBeginInfo cmdBufBeginInfo;
-    cmdBufBeginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+    cmdBufBeginInfo.setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
     const auto beginRes = commandBuffer_.begin(cmdBufBeginInfo);
     if (beginRes != vk::Result::eSuccess) {
         return std::unexpected{Error{ECate::eVk, beginRes}};

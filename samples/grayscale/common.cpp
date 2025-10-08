@@ -82,27 +82,27 @@ int main() {
         unwrap;
 
     // Record Command Buffer
-    for (int i = 0; i < 15; i++) {
-        grayCmdBufBox.begin() | unwrap;
-        grayCmdBufBox.bindPipeline(grayPipelineBox);
-        grayCmdBufBox.bindDescSets(grayDescSetsBox, grayPLayoutBox, vk::PipelineBindPoint::eCompute);
-        grayCmdBufBox.recordResetQueryPool(queryPoolBox);
-        grayCmdBufBox.recordPrepareReceive<vkc::SampledImageBox>(srcImageBoxRefs);
-        grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
-        grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
-        grayCmdBufBox.recordPrepareShaderWrite(dstImageBoxRefs);
-        grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        grayCmdBufBox.recordDispatch(groupNumX, groupNumY);
-        grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        grayCmdBufBox.recordPrepareSend(dstImageBoxRefs);
-        grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
-        grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        grayCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
-        grayCmdBufBox.end() | unwrap;
+    grayCmdBufBox.begin() | unwrap;
+    grayCmdBufBox.bindPipeline(grayPipelineBox);
+    grayCmdBufBox.bindDescSets(grayDescSetsBox, grayPLayoutBox, vk::PipelineBindPoint::eCompute);
+    grayCmdBufBox.recordResetQueryPool(queryPoolBox);
+    grayCmdBufBox.recordPrepareReceive<vkc::SampledImageBox>(srcImageBoxRefs);
+    grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    grayCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
+    grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    grayCmdBufBox.recordPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
+    grayCmdBufBox.recordPrepareShaderWrite(dstImageBoxRefs);
+    grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    grayCmdBufBox.recordDispatch(groupNumX, groupNumY);
+    grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    grayCmdBufBox.recordPrepareSend(dstImageBoxRefs);
+    grayCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    grayCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
+    grayCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    grayCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
+    grayCmdBufBox.end() | unwrap;
 
+    for (int i = 0; i < 15; i++) {
         queueBox.submit(grayCmdBufBox, fenceBox) | unwrap;
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;

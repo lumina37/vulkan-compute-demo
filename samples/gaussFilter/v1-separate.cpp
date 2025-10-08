@@ -91,28 +91,28 @@ int main() {
         unwrap;
 
     // Record Command Buffer
-    for (int i = 0; i < 15; i++) {
-        gaussCmdBufBox.begin() | unwrap;
-        gaussCmdBufBox.bindPipeline(gaussPipelineBox);
-        gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
-        gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
-        gaussCmdBufBox.recordResetQueryPool(queryPoolBox);
-        gaussCmdBufBox.recordPrepareReceive<vkc::SampledImageBox>(srcImageBoxRefs);
-        gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
-        gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufBox.recordPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
-        gaussCmdBufBox.recordPrepareShaderWrite(dstImageBoxRefs);
-        gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
-        gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        gaussCmdBufBox.recordPrepareSend(dstImageBoxRefs);
-        gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
-        gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
-        gaussCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
-        gaussCmdBufBox.end() | unwrap;
+    gaussCmdBufBox.begin() | unwrap;
+    gaussCmdBufBox.bindPipeline(gaussPipelineBox);
+    gaussCmdBufBox.bindDescSets(gaussDescSetsBox, gaussPLayoutBox, vk::PipelineBindPoint::eCompute);
+    gaussCmdBufBox.pushConstant(kernelSizePcBox, gaussPLayoutBox);
+    gaussCmdBufBox.recordResetQueryPool(queryPoolBox);
+    gaussCmdBufBox.recordPrepareReceive<vkc::SampledImageBox>(srcImageBoxRefs);
+    gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    gaussCmdBufBox.recordCopyStagingToImage(srcStagingBufferBox, srcImageBox);
+    gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    gaussCmdBufBox.recordPrepareShaderRead<vkc::SampledImageBox>(srcImageBoxRefs);
+    gaussCmdBufBox.recordPrepareShaderWrite(dstImageBoxRefs);
+    gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    gaussCmdBufBox.recordDispatch(groupNumX, groupNumY);
+    gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+    gaussCmdBufBox.recordPrepareSend(dstImageBoxRefs);
+    gaussCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    gaussCmdBufBox.recordCopyImageToStaging(dstImageBox, dstStagingBufferBox);
+    gaussCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eTransfer) | unwrap;
+    gaussCmdBufBox.recordWaitDownloadComplete(dstStagingBufferBoxRefs);
+    gaussCmdBufBox.end() | unwrap;
 
+    for (int i = 0; i < 15; i++) {
         queueBox.submit(gaussCmdBufBox, fenceBox) | unwrap;
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
