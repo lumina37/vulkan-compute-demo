@@ -11,6 +11,7 @@ set(_VKC_GLSL_SRCS
         sgemm/simt/v5
         sgemm/simt/v6
         sgemm/tcore/v0
+        sgemm/tcore/v1
         flash_attention2/v0
         flash_attention2/v1
         prefix_sum/v0
