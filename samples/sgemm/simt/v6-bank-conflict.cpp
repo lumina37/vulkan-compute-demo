@@ -82,7 +82,7 @@ int main() {
 
     // Pipeline
     constexpr int blockTileM = 128;
-    constexpr int blockTileN = 128;
+    constexpr int blockTileN = 64;
     constexpr int blockTileK = 16;
     constexpr int threadTileK = 16;
     constexpr int stages = 2;

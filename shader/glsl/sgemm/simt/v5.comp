@@ -19,6 +19,7 @@ layout (constant_id = 7) const int BLOCK_TILE_K = 128;
 
 const int THREAD_TILE_M = int(BLOCK_TILE_M / gl_WorkGroupSize.y);
 const int THREAD_TILE_N = int(BLOCK_TILE_N / gl_WorkGroupSize.x);
+const int THREAD_TILE_N_4 = THREAD_TILE_N / 4;
 layout (constant_id = 8) const int THREAD_TILE_K = 8;
 layout (constant_id = 9) const int STAGES = 2;
 
@@ -27,10 +28,10 @@ const ivec2 EXTENT_B = ivec2(BLOCK_TILE_N / 4, BLOCK_TILE_K);
 shared vec4 sharedA[STAGES][BLOCK_TILE_M][BLOCK_TILE_K / 4];
 shared vec4 sharedB[STAGES][BLOCK_TILE_K][BLOCK_TILE_N / 4];
 
-void zeroFillAccumulator(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) {
+void zeroFillAccumulator(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]) {
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
-        [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
-            regAccumulator[tm][tn] = 0.f;
+        [[unroll]] for (int tn = 0; tn < THREAD_TILE_N / 4; tn++) {
+            regAccumulator[tm][tn] = vec4(0.0f);
         }
     }
 }
@@ -57,11 +58,11 @@ void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStri
     }
 }
 
-void computeWithShared(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N], int stage) {
+void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4], int stage) {
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
 
-    float regA[THREAD_TILE_K];// Only cache one row for row-major A
-    float regB[THREAD_TILE_K][THREAD_TILE_N];// Cache the whole B
+    vec4 regA[THREAD_TILE_K / 4];// Only cache one row for row-major A
+    vec4 regB[THREAD_TILE_K][THREAD_TILE_N / 4];// Cache the whole B
 
     const int threadSplitKCount = BLOCK_TILE_K / THREAD_TILE_K;
     for (int iThreadSplitK = 0; iThreadSplitK < threadSplitKCount; iThreadSplitK++) {
@@ -69,11 +70,7 @@ void computeWithShared(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N],
         const ivec2 sharedCoordB = ivec2(localID.x * THREAD_TILE_N / 4, iThreadSplitK * THREAD_TILE_K);
         [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
             [[unroll]] for (int tn = 0; tn < THREAD_TILE_N / 4; tn++) {
-                const vec4 sharedElem = sharedB[stage][sharedCoordB.y + tk][sharedCoordB.x + tn];
-                regB[tk][tn * 4 + 0] = sharedElem.x;
-                regB[tk][tn * 4 + 1] = sharedElem.y;
-                regB[tk][tn * 4 + 2] = sharedElem.z;
-                regB[tk][tn * 4 + 3] = sharedElem.w;
+                regB[tk][tn] = sharedB[stage][sharedCoordB.y + tk][sharedCoordB.x + tn];
             }
         }
 
@@ -82,24 +79,23 @@ void computeWithShared(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N],
         [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
             // Load A
             [[unroll]] for (int tk = 0; tk < THREAD_TILE_K / 4; tk++) {
-                const vec4 sharedElem = sharedA[stage][sharedCoordA.y + tm][sharedCoordA.x + tk];
-                regA[tk * 4 + 0] = sharedElem.x;
-                regA[tk * 4 + 1] = sharedElem.y;
-                regA[tk * 4 + 2] = sharedElem.z;
-                regA[tk * 4 + 3] = sharedElem.w;
+                regA[tk] = sharedA[stage][sharedCoordA.y + tm][sharedCoordA.x + tk];
             }
 
             // Actual compute
-            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
-                [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
-                    regAccumulator[tm][tn] = fma(regA[tk], regB[tk][tn], regAccumulator[tm][tn]);
+            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N / 4; tn++) {
+                [[unroll]] for (int tk = 0; tk < THREAD_TILE_K / 4; tk++) {
+                    regAccumulator[tm][tn] += regA[tk].x * regB[tk * 4 + 0][tn];
+                    regAccumulator[tm][tn] += regA[tk].y * regB[tk * 4 + 1][tn];
+                    regAccumulator[tm][tn] += regA[tk].z * regB[tk * 4 + 2][tn];
+                    regAccumulator[tm][tn] += regA[tk].w * regB[tk * 4 + 3][tn];
                 }
             }
         }
     }
 }
 
-void storeAccumulator(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) {
+void storeAccumulator(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]) {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
 
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
@@ -107,8 +103,7 @@ void storeAccumulator(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) 
             const int globalRow = globalID.y * THREAD_TILE_M + tm;
             const int globalCol = globalID.x * THREAD_TILE_N / 4 + tn;
             const int dstIdx = globalRow * N / 4 + globalCol;
-            const vec4 dstElem = vec4(regAccumulator[tm][tn * 4 + 0], regAccumulator[tm][tn * 4 + 1], regAccumulator[tm][tn * 4 + 2], regAccumulator[tm][tn * 4 + 3]);
-            dstMat[dstIdx] = dstElem;
+            dstMat[dstIdx] = regAccumulator[tm][tn];
         }
     }
 }
@@ -117,7 +112,7 @@ void main() {
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
 
     // Accumulator
-    float regAccumulator[THREAD_TILE_M][THREAD_TILE_N];
+    vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4];
     zeroFillAccumulator(regAccumulator);
 
     // Prologue
