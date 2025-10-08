@@ -22,10 +22,10 @@ const int THREAD_TILE_N = int(BLOCK_TILE_N / gl_WorkGroupSize.x);
 layout (constant_id = 8) const int THREAD_TILE_K = 8;
 layout (constant_id = 9) const int STAGES = 2;
 
-const ivec2 EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
-const ivec2 EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
-shared float sharedA[STAGES][EXTENT_A.y][EXTENT_A.x];
-shared float sharedB[STAGES][EXTENT_B.y][EXTENT_B.x];
+const ivec2 SMEM_EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
+const ivec2 SMEM_EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
+shared float sharedA[STAGES][SMEM_EXTENT_A.y][SMEM_EXTENT_A.x];
+shared float sharedB[STAGES][SMEM_EXTENT_B.y][SMEM_EXTENT_B.x];
 
 void zeroFillAccumulator(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) {
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
@@ -96,9 +96,9 @@ void storeAccumulator(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) 
 
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
         [[unroll]] for (int tn = 0; tn < THREAD_TILE_N; tn++) {
-            const int globalRow = globalID.y * THREAD_TILE_M + tm;
-            const int globalCol = globalID.x * THREAD_TILE_N + tn;
-            const int dstIdx = globalRow * N + globalCol;
+            const int globalCoordY = globalID.y * THREAD_TILE_M + tm;
+            const int globalCoordX = globalID.x * THREAD_TILE_N + tn;
+            const int dstIdx = globalCoordY * N + globalCoordX;
             dstMat[dstIdx] = regAccumulator[tm][tn];
         }
     }
@@ -114,22 +114,25 @@ void main() {
     // Prologue
     int stage = 0;
     const ivec2 globalCoordA = ivec2(0, groupID.y * BLOCK_TILE_M);
-    loadGlobalToShared(globalCoordA, EXTENT_A, K, true, stage);// Load A
+    loadGlobalToShared(globalCoordA, SMEM_EXTENT_A, K, true, stage);// Load A
 
     const ivec2 globalCoordB = ivec2(groupID.x * BLOCK_TILE_N, 0);
-    loadGlobalToShared(globalCoordB, EXTENT_B, N, false, stage);// Load B
+    loadGlobalToShared(globalCoordB, SMEM_EXTENT_B, N, false, stage);// Load B
     barrier();
 
     // Main-loop
+    const int blockBaseM = groupID.y * BLOCK_TILE_M;
+    const int blockBaseN = groupID.x * BLOCK_TILE_N;
     const int blockSplitKCount = K / BLOCK_TILE_K;
     for (int iBlockSplitK = 1; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
         const int nextStage = (stage + 1) % STAGES;
+        const int blockBaseK = iBlockSplitK * BLOCK_TILE_K;
 
-        const ivec2 globalCoordA = ivec2(iBlockSplitK * BLOCK_TILE_K, groupID.y * BLOCK_TILE_M);
-        loadGlobalToShared(globalCoordA, EXTENT_A, K, true, nextStage);// Load A
+        const ivec2 globalCoordA = ivec2(blockBaseK, blockBaseM);
+        loadGlobalToShared(globalCoordA, SMEM_EXTENT_A, K, true, nextStage);// Load A
 
-        const ivec2 globalCoordB = ivec2(groupID.x * BLOCK_TILE_N, iBlockSplitK * BLOCK_TILE_K);
-        loadGlobalToShared(globalCoordB, EXTENT_B, N, false, nextStage);// Load B
+        const ivec2 globalCoordB = ivec2(blockBaseN, blockBaseK);
+        loadGlobalToShared(globalCoordB, SMEM_EXTENT_B, N, false, nextStage);// Load B
 
         computeWithShared(regAccumulator, stage);
         barrier();

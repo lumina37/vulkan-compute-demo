@@ -1,9 +1,12 @@
+// Wrap-tile with single accumulator
+
 #version 460
 
 #extension GL_EXT_shader_16bit_storage: require
 #extension GL_EXT_shader_explicit_arithmetic_types_float16: require
 #extension GL_KHR_memory_scope_semantics: require
 #extension GL_KHR_cooperative_matrix: require
+#extension GL_KHR_shader_subgroup_basic: require
 
 layout (local_size_x_id = 0) in;
 
@@ -17,60 +20,99 @@ layout (constant_id = 3) const int K = 0;
 layout (constant_id = 4) const int MMA_M = 16;
 layout (constant_id = 5) const int MMA_N = 16;
 layout (constant_id = 6) const int MMA_K = 16;
+layout (constant_id = 7) const int BLOCK_TILE_M = 32;
+layout (constant_id = 8) const int BLOCK_TILE_N = 32;
+layout (constant_id = 9) const int BLOCK_TILE_K = 32;
 
-shared float16_t sharedA[MMA_M * MMA_K];
-shared float16_t sharedB[MMA_K * MMA_N];
-shared float sharedC[MMA_M * MMA_N];
+const int WARP_COUNT_M = BLOCK_TILE_M / MMA_M;
+const int WARP_COUNT_N = BLOCK_TILE_N / MMA_N;
 
-void main() {
-    const int groupSize = int(gl_WorkGroupSize.x);
-    const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
+const ivec2 SMEM_EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
+const ivec2 SMEM_EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
+shared float16_t sharedA[BLOCK_TILE_M * BLOCK_TILE_K];
+shared float16_t sharedB[BLOCK_TILE_K * BLOCK_TILE_N];
+
+void zeroFillAccumulator(inout coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> coopmatAcc) {
+    coopmatAcc = coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator>(0.0);
+}
+
+void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStride, bool loadA) {
+    const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
+    const int localIndex = int(gl_LocalInvocationIndex);
+
+    const int groupThreadCount = int(groupSize.x * groupSize.y);
+    const int loadsPerThread = globalExtent.x * globalExtent.y / groupThreadCount;
+
+    for (int i = 0; i < loadsPerThread; i++) {
+        const int linearIdx = i * groupThreadCount + localIndex;
+        const ivec2 srcOffset = ivec2(linearIdx % globalExtent.x, linearIdx / globalExtent.x);
+        const ivec2 srcCoord = globalCoord + srcOffset;
+        const int srcIndex = srcCoord.y * globalRowStride + srcCoord.x;
+
+        const ivec2 dstCoord = srcOffset;
+        if (loadA) {
+            sharedA[dstCoord.y * BLOCK_TILE_K + dstCoord.x] = float16_t(srcMatA[srcIndex]);
+        } else {
+            sharedB[dstCoord.y * BLOCK_TILE_N + dstCoord.x] = float16_t(srcMatB[srcIndex]);
+        }
+    }
+}
+
+void computeWithShared(inout coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> coopmatAcc) {
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+    const int subgroupIndex = int(gl_SubgroupID);
+    const ivec2 subgroupID = ivec2(subgroupIndex % WARP_COUNT_N, subgroupIndex / WARP_COUNT_N);
 
     coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA;
     coopmat<float16_t, gl_ScopeSubgroup, MMA_K, MMA_N, gl_MatrixUseB> matB;
-    coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> matAcc;
-    matAcc = coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator>(0.0);
 
-    const int splitKCount = K / MMA_K;
-    const int baseM = groupID.y * MMA_M;
-    const int baseN = groupID.x * MMA_N;
-    for (int iSplitK = 0; iSplitK < splitKCount; iSplitK++) {
-        const int baseK = iSplitK * MMA_K;
-        const int loadsPerThreadA = MMA_M * MMA_K / groupSize;
-        for (int i = 0; i < loadsPerThreadA; i++) {
-            const int linearIdx = localID.x * loadsPerThreadA + i;
-            const int srcX = baseK + linearIdx % MMA_K;
-            const int srcY = baseM + linearIdx / MMA_K;
-            const int srcAIndex = srcY * K + srcX;
-            sharedA[linearIdx] = float16_t(srcMatA[srcAIndex]);
-        }
+    const int wrapSplitKCount = BLOCK_TILE_K / MMA_K;
+    for (int iWarpSplitK = 0; iWarpSplitK < wrapSplitKCount; iWarpSplitK++) {
+        const ivec2 sharedCoordA = ivec2(iWarpSplitK * MMA_K, subgroupID.y * MMA_M);
+        const int sharedOffsetA = sharedCoordA.y * BLOCK_TILE_K + sharedCoordA.x;
+        coopMatLoad(matA, sharedA, sharedOffsetA, BLOCK_TILE_K, gl_CooperativeMatrixLayoutRowMajor);
 
-        const int loadsPerThreadB = MMA_K * MMA_N / groupSize;
-        for (int i = 0; i < loadsPerThreadB; i++) {
-            const int linearIdx = localID.x * loadsPerThreadB + i;
-            const int srcX = baseN + linearIdx % MMA_N;
-            const int srcY = baseK + linearIdx / MMA_N;
-            const int srcBIndex = srcY * N + srcX;
-            sharedB[linearIdx] = float16_t(srcMatB[srcBIndex]);
-        }
+        const ivec2 sharedCoordB = ivec2(subgroupID.x * MMA_N, iWarpSplitK * MMA_K);
+        const int sharedOffsetB = sharedCoordB.y * BLOCK_TILE_N + sharedCoordB.x;
+        coopMatLoad(matB, sharedB, sharedOffsetB, BLOCK_TILE_N, gl_CooperativeMatrixLayoutRowMajor);
+
+        coopmatAcc = coopMatMulAdd(matA, matB, coopmatAcc);
+    }
+}
+
+void storeAccumulator(inout coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> coopmatAcc) {
+    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+    const int subgroupIndex = int(gl_SubgroupID);
+    const ivec2 subgroupID = ivec2(subgroupIndex % WARP_COUNT_N, subgroupIndex / WARP_COUNT_N);
+
+    const int globalCoordY = groupID.y * BLOCK_TILE_M + subgroupID.y * MMA_M;
+    const int globalCoordX = groupID.x * BLOCK_TILE_N + subgroupID.x * MMA_N;
+    const int globalOffset = globalCoordY * N + globalCoordX;
+    coopMatStore(coopmatAcc, dstMat, globalOffset, N, gl_CooperativeMatrixLayoutRowMajor);
+}
+
+void main() {
+    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+
+    coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> coopmatAcc;
+    zeroFillAccumulator(coopmatAcc);
+
+    const int blockBaseM = groupID.y * BLOCK_TILE_M;
+    const int blockBaseN = groupID.x * BLOCK_TILE_N;
+    const int blockSplitKCount = K / BLOCK_TILE_K;
+    for (int iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
+        const int blockBaseK = iBlockSplitK * BLOCK_TILE_K;
+
+        const ivec2 globalCoordA = ivec2(blockBaseK, blockBaseM);
+        loadGlobalToShared(globalCoordA, SMEM_EXTENT_A, K, true);// Load A
+
+        const ivec2 globalCoordB = ivec2(blockBaseN, blockBaseK);
+        loadGlobalToShared(globalCoordB, SMEM_EXTENT_B, N, false);// Load B
         barrier();
 
-        coopMatLoad(matA, sharedA, 0, MMA_K, gl_CooperativeMatrixLayoutRowMajor);
-        coopMatLoad(matB, sharedB, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
-        matAcc = coopMatMulAdd(matA, matB, matAcc);
+        computeWithShared(coopmatAcc);
         barrier();
     }
 
-    coopMatStore(matAcc, sharedC, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
-    barrier();
-
-    int storesPerThread = MMA_M * MMA_N / groupSize;
-    for (int i = 0; i < storesPerThread; i++) {
-        const int linearIdx = localID.x * storesPerThread + i;
-        const int dstX = baseN + linearIdx % MMA_K;
-        const int dstY = baseM + linearIdx / MMA_K;
-        const int dstIndex = dstY * N + dstX;
-        dstMat[dstIndex] = sharedC[linearIdx];
-    }
+    storeAccumulator(coopmatAcc);
 }

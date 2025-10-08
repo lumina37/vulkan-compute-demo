@@ -23,6 +23,7 @@ vkc_add_sample(vkc-bin-sgemm-simt-v5 sgemm/simt/v5-float4.cpp)
 vkc_add_sample(vkc-bin-sgemm-simt-v6 sgemm/simt/v6-bank-conflict.cpp)
 
 vkc_add_sample(vkc-bin-sgemm-tcore-v0 sgemm/tcore/v0-naive.cpp)
+vkc_add_sample(vkc-bin-sgemm-tcore-v1 sgemm/tcore/v1-wrap-tile-single.cpp)
 
 vkc_add_sample(vkc-bin-gui gui.cpp)
 vkc_add_sample(vkc-bin-perf perf.cpp)

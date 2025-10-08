@@ -1,3 +1,5 @@
+// Naive
+
 #version 460
 
 #extension GL_EXT_shader_16bit_storage: require
@@ -20,37 +22,36 @@ layout (constant_id = 6) const int MMA_K = 16;
 
 shared float16_t sharedA[MMA_M * MMA_K];
 shared float16_t sharedB[MMA_K * MMA_N];
-shared float sharedC[MMA_M * MMA_N];
 
 void main() {
     const int groupSize = int(gl_WorkGroupSize.x);
-    const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
+    const int localIndex = int(gl_LocalInvocationIndex);
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
 
     coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA;
     coopmat<float16_t, gl_ScopeSubgroup, MMA_K, MMA_N, gl_MatrixUseB> matB;
-    coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> matAcc;
-    matAcc = coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator>(0.0);
+    coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> coopmatAcc;
+    coopmatAcc = coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator>(0.0);
 
-    const int splitKCount = K / MMA_K;
-    const int baseM = groupID.y * MMA_M;
-    const int baseN = groupID.x * MMA_N;
-    for (int iSplitK = 0; iSplitK < splitKCount; iSplitK++) {
-        const int baseK = iSplitK * MMA_K;
+    const int blockSplitKCount = K / MMA_K;
+    const int blockBaseM = groupID.y * MMA_M;
+    const int blockBaseN = groupID.x * MMA_N;
+    for (int iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
+        const int blockBaseK = iBlockSplitK * MMA_K;
         const int loadsPerThreadA = MMA_M * MMA_K / groupSize;
         for (int i = 0; i < loadsPerThreadA; i++) {
-            const int linearIdx = localID.x * loadsPerThreadA + i;
-            const int srcX = baseK + linearIdx % MMA_K;
-            const int srcY = baseM + linearIdx / MMA_K;
+            const int linearIdx = localIndex * loadsPerThreadA + i;
+            const int srcX = blockBaseK + linearIdx % MMA_K;
+            const int srcY = blockBaseM + linearIdx / MMA_K;
             const int srcAIndex = srcY * K + srcX;
             sharedA[linearIdx] = float16_t(srcMatA[srcAIndex]);
         }
 
         const int loadsPerThreadB = MMA_K * MMA_N / groupSize;
         for (int i = 0; i < loadsPerThreadB; i++) {
-            const int linearIdx = localID.x * loadsPerThreadB + i;
-            const int srcX = baseN + linearIdx % MMA_N;
-            const int srcY = baseK + linearIdx / MMA_N;
+            const int linearIdx = localIndex * loadsPerThreadB + i;
+            const int srcX = blockBaseN + linearIdx % MMA_N;
+            const int srcY = blockBaseK + linearIdx / MMA_N;
             const int srcBIndex = srcY * N + srcX;
             sharedB[linearIdx] = float16_t(srcMatB[srcBIndex]);
         }
@@ -58,19 +59,9 @@ void main() {
 
         coopMatLoad(matA, sharedA, 0, MMA_K, gl_CooperativeMatrixLayoutRowMajor);
         coopMatLoad(matB, sharedB, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
-        matAcc = coopMatMulAdd(matA, matB, matAcc);
+        coopmatAcc = coopMatMulAdd(matA, matB, coopmatAcc);
         barrier();
     }
 
-    coopMatStore(matAcc, sharedC, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
-    barrier();
-
-    int storesPerThread = MMA_M * MMA_N / groupSize;
-    for (int i = 0; i < storesPerThread; i++) {
-        const int linearIdx = localID.x * storesPerThread + i;
-        const int dstX = baseN + linearIdx % MMA_K;
-        const int dstY = baseM + linearIdx / MMA_K;
-        const int dstIndex = dstY * N + dstX;
-        dstMat[dstIndex] = sharedC[linearIdx];
-    }
+    coopMatStore(coopmatAcc, dstMat, blockBaseM * N + blockBaseN, N, gl_CooperativeMatrixLayoutRowMajor);
 }
