@@ -18,14 +18,14 @@ find_package(Vulkan)
 FetchContent_Declare(
         stb
         GIT_REPOSITORY https://github.com/nothings/stb.git
-        GIT_TAG master
+        GIT_TAG fede005abaf93d9d7f3a679d1999b2db341b360f
 )
 FetchContent_MakeAvailable(stb)
 
 FetchContent_Declare(
         glfw
         GIT_REPOSITORY https://github.com/glfw/glfw.git
-        GIT_TAG master
+        GIT_TAG 3.4
 )
 FetchContent_MakeAvailable(glfw)
 

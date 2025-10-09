@@ -1,4 +1,4 @@
-// Wrap-tile with single accumulator
+// Block-tile
 
 #version 460
 

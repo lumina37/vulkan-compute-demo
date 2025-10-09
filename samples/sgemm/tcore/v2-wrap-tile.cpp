@@ -101,14 +101,18 @@ int main() {
     constexpr int MMA_M = 16;
     constexpr int MMA_N = 16;
     constexpr int MMA_K = 16;
-    constexpr int blockTileM = 32;
-    constexpr int blockTileN = 32;
-    constexpr int blockTileK = 64;
-    const uint32_t groupSizeX = phyDeviceProps.subgroupSize * (blockTileM / MMA_M) * (blockTileN / MMA_N);
+    constexpr int blockTileM = 128;
+    constexpr int blockTileN = 128;
+    constexpr int blockTileK = 128;
+    constexpr int wrapTileM = 64;
+    constexpr int wrapTileN = 64;
+    constexpr int wrapTileK = 128;
+    const uint32_t groupSizeX = phyDeviceProps.subgroupSize * (blockTileM / wrapTileM) * (blockTileN / wrapTileN);
     constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
     constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::tcore::v1::code) | unwrap;
-    vkc::SpecConstantBox specConstantBox{groupSizeX, M, N, K, MMA_M, MMA_N, MMA_K, blockTileM, blockTileN, blockTileK};
+    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::tcore::v2::code) | unwrap;
+    vkc::SpecConstantBox specConstantBox{groupSizeX, M,          N,          K,         MMA_M,     MMA_N,    MMA_K,
+                                         blockTileM, blockTileN, blockTileK, wrapTileM, wrapTileN, wrapTileK};
     vkc::PipelineBox sgemmPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
         unwrap;
