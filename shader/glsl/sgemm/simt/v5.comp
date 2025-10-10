@@ -30,7 +30,7 @@ shared vec4 sharedB[STAGES][BLOCK_TILE_K][BLOCK_TILE_N / 4];
 
 void zeroFillAccumulator(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]) {
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
-        [[unroll]] for (int tn = 0; tn < THREAD_TILE_N / 4; tn++) {
+        [[unroll]] for (int tn = 0; tn < THREAD_TILE_N_4; tn++) {
             regAccumulator[tm][tn] = vec4(0.0f);
         }
     }
@@ -62,14 +62,14 @@ void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
 
     vec4 regA[THREAD_TILE_K / 4];// Only cache one row for row-major A
-    vec4 regB[THREAD_TILE_K][THREAD_TILE_N / 4];// Cache the whole B
+    vec4 regB[THREAD_TILE_K][THREAD_TILE_N_4];// Cache the whole B
 
     const int threadSplitKCount = BLOCK_TILE_K / THREAD_TILE_K;
     for (int iThreadSplitK = 0; iThreadSplitK < threadSplitKCount; iThreadSplitK++) {
         // Load B
-        const ivec2 sharedCoordB = ivec2(localID.x * THREAD_TILE_N / 4, iThreadSplitK * THREAD_TILE_K);
+        const ivec2 sharedCoordB = ivec2(localID.x * THREAD_TILE_N_4, iThreadSplitK * THREAD_TILE_K);
         [[unroll]] for (int tk = 0; tk < THREAD_TILE_K; tk++) {
-            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N / 4; tn++) {
+            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N_4; tn++) {
                 regB[tk][tn] = sharedB[stage][sharedCoordB.y + tk][sharedCoordB.x + tn];
             }
         }
@@ -83,7 +83,7 @@ void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]
             }
 
             // Actual compute
-            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N / 4; tn++) {
+            [[unroll]] for (int tn = 0; tn < THREAD_TILE_N_4; tn++) {
                 [[unroll]] for (int tk = 0; tk < THREAD_TILE_K / 4; tk++) {
                     regAccumulator[tm][tn] += regA[tk].x * regB[tk * 4 + 0][tn];
                     regAccumulator[tm][tn] += regA[tk].y * regB[tk * 4 + 1][tn];
@@ -99,9 +99,9 @@ void storeAccumulator(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4])
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
 
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {
-        [[unroll]] for (int tn = 0; tn < THREAD_TILE_N / 4; tn++) {
+        [[unroll]] for (int tn = 0; tn < THREAD_TILE_N_4; tn++) {
             const int globalCoordY = globalID.y * THREAD_TILE_M + tm;
-            const int globalCoordX = globalID.x * THREAD_TILE_N / 4 + tn;
+            const int globalCoordX = globalID.x * THREAD_TILE_N_4 + tn;
             const int dstIdx = globalCoordY * N / 4 + globalCoordX;
             dstMat[dstIdx] = regAccumulator[tm][tn];
         }
@@ -118,10 +118,10 @@ void main() {
     // Prologue
     int stage = 0;
     const ivec2 globalCoordA = ivec2(0, groupID.y * BLOCK_TILE_M);
-    loadGlobalToShared(globalCoordA, SMEM_EXTENT_A, K / 4, true, stage);// Load A
+    loadGlobalToShared(globalCoordA, SMEM_EXTENT_A, K / 4, true, 0);// Load A
 
     const ivec2 globalCoordB = ivec2(groupID.x * BLOCK_TILE_N / 4, 0);
-    loadGlobalToShared(globalCoordB, SMEM_EXTENT_B, N / 4, false, stage);// Load B
+    loadGlobalToShared(globalCoordB, SMEM_EXTENT_B, N / 4, false, 0);// Load B
     barrier();
 
     // Main-loop
