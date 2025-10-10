@@ -23,4 +23,10 @@ extern const std::span<std::byte> code;
 
 }  // namespace v2
 
+namespace v3 {
+
+extern const std::span<std::byte> code;
+
+}  // namespace v3
+
 }  // namespace shader::sgemm::tcore

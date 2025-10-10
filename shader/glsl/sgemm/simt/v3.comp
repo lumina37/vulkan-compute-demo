@@ -23,8 +23,8 @@ layout (constant_id = 8) const int THREAD_TILE_K = 8;
 
 const ivec2 SMEM_EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
 const ivec2 SMEM_EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
-shared float sharedA[SMEM_EXTENT_A.y][SMEM_EXTENT_A.x];
-shared float sharedB[SMEM_EXTENT_B.y][SMEM_EXTENT_B.x];
+shared float sharedA[BLOCK_TILE_M][BLOCK_TILE_K];
+shared float sharedB[BLOCK_TILE_K][BLOCK_TILE_N];
 
 void zeroFillAccumulator(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) {
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {

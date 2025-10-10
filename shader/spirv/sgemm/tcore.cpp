@@ -35,4 +35,14 @@ const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)
 
 }  // namespace v2
 
+namespace v3 {
+
+namespace _detail {
+#include "spirv/sgemm/tcore/v3.h"
+}
+
+const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
+
+}  // namespace v3
+
 }  // namespace shader::sgemm::tcore

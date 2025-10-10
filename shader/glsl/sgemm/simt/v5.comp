@@ -139,9 +139,9 @@ void main() {
         loadGlobalToShared(globalCoordB, SMEM_EXTENT_B, N / 4, false, nextStage);// Load B
 
         computeWithShared(regAccumulator, stage);
-        barrier();
 
         stage = nextStage;
+        barrier();
     }
 
     // Epilogue

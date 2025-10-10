@@ -187,7 +187,7 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
         constexpr int MMA_K = 16;
         constexpr int blockTileM = 32;
         constexpr int blockTileN = 32;
-        constexpr int blockTileK = 32;
+        constexpr int blockTileK = 16;
         const uint32_t groupSizeX = phyDeviceProps.subgroupSize * (blockTileM / MMA_M) * (blockTileN / MMA_N);
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
@@ -237,10 +237,10 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
         constexpr int MMA_K = 16;
         constexpr int blockTileM = 64;
         constexpr int blockTileN = 64;
-        constexpr int blockTileK = 64;
-        constexpr int wrapTileM = 32;
-        constexpr int wrapTileN = 32;
-        constexpr int wrapTileK = 64;
+        constexpr int blockTileK = 16;
+        constexpr int wrapTileM = 64;
+        constexpr int wrapTileN = 64;
+        constexpr int wrapTileK = 16;
         const uint32_t groupSizeX = phyDeviceProps.subgroupSize * (blockTileM / wrapTileM) * (blockTileN / wrapTileN);
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
@@ -282,5 +282,60 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
 
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v2 - average diff = {}", avgDiff);
+    }
+
+    SECTION("v3") {
+        constexpr int MMA_M = 16;
+        constexpr int MMA_N = 16;
+        constexpr int MMA_K = 16;
+        constexpr int blockTileM = 64;
+        constexpr int blockTileN = 64;
+        constexpr int blockTileK = 16;
+        constexpr int wrapTileM = 64;
+        constexpr int wrapTileN = 64;
+        constexpr int wrapTileK = 16;
+        constexpr int stages = 2;
+        const uint32_t groupSizeX = phyDeviceProps.subgroupSize * (blockTileM / wrapTileM) * (blockTileN / wrapTileN);
+        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
+        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::tcore::v3::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{groupSizeX, M,         N,          K,          MMA_M,
+                                             MMA_N,      MMA_K,     blockTileM, blockTileN, blockTileK,
+                                             wrapTileM,  wrapTileN, wrapTileK,  stages};
+        vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
+                                                                            specConstantBox.getSpecInfo()) |
+                                            unwrap;
+
+        sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
+        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
+        sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
+        sgemmCmdBufBox.end() | unwrap;
+
+        queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
+        fenceBox.wait() | unwrap;
+        fenceBox.reset() | unwrap;
+
+        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
+
+        float diffAcc = 0;
+        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+            const float diff = std::abs(lhs - rhs);
+            REQUIRE(diff <= maxValidDiff);
+            diffAcc += diff;
+        }
+        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+
+        REQUIRE(avgDiff < maxValidAvgDiff);
+        std::println("v3 - average diff = {}", avgDiff);
     }
 }
