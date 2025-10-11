@@ -73,20 +73,12 @@ void computeWithShared(inout coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_M
     const int subgroupIndex = int(gl_SubgroupID);
     const ivec2 subgroupID = ivec2(subgroupIndex % WARP_COUNT_N, subgroupIndex / WARP_COUNT_N);
 
-    coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA[ACC_COUNT_M][ACC_COUNT_K];
+    coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA[ACC_COUNT_K];
     coopmat<float16_t, gl_ScopeSubgroup, MMA_K, MMA_N, gl_MatrixUseB> matB[ACC_COUNT_K][ACC_COUNT_N];
 
     const int wrapSplitKCount = BLOCK_TILE_K / WRAP_TILE_K;
     for (int iWarpSplitK = 0; iWarpSplitK < wrapSplitKCount; iWarpSplitK++) {
         const ivec2 sharedCoordABase = ivec2(iWarpSplitK * WRAP_TILE_K, subgroupID.y * WRAP_TILE_M);
-        for (int iAccM = 0; iAccM < ACC_COUNT_M; iAccM++) {
-            for (int iAccK = 0; iAccK < ACC_COUNT_K; iAccK++) {
-                const ivec2 sharedCoordA = sharedCoordABase + ivec2(iAccK * MMA_K, iAccM * MMA_M);
-                const int sharedOffsetA = sharedCoordA.y * BLOCK_TILE_K + sharedCoordA.x;
-                coopMatLoad(matA[iAccM][iAccK], sharedA, sharedOffsetA, BLOCK_TILE_K, gl_CooperativeMatrixLayoutRowMajor);
-            }
-        }
-
         const ivec2 sharedCoordBBase = ivec2(subgroupID.x * WRAP_TILE_N, iWarpSplitK * WRAP_TILE_K);
         for (int iAccK = 0; iAccK < ACC_COUNT_K; iAccK++) {
             for (int iAccN = 0; iAccN < ACC_COUNT_N; iAccN++) {
@@ -97,9 +89,15 @@ void computeWithShared(inout coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_M
         }
 
         for (int iAccM = 0; iAccM < ACC_COUNT_M; iAccM++) {
+            for (int iAccK = 0; iAccK < ACC_COUNT_K; iAccK++) {
+                const ivec2 sharedCoordA = sharedCoordABase + ivec2(iAccK * MMA_K, iAccM * MMA_M);
+                const int sharedOffsetA = sharedCoordA.y * BLOCK_TILE_K + sharedCoordA.x;
+                coopMatLoad(matA[iAccK], sharedA, sharedOffsetA, BLOCK_TILE_K, gl_CooperativeMatrixLayoutRowMajor);
+            }
+
             for (int iAccN = 0; iAccN < ACC_COUNT_N; iAccN++) {
                 for (int iAccK = 0; iAccK < ACC_COUNT_K; iAccK++) {
-                    coopmatAcc[iAccM][iAccN] = coopMatMulAdd(matA[iAccM][iAccK], matB[iAccK][iAccN], coopmatAcc[iAccM][iAccN]);
+                    coopmatAcc[iAccM][iAccN] = coopMatMulAdd(matA[iAccK], matB[iAccK][iAccN], coopmatAcc[iAccM][iAccN]);
                 }
             }
         }

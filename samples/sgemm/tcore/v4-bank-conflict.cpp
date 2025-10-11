@@ -110,7 +110,7 @@ int main() {
     const uint32_t groupSizeX = phyDeviceProps.subgroupSize * (blockTileM / wrapTileM) * (blockTileN / wrapTileN);
     constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
     constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::tcore::v3::code) | unwrap;
+    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::tcore::v4::code) | unwrap;
     vkc::SpecConstantBox specConstantBox{groupSizeX, M,          N,          K,         MMA_M,     MMA_N,     MMA_K,
                                          blockTileM, blockTileN, blockTileK, wrapTileM, wrapTileN, wrapTileK, stages};
     vkc::PipelineBox sgemmPipelineBox =

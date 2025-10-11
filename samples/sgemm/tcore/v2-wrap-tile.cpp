@@ -103,7 +103,7 @@ int main() {
     constexpr int blockTileN = 128;
     constexpr int blockTileK = 16;
     constexpr int wrapTileM = 64;
-    constexpr int wrapTileN = 64;
+    constexpr int wrapTileN = 32;
     constexpr int wrapTileK = 16;
     const uint32_t groupSizeX = phyDeviceProps.subgroupSize * (blockTileM / wrapTileM) * (blockTileN / wrapTileN);
     constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);

@@ -109,7 +109,7 @@ int main() {
     constexpr int groupSize = 128;
     constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
     constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::tcore::v4::code) | unwrap;
+    vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::tcore::v5::code) | unwrap;
     vkc::SpecConstantBox specConstantBox{groupSize, M, N, K, blockTileM, blockTileN, blockTileK};
     vkc::PipelineBox sgemmPipelineBox =
         vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox, specConstantBox.getSpecInfo()) |
