@@ -9,8 +9,8 @@
 
 layout (local_size_x_id = 0) in;
 
-layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
-layout (binding = 1, std430) readonly buffer SrcMatB { float srcMatB[]; };
+layout (binding = 0, std430) readonly buffer SrcMatA { float16_t srcMatA[]; };
+layout (binding = 1, std430) readonly buffer SrcMatB { float16_t srcMatB[]; };
 layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 
 layout (constant_id = 1) const int M = 0;
@@ -19,9 +19,6 @@ layout (constant_id = 3) const int K = 0;
 layout (constant_id = 4) const int MMA_M = 16;
 layout (constant_id = 5) const int MMA_N = 16;
 layout (constant_id = 6) const int MMA_K = 16;
-
-shared float16_t sharedA[MMA_M * MMA_K];
-shared float16_t sharedB[MMA_K * MMA_N];
 
 void main() {
     const int groupSize = int(gl_WorkGroupSize.x);
@@ -38,29 +35,11 @@ void main() {
     const int blockBaseN = groupID.x * MMA_N;
     for (int iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
         const int blockBaseK = iBlockSplitK * MMA_K;
-        const int loadsPerThreadA = MMA_M * MMA_K / groupSize;
-        for (int i = 0; i < loadsPerThreadA; i++) {
-            const int linearIdx = localIndex * loadsPerThreadA + i;
-            const int srcX = blockBaseK + linearIdx % MMA_K;
-            const int srcY = blockBaseM + linearIdx / MMA_K;
-            const int srcAIndex = srcY * K + srcX;
-            sharedA[linearIdx] = float16_t(srcMatA[srcAIndex]);
-        }
 
-        const int loadsPerThreadB = MMA_K * MMA_N / groupSize;
-        for (int i = 0; i < loadsPerThreadB; i++) {
-            const int linearIdx = localIndex * loadsPerThreadB + i;
-            const int srcX = blockBaseN + linearIdx % MMA_N;
-            const int srcY = blockBaseK + linearIdx / MMA_N;
-            const int srcBIndex = srcY * N + srcX;
-            sharedB[linearIdx] = float16_t(srcMatB[srcBIndex]);
-        }
-        barrier();
+        coopMatLoad(matA, srcMatA, blockBaseM * K + blockBaseK, K, gl_CooperativeMatrixLayoutRowMajor);
+        coopMatLoad(matB, srcMatB, blockBaseK * N + blockBaseN, N, gl_CooperativeMatrixLayoutRowMajor);
 
-        coopMatLoad(matA, sharedA, 0, MMA_K, gl_CooperativeMatrixLayoutRowMajor);
-        coopMatLoad(matB, sharedB, 0, MMA_N, gl_CooperativeMatrixLayoutRowMajor);
         coopmatAcc = coopMatMulAdd(matA, matB, coopmatAcc);
-        barrier();
     }
 
     coopMatStore(coopmatAcc, dstMat, blockBaseM * N + blockBaseN, N, gl_CooperativeMatrixLayoutRowMajor);

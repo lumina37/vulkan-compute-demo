@@ -1,4 +1,4 @@
-// Hide store shared mem to global mem
+// Hide shared mem to global mem latency
 
 #version 460
 

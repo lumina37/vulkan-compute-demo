@@ -4,8 +4,8 @@
 
 namespace vkc {
 
-template class PhyDeviceFeatures_<vk::PhysicalDeviceFeatures2, vk::PhysicalDevicePerformanceQueryFeaturesKHR,
-                                  vk::PhysicalDeviceShaderFloat16Int8Features,
-                                  vk::PhysicalDeviceHostQueryResetFeatures>;
+template class PhyDeviceFeatures_<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
+                                  vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
+                                  vk::PhysicalDeviceCooperativeMatrixFeaturesKHR>;
 
 }  // namespace vkc

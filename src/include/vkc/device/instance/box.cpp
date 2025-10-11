@@ -42,7 +42,7 @@ std::expected<InstanceBox, Error> InstanceBox::createWithExts(
     std::span<const std::string_view> enableExtNames, std::span<const std::string_view> enableLayerNames) noexcept {
     vk::ApplicationInfo appInfo;
     appInfo.setPApplicationName("vk-demo");
-    appInfo.setApiVersion(vk::ApiVersion11);
+    appInfo.setApiVersion(vk::ApiVersion13);
 
     vk::InstanceCreateInfo instInfo;
     instInfo.setPApplicationInfo(&appInfo);

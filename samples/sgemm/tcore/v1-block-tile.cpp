@@ -15,8 +15,8 @@ int main() {
     constexpr int M = 2048;
     constexpr int K = 2048;
     constexpr int N = 2048;
-    constexpr vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
-    constexpr vkc::Extent extentB{N, K, vk::Format::eR32Sfloat};
+    constexpr vkc::Extent extentA{K, M, vk::Format::eR16Sfloat};
+    constexpr vkc::Extent extentB{N, K, vk::Format::eR16Sfloat};
     constexpr vkc::Extent extentDst{extentB.width(), extentA.height(), vk::Format::eR32Sfloat};
 
     // Src data
@@ -34,22 +34,20 @@ int main() {
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
 
+    constexpr std::string_view coopMatExtName{vk::KHRCooperativeMatrixExtensionName};
+    constexpr std::string_view memModelExtName{vk::KHRVulkanMemoryModelExtensionName};
+    constexpr std::array deviceExtNames{coopMatExtName, memModelExtName};
     auto& phyDeviceProps = phyDeviceWithProps.getPhyDeviceProps();
-    if (!phyDeviceProps.extensions.has(vk::KHRCooperativeMatrixExtensionName)) {
-        std::println(std::cerr, "VK_KHR_cooperative_matrix not supported");
-        return -1;
-    }
-    if (!phyDeviceProps.extensions.has(vk::KHRVulkanMemoryModelExtensionName)) {
-        std::println(std::cerr, "VK_KHR_vulkan_memory_model not supported");
-        return -1;
+    for (const auto& deviceExtName : deviceExtNames) {
+        if (!phyDeviceProps.extensions.has(deviceExtName)) {
+            std::println(std::cerr, "{} not supported", deviceExtName);
+            return -1;
+        }
     }
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
     vkc::DefaultPhyDeviceFeatures phyDeviceFeatures = vkc::DefaultPhyDeviceFeatures::create(phyDeviceBox) | unwrap;
 
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
-    constexpr std::string_view coopMatExtName{vk::KHRCooperativeMatrixExtensionName};
-    constexpr std::string_view memModelExtName{vk::KHRVulkanMemoryModelExtensionName};
-    constexpr std::array deviceExtNames{coopMatExtName, memModelExtName};
     auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
         vkc::DeviceBox::createWithExts(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}, deviceExtNames,
                                        phyDeviceFeatures.getPFeature()) |

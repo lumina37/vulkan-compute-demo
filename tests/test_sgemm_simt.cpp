@@ -29,8 +29,8 @@ void sgemmRefImpl(const std::span<const float> srcMatQ, const std::span<const fl
         dstMat[ty * N + tx] = acc;
     };
 
-    for (int dstX = 0; dstX < N; dstX++) {
-        for (int dstY = 0; dstY < M; dstY++) {
+    for (int dstY = 0; dstY < M; dstY++) {
+        for (int dstX = 0; dstX < N; dstX++) {
             kernelFn(dstX, dstY);
         }
     }
@@ -106,9 +106,12 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
     vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
     vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
+    vkc::DefaultPhyDeviceFeatures phyDeviceFeatures = vkc::DefaultPhyDeviceFeatures::create(phyDeviceBox) | unwrap;
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
-        vkc::DeviceBox::create(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}) | unwrap);
+        vkc::DeviceBox::createWithExts(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}, {},
+                                       phyDeviceFeatures.getPFeature()) |
+        unwrap);
     vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
 
     // Descriptor & Layouts

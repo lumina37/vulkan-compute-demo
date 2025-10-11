@@ -10,8 +10,8 @@
 
 layout (local_size_x_id = 0) in;
 
-layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
-layout (binding = 1, std430) readonly buffer SrcMatB { float srcMatB[]; };
+layout (binding = 0, std430) readonly buffer SrcMatA { float16_t srcMatA[]; };
+layout (binding = 1, std430) readonly buffer SrcMatB { float16_t srcMatB[]; };
 layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 
 layout (constant_id = 1) const int M = 0;
@@ -62,9 +62,9 @@ void loadGlobalToShared(ivec2 globalCoord, ivec2 globalExtent, int globalRowStri
 
         const ivec2 dstCoord = srcOffset;
         if (loadA) {
-            sharedA[stage][dstCoord.y * BLOCK_TILE_K + dstCoord.x] = float16_t(srcMatA[srcIndex]);
+            sharedA[stage][dstCoord.y * BLOCK_TILE_K + dstCoord.x] = srcMatA[srcIndex];
         } else {
-            sharedB[stage][dstCoord.y * BLOCK_TILE_N + dstCoord.x] = float16_t(srcMatB[srcIndex]);
+            sharedB[stage][dstCoord.y * BLOCK_TILE_N + dstCoord.x] = srcMatB[srcIndex];
         }
     }
 }

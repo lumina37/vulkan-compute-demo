@@ -15,6 +15,7 @@ set(_VKC_GLSL_SRCS
         sgemm/tcore/v1
         sgemm/tcore/v2
         sgemm/tcore/v3
+        sgemm/tcore/v4
         flash_attention2/v0
         flash_attention2/v1
         prefix_sum/v0
@@ -29,7 +30,7 @@ function(vkc_add_glsl2spirv name)
     set(_VKC_SPIRV_SHADERS ${_VKC_SPIRV_SHADERS} PARENT_SCOPE)
     add_custom_command(
             OUTPUT ${__VKC_OUT_PATH}
-            COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} -V ${__VKC_IN_PATH} --vn code --target-env vulkan1.1 -o ${__VKC_OUT_PATH}
+            COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} -V ${__VKC_IN_PATH} --vn code --target-env vulkan1.3 -o ${__VKC_OUT_PATH}
             MAIN_DEPENDENCY ${__VKC_IN_PATH}
             COMMENT "Compile shader - ${name}"
     )

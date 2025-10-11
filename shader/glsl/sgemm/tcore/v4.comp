@@ -1,0 +1,67 @@
+// Coopmat2
+
+#version 460
+
+#extension GL_EXT_shader_16bit_storage: require
+#extension GL_EXT_shader_explicit_arithmetic_types_float16: require
+#extension GL_KHR_memory_scope_semantics: require
+#extension GL_KHR_cooperative_matrix: require
+#extension GL_NV_cooperative_matrix2 : require
+
+layout (local_size_x_id = 0) in;
+
+layout (binding = 0, std430) readonly buffer SrcMatA { float16_t srcMatA[]; };
+layout (binding = 1, std430) readonly buffer SrcMatB { float16_t srcMatB[]; };
+layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
+
+layout (constant_id = 1) const int M = 0;
+layout (constant_id = 2) const int N = 0;
+layout (constant_id = 3) const int K = 0;
+layout (constant_id = 4) const int BLOCK_TILE_M = 64;
+layout (constant_id = 5) const int BLOCK_TILE_N = 64;
+layout (constant_id = 6) const int BLOCK_TILE_K = 64;
+
+void zeroFillAccumulator(inout coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_N, gl_MatrixUseAccumulator> coopmatAcc) {
+    coopmatAcc = coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_N, gl_MatrixUseAccumulator>(0.0);
+}
+
+void computeWithCoopmat(inout coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_N, gl_MatrixUseAccumulator> coopmatAcc, int iBlockSplitK) {
+    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+
+    tensorLayoutNV<2> layoutA = createTensorLayoutNV(2);
+    tensorLayoutNV<2> layoutB = createTensorLayoutNV(2);
+
+    layoutA = setTensorLayoutDimensionNV(layoutA, M, K);
+    layoutB = setTensorLayoutDimensionNV(layoutB, K, N);
+
+    coopmat<float16_t, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_K, gl_MatrixUseA> matA;
+    coopMatLoadTensorNV(matA, srcMatA, 0, sliceTensorLayoutNV(layoutA, BLOCK_TILE_M * groupID.y, BLOCK_TILE_M, iBlockSplitK * BLOCK_TILE_K, BLOCK_TILE_K));
+
+    coopmat<float16_t, gl_ScopeWorkgroup, BLOCK_TILE_K, BLOCK_TILE_N, gl_MatrixUseB> matB;
+    coopMatLoadTensorNV(matB, srcMatB, 0, sliceTensorLayoutNV(layoutB, iBlockSplitK * BLOCK_TILE_K, BLOCK_TILE_K, BLOCK_TILE_N * groupID.x, BLOCK_TILE_N));
+
+    coopmatAcc = coopMatMulAdd(matA, matB, coopmatAcc);
+}
+
+void storeAccumulator(coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_N, gl_MatrixUseAccumulator> coopmatAcc) {
+    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+
+    tensorLayoutNV<2> layoutAcc = createTensorLayoutNV(2);
+    layoutAcc = setTensorLayoutDimensionNV(layoutAcc, M, N);
+
+    coopMatStoreTensorNV(coopmatAcc, dstMat, 0, sliceTensorLayoutNV(layoutAcc, BLOCK_TILE_M * groupID.y, BLOCK_TILE_M, BLOCK_TILE_N * groupID.x, BLOCK_TILE_N));
+}
+
+void main() {
+    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+
+    coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_N, gl_MatrixUseAccumulator> coopmatAcc;
+    zeroFillAccumulator(coopmatAcc);
+
+    const int blockSplitKCount = K / BLOCK_TILE_K;
+    for (int iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
+        computeWithCoopmat(coopmatAcc, iBlockSplitK);
+    }
+
+    storeAccumulator(coopmatAcc);
+}

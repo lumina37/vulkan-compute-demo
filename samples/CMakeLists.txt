@@ -27,6 +27,7 @@ vkc_add_sample(vkc-bin-sgemm-tcore-v0 sgemm/tcore/v0-naive.cpp)
 vkc_add_sample(vkc-bin-sgemm-tcore-v1 sgemm/tcore/v1-block-tile.cpp)
 vkc_add_sample(vkc-bin-sgemm-tcore-v2 sgemm/tcore/v2-wrap-tile.cpp)
 vkc_add_sample(vkc-bin-sgemm-tcore-v3 sgemm/tcore/v3-double-buffer.cpp)
+vkc_add_sample(vkc-bin-sgemm-tcore-v4 sgemm/tcore/v4-coopmat2.cpp)
 
 vkc_add_sample(vkc-bin-gui gui.cpp)
 vkc_add_sample(vkc-bin-perf perf.cpp)
