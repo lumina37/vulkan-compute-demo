@@ -101,7 +101,7 @@ int main() {
     constexpr int MMA_N = 16;
     constexpr int MMA_K = 16;
     constexpr int blockTileM = 128;
-    constexpr int blockTileN = 64;
+    constexpr int blockTileN = 128;
     constexpr int blockTileK = 16;
     constexpr int wrapTileM = 64;
     constexpr int wrapTileN = 32;

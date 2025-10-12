@@ -22,8 +22,8 @@ const int THREAD_TILE_N = int(BLOCK_TILE_N / gl_WorkGroupSize.x);
 layout (constant_id = 8) const int THREAD_TILE_K = 8;
 layout (constant_id = 9) const int STAGES = 2;
 
-const ivec2 SMEM_EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
-const ivec2 SMEM_EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
+const ivec2 SHARED_EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
+const ivec2 SHARED_EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
 shared float sharedA[STAGES][BLOCK_TILE_M][BLOCK_TILE_K];
 shared float sharedB[STAGES][BLOCK_TILE_K][BLOCK_TILE_N];
 
@@ -117,10 +117,10 @@ void main() {
     const int blockBaseN = groupID.x * BLOCK_TILE_N;
 
     const ivec2 globalCoordA = ivec2(0, blockBaseM);
-    loadGlobalToShared(globalCoordA, SMEM_EXTENT_A, K, true, 0);// Load A
+    loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K, true, 0);// Load A
 
     const ivec2 globalCoordB = ivec2(blockBaseN, 0);
-    loadGlobalToShared(globalCoordB, SMEM_EXTENT_B, N, false, 0);// Load B
+    loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N, false, 0);// Load B
     barrier();
 
     // Main-loop
@@ -130,10 +130,10 @@ void main() {
         const int blockBaseK = iBlockSplitK * BLOCK_TILE_K;
 
         const ivec2 globalCoordA = ivec2(blockBaseK, blockBaseM);
-        loadGlobalToShared(globalCoordA, SMEM_EXTENT_A, K, true, nextStage);// Load A
+        loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K, true, nextStage);// Load A
 
         const ivec2 globalCoordB = ivec2(blockBaseN, blockBaseK);
-        loadGlobalToShared(globalCoordB, SMEM_EXTENT_B, N, false, nextStage);// Load B
+        loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N, false, nextStage);// Load B
 
         computeWithShared(regAccumulator, stage);
 

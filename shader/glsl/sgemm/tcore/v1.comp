@@ -27,8 +27,8 @@ layout (constant_id = 9) const int BLOCK_TILE_K = 32;
 const int WARP_COUNT_M = BLOCK_TILE_M / MMA_M;
 const int WARP_COUNT_N = BLOCK_TILE_N / MMA_N;
 
-const ivec2 SMEM_EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
-const ivec2 SMEM_EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
+const ivec2 SHARED_EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
+const ivec2 SHARED_EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
 shared float16_t sharedA[BLOCK_TILE_M * BLOCK_TILE_K];
 shared float16_t sharedB[BLOCK_TILE_K * BLOCK_TILE_N];
 
@@ -104,10 +104,10 @@ void main() {
         const int blockBaseK = iBlockSplitK * BLOCK_TILE_K;
 
         const ivec2 globalCoordA = ivec2(blockBaseK, blockBaseM);
-        loadGlobalToShared(globalCoordA, SMEM_EXTENT_A, K, true);// Load A
+        loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K, true);// Load A
 
         const ivec2 globalCoordB = ivec2(blockBaseN, blockBaseK);
-        loadGlobalToShared(globalCoordB, SMEM_EXTENT_B, N, false);// Load B
+        loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N, false);// Load B
         barrier();
 
         computeWithShared(coopmatAcc);
