@@ -534,18 +534,31 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         std::println("v7 - average diff = {}", avgDiff);
     }
 
-    SECTION("dbg") {
+    SECTION("vx0") {
         constexpr int blockTileM = 128;
         constexpr int blockTileN = 128;
         constexpr int blockTileK = 16;
-        constexpr int threadTileK = 16;
-        constexpr int groupSizeX = 16;
-        constexpr int groupSizeY = 8;
+        constexpr int wrapTileM = 64;
+        constexpr int wrapTileN = 32;
+        constexpr int threadTileM = 8;
+        constexpr int threadTileN = 4;
+        constexpr int wrapMIter = 2;
+        constexpr int wrapNIter = 1;
+        constexpr int wrapCountY = blockTileM / wrapTileM;
+        constexpr int wrapCountX = blockTileN / wrapTileN;
+        const int wrapSize = phyDeviceWithProps.getPhyDeviceProps().subgroupSize;
+        const int groupSize = wrapSize * (wrapCountX * wrapCountY);
+        const int wrapElemCount = wrapSize * (threadTileM * threadTileN * wrapMIter * wrapNIter);
+        constexpr int expectWrapElemCount = wrapTileM * wrapTileN;
+        if (wrapElemCount != expectWrapElemCount) {
+            throw std::format("launch param error, {} != {}", wrapElemCount, expectWrapElemCount);
+        }
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::dbg::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,          K,
-                                             blockTileM, blockTileN, blockTileK, threadTileK};
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::vx0::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{groupSize,  M,           N,          K,         blockTileM,
+                                             blockTileN, blockTileK,  wrapTileM,  wrapTileN, wrapMIter,
+                                             wrapNIter,  threadTileM, threadTileN};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -580,6 +593,6 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         float avgDiff = diffAcc / (float)dstMatVkSpan.size();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
-        std::println("dbg - average diff = {}", avgDiff);
+        std::println("vx0 - average diff = {}", avgDiff);
     }
 }

@@ -1,0 +1,157 @@
+// Wrap-tile
+// Same with https://github.com/siboehm/SGEMM_CUDA/blob/master/src/kernels/10_kernel_warptiling.cuh
+
+#version 460
+
+#extension GL_EXT_control_flow_attributes : require
+#extension GL_KHR_shader_subgroup_basic : require
+
+layout (local_size_x_id = 0) in;
+
+layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
+layout (binding = 1, std430) readonly buffer SrcMatB { float srcMatB[]; };
+layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
+
+layout (constant_id = 1) const int M = 0;
+layout (constant_id = 2) const int N = 0;
+layout (constant_id = 3) const int K = 0;
+layout (constant_id = 4) const int BLOCK_TILE_M = 128;
+layout (constant_id = 5) const int BLOCK_TILE_N = 128;
+layout (constant_id = 6) const int BLOCK_TILE_K = 128;
+layout (constant_id = 7) const int WRAP_TILE_M = 64;
+layout (constant_id = 8) const int WRAP_TILE_N = 32;
+layout (constant_id = 9) const int WRAP_M_ITER = 2;
+layout (constant_id = 10) const int WRAP_N_ITER = 1;
+layout (constant_id = 11) const int THREAD_TILE_M = 8;
+layout (constant_id = 12) const int THREAD_TILE_N = 4;
+
+const ivec2 SHARED_EXTENT_A = ivec2(BLOCK_TILE_K, BLOCK_TILE_M);
+const ivec2 SHARED_EXTENT_B = ivec2(BLOCK_TILE_N, BLOCK_TILE_K);
+shared float As[BLOCK_TILE_K * BLOCK_TILE_M];
+shared float Bs[BLOCK_TILE_K * BLOCK_TILE_N];
+
+void loadFromGmem(int innerRowA, int innerColA, int innerRowB, int innerColB, int bkIdx) {
+    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+    const int groupSize = int(gl_WorkGroupSize.x);
+    const int rowStrideA = (groupSize * 4) / BLOCK_TILE_K;
+    const int rowStrideB = groupSize / (BLOCK_TILE_N / 4);
+
+    const int cRow = groupID.y;
+    const int cCol = groupID.x;
+    int ABase = groupID.y * BLOCK_TILE_M * K + bkIdx;
+    int BBase = groupID.x * BLOCK_TILE_N + bkIdx * N;
+
+    for (int offset = 0; offset + rowStrideA <= BLOCK_TILE_M; offset += rowStrideA) {
+        As[(innerColA * 4 + 0) * BLOCK_TILE_M + innerRowA + offset] = srcMatA[ABase + (innerRowA + offset) * K + innerColA * 4 + 0];
+        As[(innerColA * 4 + 1) * BLOCK_TILE_M + innerRowA + offset] = srcMatA[ABase + (innerRowA + offset) * K + innerColA * 4 + 1];
+        As[(innerColA * 4 + 2) * BLOCK_TILE_M + innerRowA + offset] = srcMatA[ABase + (innerRowA + offset) * K + innerColA * 4 + 2];
+        As[(innerColA * 4 + 3) * BLOCK_TILE_M + innerRowA + offset] = srcMatA[ABase + (innerRowA + offset) * K + innerColA * 4 + 3];
+    }
+
+    for (int offset = 0; offset + rowStrideB <= BLOCK_TILE_K; offset += rowStrideB) {
+        Bs[(innerRowB + offset) * BLOCK_TILE_N + innerColB * 4 + 0] = srcMatB[BBase + (innerRowB + offset) * N + innerColB * 4 + 0];
+        Bs[(innerRowB + offset) * BLOCK_TILE_N + innerColB * 4 + 1] = srcMatB[BBase + (innerRowB + offset) * N + innerColB * 4 + 1];
+        Bs[(innerRowB + offset) * BLOCK_TILE_N + innerColB * 4 + 2] = srcMatB[BBase + (innerRowB + offset) * N + innerColB * 4 + 2];
+        Bs[(innerRowB + offset) * BLOCK_TILE_N + innerColB * 4 + 3] = srcMatB[BBase + (innerRowB + offset) * N + innerColB * 4 + 3];
+    }
+}
+
+const int ACC_SIZE = WRAP_M_ITER * THREAD_TILE_M * WRAP_N_ITER * THREAD_TILE_N;
+
+void processFromSmem(inout float threadResults[ACC_SIZE], int warpRow, int warpCol, int threadRowInWarp, int threadColInWarp) {
+    const int WSUBM = WRAP_TILE_M / WRAP_M_ITER;
+    const int WSUBN = WRAP_TILE_N / WRAP_N_ITER;
+
+    float regM[WRAP_M_ITER * THREAD_TILE_M];
+    float regN[WRAP_N_ITER * THREAD_TILE_N];
+
+    for (int dotIdx = 0; dotIdx < BLOCK_TILE_K; ++dotIdx) {
+        // populate registers for whole warptile
+        for (int wSubRowIdx = 0; wSubRowIdx < WRAP_M_ITER; ++wSubRowIdx) {
+            for (int i = 0; i < THREAD_TILE_M; ++i) {
+                regM[wSubRowIdx * THREAD_TILE_M + i] = As[(dotIdx * BLOCK_TILE_M) + warpRow * WRAP_TILE_M + wSubRowIdx * WSUBM + threadRowInWarp * THREAD_TILE_M + i];
+            }
+        }
+        for (int wSubColIdx = 0; wSubColIdx < WRAP_N_ITER; ++wSubColIdx) {
+            for (int i = 0; i < THREAD_TILE_N; ++i) {
+                regN[wSubColIdx * THREAD_TILE_N + i] = Bs[(dotIdx * BLOCK_TILE_N) + warpCol * WRAP_TILE_N + wSubColIdx * WSUBN + threadColInWarp * THREAD_TILE_N + i];
+            }
+        }
+
+        // execute warptile matmul
+        for (int wSubRowIdx = 0; wSubRowIdx < WRAP_M_ITER; ++wSubRowIdx) {
+            for (int wSubColIdx = 0; wSubColIdx < WRAP_N_ITER; ++wSubColIdx) {
+                // calculate per-thread results
+                for (int resIdxM = 0; resIdxM < THREAD_TILE_M; ++resIdxM) {
+                    for (int resIdxN = 0; resIdxN < THREAD_TILE_N; ++resIdxN) {
+                        threadResults[(wSubRowIdx * THREAD_TILE_M + resIdxM) * (WRAP_N_ITER * THREAD_TILE_N) + (wSubColIdx * THREAD_TILE_N) + resIdxN] += regM[wSubRowIdx * THREAD_TILE_M + resIdxM] * regN[wSubColIdx * THREAD_TILE_N + resIdxN];
+                    }
+                }
+            }
+        }
+    }
+}
+
+void  main() {
+    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+    const int subgroupIndex = int(gl_SubgroupID);
+    const int WARP_COUNT_M = BLOCK_TILE_M / WRAP_TILE_M;
+    const int WARP_COUNT_N = BLOCK_TILE_N / WRAP_TILE_N;
+    const ivec2 subgroupID = ivec2(subgroupIndex % WARP_COUNT_N, subgroupIndex / WARP_COUNT_N);
+
+    const int cRow = groupID.y;
+    const int cCol = groupID.x;
+
+    // Placement of the warp in the threadblock tile
+    const int warpIdx = subgroupIndex;// the warp this thread is in
+    const int warpCol = subgroupID.x;
+    const int warpRow = subgroupID.y;
+
+    // size of the warp subtile
+    const int WSUBM = WRAP_TILE_M / WRAP_M_ITER;
+    const int WSUBN = WRAP_TILE_N / WRAP_N_ITER;
+
+    // Placement of the thread in the warp subtile
+    const int threadIdxInWarp = int(gl_SubgroupInvocationID);// [0, 31]
+    const int threadColInWarp = threadIdxInWarp % (WSUBN / THREAD_TILE_N);// i%(16/4)
+    const int threadRowInWarp = threadIdxInWarp / (WSUBN / THREAD_TILE_N);// i/4
+
+    // calculating the indices that this thread will load into SMEM
+    // we'll load 128bit / 32bit = 4 elements per thread at each step
+    const int localIndex = int(gl_LocalInvocationIndex);
+    const int innerRowA = localIndex / (BLOCK_TILE_K / 4);
+    const int innerColA = localIndex % (BLOCK_TILE_K / 4);
+    const int innerRowB = localIndex / (BLOCK_TILE_N / 4);
+    const int innerColB = localIndex % (BLOCK_TILE_N / 4);
+
+    float threadResults[ACC_SIZE];
+    for (int i = 0; i < ACC_SIZE; i++) {
+        threadResults[i] = 0.f;
+    }
+
+    // outer-most loop over block tiles
+    for (int bkIdx = 0; bkIdx < K; bkIdx += BLOCK_TILE_K) {
+        loadFromGmem(innerRowA, innerColA, innerRowB, innerColB, bkIdx);
+        barrier();
+        processFromSmem(threadResults, warpRow, warpCol, threadRowInWarp, threadColInWarp);
+        barrier();
+    }
+
+    // write out the results
+    for (int wSubRowIdx = 0; wSubRowIdx < WRAP_M_ITER; ++wSubRowIdx) {
+        for (int wSubColIdx = 0; wSubColIdx < WRAP_N_ITER; ++wSubColIdx) {
+            // move C pointer to current warp subtile
+            int CBase = (cRow * BLOCK_TILE_M + warpRow * WRAP_TILE_M) * N + cCol * BLOCK_TILE_N + warpCol * WRAP_TILE_N + (wSubRowIdx * WSUBM) * N + wSubColIdx * WSUBN;
+            for (int resIdxM = 0; resIdxM < THREAD_TILE_M; resIdxM += 1) {
+                for (int resIdxN = 0; resIdxN < THREAD_TILE_N; resIdxN += 4) {
+                    // load C vector into registers
+                    const int i = (wSubRowIdx * THREAD_TILE_M + resIdxM) * (WRAP_N_ITER * THREAD_TILE_N) + wSubColIdx * THREAD_TILE_N + resIdxN;
+                    dstMat[CBase+(threadRowInWarp * THREAD_TILE_M + resIdxM) * N + threadColInWarp * THREAD_TILE_N + resIdxN + 0] = threadResults[i + 0];
+                    dstMat[CBase+(threadRowInWarp * THREAD_TILE_M + resIdxM) * N + threadColInWarp * THREAD_TILE_N + resIdxN + 1] = threadResults[i + 1];
+                    dstMat[CBase+(threadRowInWarp * THREAD_TILE_M + resIdxM) * N + threadColInWarp * THREAD_TILE_N + resIdxN + 2] = threadResults[i + 2];
+                    dstMat[CBase+(threadRowInWarp * THREAD_TILE_M + resIdxM) * N + threadColInWarp * THREAD_TILE_N + resIdxN + 3] = threadResults[i + 3];
+                }
+            }
+        }
+    }
+}
