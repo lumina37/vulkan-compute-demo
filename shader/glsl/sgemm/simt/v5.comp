@@ -95,7 +95,7 @@ void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]
     }
 }
 
-void storeAccumulator(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]) {
+void storeAccumulator(vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]) {
     const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
 
     [[unroll]] for (int tm = 0; tm < THREAD_TILE_M; tm++) {

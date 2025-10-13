@@ -85,4 +85,14 @@ const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)
 
 }  // namespace v7
 
+namespace dbg {
+
+namespace _detail {
+#include "spirv/sgemm/simt/dbg.h"
+}
+
+const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
+
+}  // namespace v7
+
 }  // namespace shader::sgemm::simt

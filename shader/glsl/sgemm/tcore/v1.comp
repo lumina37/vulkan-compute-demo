@@ -80,7 +80,7 @@ void computeWithShared(inout coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_M
     }
 }
 
-void storeAccumulator(inout coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> coopmatAcc) {
+void storeAccumulator(coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> coopmatAcc) {
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
     const int subgroupIndex = int(gl_SubgroupID);
     const ivec2 subgroupID = ivec2(subgroupIndex % WARP_COUNT_N, subgroupIndex / WARP_COUNT_N);

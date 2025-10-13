@@ -141,7 +141,9 @@ int main() {
         fenceBox.reset() | unwrap;
 
         auto elapsedTime = queryPoolBox.getElaspedTimes() | unwrap;
+        const float tflops = ((int64_t)M * N * K * 2) / elapsedTime[0] / 1e9;
         std::println("============================");
         std::println("Dispatch timecost: {} ms", elapsedTime[0]);
+        std::println("Compute intensity: {} tflops", tflops);
     }
 }

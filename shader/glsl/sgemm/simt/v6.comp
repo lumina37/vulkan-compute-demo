@@ -98,7 +98,7 @@ void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]
     }
 }
 
-void storeAccumulator(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]) {
+void storeAccumulator(vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_4]) {
     const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
     const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
     const ivec2 localID = ivec2(gl_LocalInvocationID.xy);

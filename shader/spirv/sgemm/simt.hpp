@@ -53,4 +53,10 @@ extern const std::span<std::byte> code;
 
 }  // namespace v7
 
+namespace dbg {
+
+extern const std::span<std::byte> code;
+
+}  // namespace dbg
+
 }  // namespace shader::sgemm::simt
