@@ -189,11 +189,12 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
     }
 
     SECTION("v1") {
-        constexpr int groupSize = 16;
-        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), groupSize);
-        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), groupSize);
+        constexpr int groupSizeX = 16;
+        constexpr int groupSizeY = 16;
+        const int groupNumX = extentDst.width() / groupSizeX;
+        const int groupNumY = extentDst.height() / groupSizeY;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v1::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSize, M, N, K};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -234,12 +235,15 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         constexpr int blockTileM = 128;
         constexpr int blockTileN = 128;
         constexpr int blockTileK = 16;
-        constexpr int groupSizeX = 32;
-        constexpr int groupSizeY = 16;
-        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
-        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
+        constexpr int threadTileM = 16;
+        constexpr int threadTileN = 8;
+        constexpr int groupSizeX = blockTileN / threadTileN;
+        constexpr int groupSizeY = blockTileM / threadTileM;
+        const int groupNumX = extentDst.width() / blockTileN;
+        const int groupNumY = extentDst.height() / blockTileM;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v2::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K, blockTileM, blockTileN, blockTileK};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,           K,
+                                             blockTileM, blockTileN, blockTileK, threadTileM, threadTileN};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -280,14 +284,16 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         constexpr int blockTileM = 128;
         constexpr int blockTileN = 128;
         constexpr int blockTileK = 16;
+        constexpr int threadTileM = 32;
+        constexpr int threadTileN = 16;
         constexpr int threadTileK = 16;
-        constexpr int groupSizeX = 16;
-        constexpr int groupSizeY = 8;
-        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
-        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
+        constexpr int groupSizeX = blockTileN / threadTileN;
+        constexpr int groupSizeY = blockTileM / threadTileM;
+        const int groupNumX = extentDst.width() / blockTileN;
+        const int groupNumY = extentDst.height() / blockTileM;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v3::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,          K,
-                                             blockTileM, blockTileN, blockTileK, threadTileK};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,           N,           K,          blockTileM,
+                                             blockTileN, blockTileK, threadTileM, threadTileN, threadTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -328,15 +334,17 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         constexpr int blockTileM = 64;
         constexpr int blockTileN = 64;
         constexpr int blockTileK = 16;
-        constexpr int threadTileK = 16;
+        constexpr int threadTileM = 8;
+        constexpr int threadTileN = 4;
+        constexpr int threadTileK = 8;
         constexpr int stages = 2;
-        constexpr int groupSizeX = 8;
-        constexpr int groupSizeY = 8;
-        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
-        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
+        constexpr int groupSizeX = blockTileN / threadTileN;
+        constexpr int groupSizeY = blockTileM / threadTileM;
+        const int groupNumX = extentDst.width() / blockTileN;
+        const int groupNumY = extentDst.height() / blockTileM;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v4::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,           K,
-                                             blockTileM, blockTileN, blockTileK, threadTileK, stages};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,           N,           K,           blockTileM,
+                                             blockTileN, blockTileK, threadTileM, threadTileN, threadTileK, stages};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -377,15 +385,16 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         constexpr int blockTileM = 64;
         constexpr int blockTileN = 64;
         constexpr int blockTileK = 16;
+        constexpr int threadTileM = 8;
+        constexpr int threadTileN = 8;
         constexpr int threadTileK = 16;
-        constexpr int stages = 2;
-        constexpr int groupSizeX = 8;
-        constexpr int groupSizeY = 8;
-        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
-        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
+        constexpr int groupSizeX = blockTileN / threadTileN;
+        constexpr int groupSizeY = blockTileM / threadTileM;
+        const int groupNumX = extentDst.width() / blockTileN;
+        const int groupNumY = extentDst.height() / blockTileM;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v5::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,           K,
-                                             blockTileM, blockTileN, blockTileK, threadTileK, stages};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,           N,           K,          blockTileM,
+                                             blockTileN, blockTileK, threadTileM, threadTileN, threadTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -426,15 +435,16 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         constexpr int blockTileM = 64;
         constexpr int blockTileN = 64;
         constexpr int blockTileK = 16;
+        constexpr int threadTileM = 8;
+        constexpr int threadTileN = 8;
         constexpr int threadTileK = 16;
-        constexpr int stages = 2;
-        constexpr int groupSizeX = 8;
-        constexpr int groupSizeY = 8;
-        constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
-        constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
+        constexpr int groupSizeX = blockTileN / threadTileN;
+        constexpr int groupSizeY = blockTileM / threadTileM;
+        const int groupNumX = extentDst.width() / blockTileN;
+        const int groupNumY = extentDst.height() / blockTileM;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v6::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,           K,
-                                             blockTileM, blockTileN, blockTileK, threadTileK, stages};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,           N,           K,          blockTileM,
+                                             blockTileN, blockTileK, threadTileM, threadTileN, threadTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -475,14 +485,15 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         constexpr int blockTileM = 64;
         constexpr int blockTileN = 64;
         constexpr int blockTileK = 16;
+        constexpr int threadTileM = 8;
+        constexpr int threadTileN = 8;
         constexpr int threadTileK = 16;
-        constexpr int stages = 2;
-        constexpr int groupSizeX = 8;
-        constexpr int groupSizeY = 8;
+        constexpr int groupSizeX = blockTileN / threadTileN;
+        constexpr int groupSizeY = blockTileM / threadTileM;
         constexpr int groupNum = (M / blockTileM) * (N / blockTileN) / 4;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v7::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,          N,           K,
-                                             blockTileM, blockTileN, blockTileK, threadTileK, stages};
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,           N,           K,          blockTileM,
+                                             blockTileN, blockTileK, threadTileM, threadTileN, threadTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;

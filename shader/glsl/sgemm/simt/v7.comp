@@ -16,12 +16,11 @@ layout (constant_id = 4) const int K = 0;
 layout (constant_id = 5) const int BLOCK_TILE_M = 128;
 layout (constant_id = 6) const int BLOCK_TILE_N = 128;
 layout (constant_id = 7) const int BLOCK_TILE_K = 128;
-
-const int THREAD_TILE_M = int(BLOCK_TILE_M / gl_WorkGroupSize.y);
-const int THREAD_TILE_N = int(BLOCK_TILE_N / gl_WorkGroupSize.x);
+layout (constant_id = 8) const int THREAD_TILE_M = 16;
+layout (constant_id = 9) const int THREAD_TILE_N = 16;
+layout (constant_id = 10) const int THREAD_TILE_K = 16;
 const int THREAD_TILE_N_4 = THREAD_TILE_N / 4;
-layout (constant_id = 8) const int THREAD_TILE_K = 8;
-layout (constant_id = 9) const int STAGES = 2;
+const int STAGES = 2;
 
 const ivec2 SHARED_EXTENT_A = ivec2(BLOCK_TILE_K / 4, BLOCK_TILE_M);
 const ivec2 SHARED_EXTENT_B = ivec2(BLOCK_TILE_N / 4, BLOCK_TILE_K);
