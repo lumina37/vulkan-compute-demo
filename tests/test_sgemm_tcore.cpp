@@ -1,9 +1,9 @@
 #include <expected>
-#include <filesystem>
 #include <print>
 #include <random>
 #include <ranges>
 #include <span>
+#include <vector>
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -12,7 +12,6 @@
 #include "vkc.hpp"
 #include "vkc_helper.hpp"
 
-namespace fs = std::filesystem;
 namespace rgs = std::ranges;
 
 void sgemmRefImpl(const std::span<const float16> srcMatA, const std::span<const float16> srcMatB,
@@ -50,27 +49,23 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
     constexpr vkc::Extent extentDst{extentB.width(), extentA.height(), vk::Format::eR32Sfloat};
 
     // Src data
-    vkc::StbImageBox srcMatA = vkc::StbImageBox::createWithExtent(extentA) | unwrap;
-    std::span<float16> srcSpanA = std::span{(float16*)srcMatA.getPData(), extentA.elemCount()};
-    vkc::StbImageBox srcMatB = vkc::StbImageBox::createWithExtent(extentB) | unwrap;
-    std::span<float16> srcSpanB = std::span{(float16*)srcMatB.getPData(), extentB.elemCount()};
+    std::vector<float16> srcMatA(extentA.elemCount());
+    std::vector<float16> srcMatB(extentB.elemCount());
     std::mt19937 rdEngine;
     rdEngine.seed(37);
     std::uniform_real_distribution dist(0.0f, 1.0f);
-    for (auto& val : srcSpanA) {
+    for (auto& val : srcMatA) {
         val = (float16)dist(rdEngine);
     }
-    for (auto& val : srcSpanB) {
+    for (auto& val : srcMatB) {
         val = (float16)dist(rdEngine);
     }
 
     // CPU Reference
-    vkc::StbImageBox dstMatCpuRef = vkc::StbImageBox::createWithExtent(extentDst) | unwrap;
-    std::span<float> dstMatCpuRefSpan = std::span{(float*)dstMatCpuRef.getPData(), extentDst.elemCount()};
+    std::vector<float> dstMatCpuRef(extentDst.elemCount());
+    sgemmRefImpl(srcMatA, srcMatB, dstMatCpuRef, extentA, extentB);
 
-    sgemmRefImpl(srcSpanA, srcSpanB, dstMatCpuRefSpan, extentA, extentB);
-
-    vkc::StbImageBox dstMatVk = vkc::StbImageBox::createWithExtent(extentDst) | unwrap;
+    std::vector<float> dstMatVk(extentDst.elemCount());
 
     // Device
     vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
@@ -103,22 +98,22 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
 
     // Descriptor & Layouts
     vkc::StorageBufferBox srcMatABox =
-        vkc::StorageBufferBox::create(pDeviceBox, srcMatA.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StorageBufferBox::create(pDeviceBox, extentA.size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcMatAStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcMatABox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, extentA.size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StorageBufferBox srcMatBBox =
-        vkc::StorageBufferBox::create(pDeviceBox, srcMatB.getExtent().size(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StorageBufferBox::create(pDeviceBox, extentB.size(), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcMatBStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcMatBBox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, extentB.size(), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
     vkc::StorageBufferBox dstMatBox =
-        vkc::StorageBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
+        vkc::StorageBufferBox::create(pDeviceBox, extentDst.size(), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstMatStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, dstMatVk.getExtent().size(), vkc::StorageType::ReadWrite) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, extentDst.size(), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstMatBoxRefs{std::ref(dstMatBox)};
     const std::array dstStagingBufferRefs{std::ref(dstMatStagingBufferBox)};
-    srcMatAStagingBufferBox.upload(srcMatA.getPData()) | unwrap;
-    srcMatBStagingBufferBox.upload(srcMatB.getPData()) | unwrap;
+    srcMatAStagingBufferBox.upload((std::byte*)srcMatA.data()) | unwrap;
+    srcMatBStagingBufferBox.upload((std::byte*)srcMatB.data()) | unwrap;
 
     const std::vector descPoolSizes = genPoolSizes(srcMatABox, srcMatBBox, dstMatBox);
     vkc::DescPoolBox descPoolBox = vkc::DescPoolBox::create(pDeviceBox, descPoolSizes) | unwrap;
@@ -170,16 +165,15 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
+        dstMatStagingBufferBox.download((std::byte*)dstMatVk.data()) | unwrap;
 
         float diffAcc = 0;
-        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
-        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRef, dstMatVk)) {
             const float diff = std::abs(lhs - rhs);
             REQUIRE(diff <= maxValidDiff);
             diffAcc += diff;
         }
-        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+        float avgDiff = diffAcc / (float)dstMatVk.size();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v0 - average diff = {}", avgDiff);
@@ -220,16 +214,15 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
+        dstMatStagingBufferBox.download((std::byte*)dstMatVk.data()) | unwrap;
 
         float diffAcc = 0;
-        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
-        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRef, dstMatVk)) {
             const float diff = std::abs(lhs - rhs);
             REQUIRE(diff <= maxValidDiff);
             diffAcc += diff;
         }
-        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+        float avgDiff = diffAcc / (float)dstMatVk.size();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v1 - average diff = {}", avgDiff);
@@ -273,16 +266,15 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
+        dstMatStagingBufferBox.download((std::byte*)dstMatVk.data()) | unwrap;
 
         float diffAcc = 0;
-        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
-        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRef, dstMatVk)) {
             const float diff = std::abs(lhs - rhs);
             REQUIRE(diff <= maxValidDiff);
             diffAcc += diff;
         }
-        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+        float avgDiff = diffAcc / (float)dstMatVk.size();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v2 - average diff = {}", avgDiff);
@@ -328,16 +320,15 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
+        dstMatStagingBufferBox.download((std::byte*)dstMatVk.data()) | unwrap;
 
         float diffAcc = 0;
-        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
-        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRef, dstMatVk)) {
             const float diff = std::abs(lhs - rhs);
             REQUIRE(diff <= maxValidDiff);
             diffAcc += diff;
         }
-        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+        float avgDiff = diffAcc / (float)dstMatVk.size();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v3 - average diff = {}", avgDiff);
@@ -383,16 +374,15 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
+        dstMatStagingBufferBox.download((std::byte*)dstMatVk.data()) | unwrap;
 
         float diffAcc = 0;
-        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
-        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRef, dstMatVk)) {
             const float diff = std::abs(lhs - rhs);
             REQUIRE(diff <= maxValidDiff);
             diffAcc += diff;
         }
-        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+        float avgDiff = diffAcc / (float)dstMatVk.size();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v4 - average diff = {}", avgDiff);
@@ -429,16 +419,15 @@ TEST_CASE("GLSL-SGEMM-TCore", "") {
         fenceBox.wait() | unwrap;
         fenceBox.reset() | unwrap;
 
-        dstMatStagingBufferBox.download(dstMatVk.getPData()) | unwrap;
+        dstMatStagingBufferBox.download((std::byte*)dstMatVk.data()) | unwrap;
 
         float diffAcc = 0;
-        std::span<float> dstMatVkSpan = std::span{(float*)dstMatVk.getPData(), extentDst.elemCount()};
-        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRefSpan, dstMatVkSpan)) {
+        for (const auto [lhs, rhs] : rgs::views::zip(dstMatCpuRef, dstMatVk)) {
             const float diff = std::abs(lhs - rhs);
             REQUIRE(diff <= maxValidDiff);
             diffAcc += diff;
         }
-        float avgDiff = diffAcc / (float)dstMatVkSpan.size();
+        float avgDiff = diffAcc / (float)dstMatVk.size();
 
         REQUIRE(avgDiff < maxValidAvgDiff);
         std::println("v5 - average diff = {}", avgDiff);

@@ -43,8 +43,8 @@ int main() {
         rdEngine.seed(37);
         std::uniform_real_distribution dist(0.0f, 1.0f);
 
-        std::vector<float> srcMatA(M * K);
-        std::vector<float> srcMatB(K * N);
+        std::vector<float> srcMatA(extentA.elemCount());
+        std::vector<float> srcMatB(extentB.elemCount());
         for (auto& val : srcMatA) {
             val = dist(rdEngine);
         }
@@ -54,18 +54,18 @@ int main() {
 
         // Descriptor & Layouts
         vkc::StorageBufferBox srcMatABox =
-            vkc::StorageBufferBox::create(pDeviceBox, srcMatA.size(), vkc::StorageType::ReadOnly) | unwrap;
+            vkc::StorageBufferBox::create(pDeviceBox, extentA.size(), vkc::StorageType::ReadOnly) | unwrap;
         vkc::StagingBufferBox srcMatAStagingBufferBox =
-            vkc::StagingBufferBox::create(pDeviceBox, srcMatABox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
+            vkc::StagingBufferBox::create(pDeviceBox, extentA.size(), vkc::StorageType::ReadOnly) | unwrap;
         vkc::StorageBufferBox srcMatBBox =
-            vkc::StorageBufferBox::create(pDeviceBox, srcMatB.size(), vkc::StorageType::ReadOnly) | unwrap;
+            vkc::StorageBufferBox::create(pDeviceBox, extentB.size(), vkc::StorageType::ReadOnly) | unwrap;
         vkc::StagingBufferBox srcMatBStagingBufferBox =
-            vkc::StagingBufferBox::create(pDeviceBox, srcMatBBox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
+            vkc::StagingBufferBox::create(pDeviceBox, extentB.size(), vkc::StorageType::ReadOnly) | unwrap;
         const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
         vkc::StorageBufferBox dstMatBox =
-            vkc::StorageBufferBox::create(pDeviceBox, M * N, vkc::StorageType::ReadWrite) | unwrap;
+            vkc::StorageBufferBox::create(pDeviceBox, extentDst.size(), vkc::StorageType::ReadWrite) | unwrap;
         vkc::StagingBufferBox dstMatStagingBufferBox =
-            vkc::StagingBufferBox::create(pDeviceBox, M * N, vkc::StorageType::ReadWrite) | unwrap;
+            vkc::StagingBufferBox::create(pDeviceBox, extentDst.size(), vkc::StorageType::ReadWrite) | unwrap;
         const std::array dstMatBoxRefs{std::ref(dstMatBox)};
         const std::array dstStagingBufferRefs{std::ref(dstMatStagingBufferBox)};
         srcMatAStagingBufferBox.upload((std::byte*)srcMatA.data()) | unwrap;
@@ -117,7 +117,7 @@ int main() {
         }
         const int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         const int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::dbg::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::vx0::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSize,  M,           N,          K,         blockTileM,
                                              blockTileN, blockTileK,  wrapTileM,  wrapTileN, wrapMIter,
                                              wrapNIter,  threadTileM, threadTileN};
