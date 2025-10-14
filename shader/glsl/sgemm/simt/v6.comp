@@ -1,4 +1,4 @@
-// Resolve SMEM bank-conflict
+// Double Buffer
 
 #version 460
 

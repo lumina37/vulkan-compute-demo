@@ -24,6 +24,8 @@ vkc_add_test(test_flash_attention2 vkc::lib::static "test_flash_attention2.cpp")
 vkc_add_test(test_prefix_sum vkc::lib::static "test_prefix_sum.cpp")
 vkc_add_test(test_topk vkc::lib::static "test_topk.cpp")
 
+vkc_add_test(test_sgemm_dbg vkc::lib::static "test_sgemm_dbg.cpp")
+
 vkc_add_test(test_gauss_filter_header_only vkc::lib::header-only "test_gauss_filter.cpp")
 
 add_custom_target(vkc-tests DEPENDS ${_VKC_TEST_TARGETS})
