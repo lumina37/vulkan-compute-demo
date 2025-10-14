@@ -101,10 +101,10 @@ int main() {
         constexpr int blockTileK = 16;
         constexpr int wrapTileM = 64;
         constexpr int wrapTileN = 32;
-        constexpr int threadTileM = 8;
+        constexpr int threadTileM = 4;
         constexpr int threadTileN = 4;
         constexpr int wrapMIter = 2;
-        constexpr int wrapNIter = 1;
+        constexpr int wrapNIter = 2;
         constexpr int wrapCountY = blockTileM / wrapTileM;
         constexpr int wrapCountX = blockTileN / wrapTileN;
         const int wrapSize = phyDeviceWithProps.getPhyDeviceProps().subgroupSize;
