@@ -26,7 +26,7 @@ layout (constant_id = 9) const int BLOCK_TILE_K = 64;
 layout (constant_id = 10) const int WRAP_TILE_M = 32;
 layout (constant_id = 11) const int WRAP_TILE_N = 32;
 layout (constant_id = 12) const int WRAP_TILE_K = 32;
-layout (constant_id = 13) const int STAGES = 2;
+const int STAGES = 2;
 
 const int WARP_COUNT_M = BLOCK_TILE_M / WRAP_TILE_M;
 const int WARP_COUNT_N = BLOCK_TILE_N / WRAP_TILE_N;
