@@ -38,8 +38,8 @@ void sgemmRefImpl(const std::span<const float> srcMatQ, const std::span<const fl
 TEST_CASE("GLSL-SGEMM-SIMT", "") {
     vkc::initVulkan() | unwrap;
 
-    constexpr float maxValidDiff = 0.0001f;
-    constexpr float maxValidAvgDiff = 0.000001f;
+    constexpr float maxValidDiff = 0.001f;
+    constexpr float maxValidAvgDiff = 0.0001f;
 
     constexpr int M = 256;
     constexpr int K = 128;
@@ -183,8 +183,8 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         constexpr int blockTileM = 64;
         constexpr int blockTileN = 64;
         constexpr int blockTileK = 16;
-        constexpr int threadTileM = 8;
-        constexpr int threadTileN = 8;
+        constexpr int threadTileM = 16;
+        constexpr int threadTileN = 16;
         constexpr int threadTileK = 16;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;

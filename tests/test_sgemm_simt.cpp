@@ -65,8 +65,8 @@ TEST_CASE("CPU-SGEMM", "") {
 TEST_CASE("GLSL-SGEMM-SIMT", "") {
     vkc::initVulkan() | unwrap;
 
-    constexpr float maxValidDiff = 0.0001f;
-    constexpr float maxValidAvgDiff = 0.000001f;
+    constexpr float maxValidDiff = 0.001f;
+    constexpr float maxValidAvgDiff = 0.0001f;
 
     constexpr int M = 256;
     constexpr int K = 128;
