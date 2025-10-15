@@ -72,9 +72,8 @@ private:
 
         if (((f32 >> 23) & 0xFF) == 0xFF) {
             if (mantissa != 0)
-                return sign | 0x7E00;  // NaN
-            else
-                return sign | 0x7C00;  // Inf
+                return uint16_t(sign | 0x7E00);  // NaN
+            return uint16_t(sign | 0x7C00);  // Inf
         }
 
         if (exponent <= 0) {
