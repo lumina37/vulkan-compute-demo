@@ -136,22 +136,22 @@ int main() {
             fenceBox.reset() | unwrap;
         }
 
-        float totalElapsedTime = 0.0f;
+        std::vector<float> elapsedTimes;
         for (int i = 0; i < PERF_TIMES; i++) {
             queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
             fenceBox.wait() | unwrap;
             fenceBox.reset() | unwrap;
 
             auto elapsedTime = queryPoolBox.getElaspedTimes() | unwrap;
-            totalElapsedTime += elapsedTime[0];
+            elapsedTimes.push_back(elapsedTime[0]);
         }
 
-        const float averageElapsedTime = totalElapsedTime / PERF_TIMES;
+        auto [meanTime, stdTime] = meanStd(elapsedTimes);
         const float macs = (float)M * N * K * 2;
-        const float tflops = macs / averageElapsedTime / 1e9;
+        const float tflops = macs / meanTime / 1e9;
         std::println("============================");
         std::println("Size: {}", size);
-        std::println("Dispatch timecost: {} ms", averageElapsedTime);
+        std::println("Dispatch timecost: {:.3f}(±{:.3f}) ms", meanTime, stdTime * 2);
         std::println("Performace: {} tflops", tflops);
     }
 }

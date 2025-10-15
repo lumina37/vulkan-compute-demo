@@ -71,9 +71,8 @@ private:
         uint32_t mantissa = f32 & 0x007FFFFF;
 
         if (((f32 >> 23) & 0xFF) == 0xFF) {
-            if (mantissa != 0)
-                return uint16_t(sign | 0x7E00);  // NaN
-            return uint16_t(sign | 0x7C00);  // Inf
+            if (mantissa != 0) return uint16_t(sign | 0x7E00);  // NaN
+            return uint16_t(sign | 0x7C00);                     // Inf
         }
 
         if (exponent <= 0) {
@@ -122,3 +121,18 @@ private:
         return *reinterpret_cast<float*>(&f32);
     }
 };
+
+std::pair<float, float> meanStd(const std::vector<float>& data) {
+    float mean = 0.0;
+    float acc2 = 0.0;
+
+    for (size_t i = 0; i < data.size(); ++i) {
+        float delta = data[i] - mean;
+        mean += delta / float(i + 1);
+        float delta2 = data[i] - mean;
+        acc2 += delta * delta2;
+    }
+
+    float variance = acc2 / (float)data.size();
+    return {mean, std::sqrt(variance)};
+}
