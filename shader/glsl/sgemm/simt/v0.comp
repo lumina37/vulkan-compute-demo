@@ -8,24 +8,24 @@ layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
 layout (binding = 1, std430) readonly buffer SrcMatB { float srcMatB[]; };
 layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 
-layout (constant_id = 2) const int M = 0;
-layout (constant_id = 3) const int N = 0;
-layout (constant_id = 4) const int K = 0;
+layout (constant_id = 2) const uint M = 0;
+layout (constant_id = 3) const uint N = 0;
+layout (constant_id = 4) const uint K = 0;
 
 void main() {
-    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
+    const uvec2 globalID = gl_GlobalInvocationID.xy;
 
     float acc = 0.0;
-    for (int i = 0; i < K; i++) {
-        const int indexA = globalID.y * K + i;
+    for (uint i = 0; i < K; i++) {
+        const uint indexA = globalID.y * K + i;
         const float valA = srcMatA[indexA];
 
-        const int indexB = i * N + globalID.x;
+        const uint indexB = i * N + globalID.x;
         const float valB = srcMatB[indexB];
 
         acc = fma(valA, valB, acc);
     }
 
-    const int indexDst = globalID.y * N + globalID.x;
+    const uint indexDst = globalID.y * N + globalID.x;
     dstMat[indexDst] = acc;
 }

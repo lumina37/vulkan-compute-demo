@@ -7,23 +7,23 @@ layout (binding = 1, std430) readonly buffer SrcK { float srcK[]; };
 layout (binding = 2, std430) readonly buffer SrcV { float srcV[]; };
 layout (binding = 3, std430) writeonly buffer DstO { float dstO[]; };
 
-layout (constant_id = 2) const int d = 0;// head dim
-layout (constant_id = 3) const int N = 0;// seq len
+layout (constant_id = 2) const uint d = 0;// head dim
+layout (constant_id = 3) const uint N = 0;// seq len
 
 void main() {
-    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
+    const uvec2 globalID = gl_GlobalInvocationID.xy;
     const float invSqrtD = sqrt(1.0f / float(d));
 
     float outputSum = 0;
     float rowExpSum = 0;
     float maxQK = -1. / 0.;
 
-    for (int iterV = 0; iterV < N; iterV++) {
+    for (uint iterV = 0; iterV < N; iterV++) {
         float qkAcc = 0;
-        for (int iterQK = 0; iterQK < d; iterQK++) {
-            const int indexQ = globalID.y * d + iterQK;
+        for (uint iterQK = 0; iterQK < d; iterQK++) {
+            const uint indexQ = globalID.y * d + iterQK;
             const float valQ = srcQ[indexQ];
-            const int indexK = iterV * d + iterQK;
+            const uint indexK = iterV * d + iterQK;
             const float valK = srcK[indexK];
             qkAcc += valQ * valK;
         }
@@ -32,13 +32,13 @@ void main() {
         const float currMaxQK = max(qkAcc, maxQK);
         const float adjustedQK = exp(qkAcc - currMaxQK);
         const float adjustAcc = exp(maxQK - currMaxQK);
-        const int indexV = iterV * d + globalID.x;
+        const uint indexV = iterV * d + globalID.x;
         const float valV = srcV[indexV];
         outputSum = outputSum * adjustAcc + adjustedQK * valV;
         rowExpSum = rowExpSum * adjustAcc + adjustedQK;
         maxQK = currMaxQK;
     }
 
-    const int indexDst = globalID.y * d + globalID.x;
+    const uint indexDst = globalID.y * d + globalID.x;
     dstO[indexDst] = outputSum / rowExpSum;
 }

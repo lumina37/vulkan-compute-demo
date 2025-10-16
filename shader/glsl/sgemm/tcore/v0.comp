@@ -13,28 +13,28 @@ layout (binding = 0, std430) readonly buffer SrcMatA { float16_t srcMatA[]; };
 layout (binding = 1, std430) readonly buffer SrcMatB { float16_t srcMatB[]; };
 layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 
-layout (constant_id = 1) const int M = 0;
-layout (constant_id = 2) const int N = 0;
-layout (constant_id = 3) const int K = 0;
-layout (constant_id = 4) const int MMA_M = 16;
-layout (constant_id = 5) const int MMA_N = 16;
-layout (constant_id = 6) const int MMA_K = 16;
+layout (constant_id = 1) const uint M = 0;
+layout (constant_id = 2) const uint N = 0;
+layout (constant_id = 3) const uint K = 0;
+layout (constant_id = 4) const uint MMA_M = 16;
+layout (constant_id = 5) const uint MMA_N = 16;
+layout (constant_id = 6) const uint MMA_K = 16;
 
 void main() {
-    const int groupSize = int(gl_WorkGroupSize.x);
-    const int localIndex = int(gl_LocalInvocationIndex);
-    const ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+    const uint groupSize = gl_WorkGroupSize.x;
+    const uint localIndex = gl_LocalInvocationIndex;
+    const uvec2 groupID = gl_WorkGroupID.xy;
 
     coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA;
     coopmat<float16_t, gl_ScopeSubgroup, MMA_K, MMA_N, gl_MatrixUseB> matB;
     coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> coopmatAcc;
     coopmatAcc = coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator>(0.0);
 
-    const int blockSplitKCount = K / MMA_K;
-    const int blockBaseM = groupID.y * MMA_M;
-    const int blockBaseN = groupID.x * MMA_N;
-    for (int iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
-        const int blockBaseK = iBlockSplitK * MMA_K;
+    const uint blockSplitKCount = K / MMA_K;
+    const uint blockBaseM = groupID.y * MMA_M;
+    const uint blockBaseN = groupID.x * MMA_N;
+    for (uint iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
+        const uint blockBaseK = iBlockSplitK * MMA_K;
 
         coopMatLoad(matA, srcMatA, blockBaseM * K + blockBaseK, K, gl_CooperativeMatrixLayoutRowMajor);
         coopMatLoad(matB, srcMatB, blockBaseK * N + blockBaseN, N, gl_CooperativeMatrixLayoutRowMajor);

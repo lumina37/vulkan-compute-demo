@@ -7,10 +7,10 @@ layout (binding = 1, std430) readonly buffer SrcK { float srcK[]; };
 layout (binding = 2, std430) readonly buffer SrcV { float srcV[]; };
 layout (binding = 3, std430) writeonly buffer DstO { float dstO[]; };
 
-layout (constant_id = 1) const int d = 128;// head dim
-layout (constant_id = 2) const int N = 0;// seq len
-layout (constant_id = 3) const int BrForQ = 16;// divides Q
-layout (constant_id = 4) const int BcForKV = 16;// divides K/V
+layout (constant_id = 1) const uint d = 128;// head dim
+layout (constant_id = 2) const uint N = 0;// seq len
+layout (constant_id = 3) const uint BrForQ = 16;// divides Q
+layout (constant_id = 4) const uint BcForKV = 16;// divides K/V
 
 shared float sQ[BrForQ][d];
 shared float sK[BcForKV][d];
@@ -22,12 +22,12 @@ shared float sAdjustFactor[BrForQ];
 shared float sRowExpSum[BrForQ];
 
 void main() {
-    const int groupSize = int(gl_WorkGroupSize.x);
-    const int localID = int(gl_LocalInvocationID.x);
-    const int groupID = int(gl_WorkGroupID.x);
+    const uint groupSize = gl_WorkGroupSize.x;
+    const uint localID = gl_LocalInvocationIndex;
+    const uint groupID = gl_WorkGroupID.x;
     const float invSqrtD = sqrt(1.0f / float(d));
 
-    const int KVIterCount = N / BcForKV;
+    const uint KVIterCount = N / BcForKV;
 
     // Init accumulator
     if (localID < BrForQ) {
@@ -37,42 +37,42 @@ void main() {
     }
 
     // Load Q & zero-init O
-    const int loadsPerThreadQ = BrForQ * d / groupSize;
-    for (int i = 0; i < loadsPerThreadQ; i++) {
-        const int linearIdx = i * groupSize + localID;
-        const int x = linearIdx % d;
-        const int y = linearIdx / d;
-        const int srcX = x;
-        const int srcY = groupID * BrForQ + y;
-        const int srcIndex = srcY * d + srcX;
+    const uint loadsPerThreadQ = BrForQ * d / groupSize;
+    for (uint i = 0; i < loadsPerThreadQ; i++) {
+        const uint linearIdx = i * groupSize + localID;
+        const uint x = linearIdx % d;
+        const uint y = linearIdx / d;
+        const uint srcX = x;
+        const uint srcY = groupID * BrForQ + y;
+        const uint srcIndex = srcY * d + srcX;
         sQ[y][x] = srcQ[srcIndex];
         sO[y][x] = 0;
     }
 
-    const int loadsPerThreadKV = BcForKV * d / groupSize;
-    const int computesPerThreadQK = BrForQ * BcForKV / groupSize;
-    for (int iterKV = 0; iterKV < KVIterCount; iterKV++) {
+    const uint loadsPerThreadKV = BcForKV * d / groupSize;
+    const uint computesPerThreadQK = BrForQ * BcForKV / groupSize;
+    for (uint iterKV = 0; iterKV < KVIterCount; iterKV++) {
         // Load KV
-        for (int i = 0; i < loadsPerThreadKV; i++) {
-            const int linearIdx = i * groupSize + localID;
-            const int x = linearIdx % d;
-            const int y = linearIdx / d;
-            const int srcX = x;
-            const int srcY = iterKV * BcForKV + y;
-            const int srcIndex = srcY * d + srcX;
+        for (uint i = 0; i < loadsPerThreadKV; i++) {
+            const uint linearIdx = i * groupSize + localID;
+            const uint x = linearIdx % d;
+            const uint y = linearIdx / d;
+            const uint srcX = x;
+            const uint srcY = iterKV * BcForKV + y;
+            const uint srcIndex = srcY * d + srcX;
             sK[y][x] = srcK[srcIndex];
             sV[y][x] = srcV[srcIndex];
         }
         barrier();
 
         // Compute Q*K^T
-        for (int i = 0; i < computesPerThreadQK; i++) {
-            const int linearIdx = i * groupSize + localID;
-            const int x = linearIdx % BcForKV;
-            const int y = linearIdx / BcForKV;
+        for (uint i = 0; i < computesPerThreadQK; i++) {
+            const uint linearIdx = i * groupSize + localID;
+            const uint x = linearIdx % BcForKV;
+            const uint y = linearIdx / BcForKV;
 
             float acc = 0;
-            for (int iqk = 0; iqk < d; iqk++) {
+            for (uint iqk = 0; iqk < d; iqk++) {
                 acc += sQ[y][iqk] * sK[x][iqk];
             }
             sQK[x][y] = acc * invSqrtD;// transposed
@@ -80,10 +80,10 @@ void main() {
         barrier();
 
         // Max element for each row
-        const int prevMaxQKIdx = (iterKV + 1) % 2;
-        const int currMaxQKIdx = iterKV % 2;
+        const uint prevMaxQKIdx = (iterKV + 1) % 2;
+        const uint currMaxQKIdx = iterKV % 2;
         if (localID < BrForQ) {
-            for (int i = 0; i < BcForKV; i++) {
+            for (uint i = 0; i < BcForKV; i++) {
                 sMaxQK[currMaxQKIdx][localID] = max(sMaxQK[currMaxQKIdx][localID], sQK[i][localID]);
             }
             sAdjustFactor[localID] = exp(sMaxQK[prevMaxQKIdx][localID] - sMaxQK[currMaxQKIdx][localID]);
@@ -91,10 +91,10 @@ void main() {
         barrier();
 
         // Exp of sQK
-        for (int i = 0; i < computesPerThreadQK; i++) {
-            const int linearIdx = i * groupSize + localID;
-            const int x = linearIdx % BcForKV;
-            const int y = linearIdx / BcForKV;
+        for (uint i = 0; i < computesPerThreadQK; i++) {
+            const uint linearIdx = i * groupSize + localID;
+            const uint x = linearIdx % BcForKV;
+            const uint y = linearIdx / BcForKV;
             sQK[x][y] = exp(sQK[x][y] - sMaxQK[currMaxQKIdx][y]);// transposed
         }
         barrier();
@@ -102,7 +102,7 @@ void main() {
         // Row expsum
         if (localID < BrForQ) {
             float rowExpSum = 0;
-            for (int i = 0; i < BcForKV; i++) {
+            for (uint i = 0; i < BcForKV; i++) {
                 rowExpSum += sQK[i][localID];// transposed
             }
             sRowExpSum[localID] = sAdjustFactor[localID] * sRowExpSum[localID] + rowExpSum;
@@ -110,14 +110,14 @@ void main() {
         barrier();
 
         // Compute and adjust sO
-        const int computesPerThreadO = BrForQ * d / groupSize;
-        for (int i = 0; i < computesPerThreadO; i++) {
-            const int linearIdx = i * groupSize + localID;
-            const int x = linearIdx % d;
-            const int y = linearIdx / d;
+        const uint computesPerThreadO = BrForQ * d / groupSize;
+        for (uint i = 0; i < computesPerThreadO; i++) {
+            const uint linearIdx = i * groupSize + localID;
+            const uint x = linearIdx % d;
+            const uint y = linearIdx / d;
 
             float acc = 0;
-            for (int io = 0; io < BcForKV; io++) {
+            for (uint io = 0; io < BcForKV; io++) {
                 acc += sQK[io][y] * sV[io][x];// transposed
             }
             sO[y][x] = sAdjustFactor[y] * sO[y][x] + acc;
@@ -126,14 +126,14 @@ void main() {
     }
 
     // Compute final O with sRowExpSum (softmax divisor)
-    const int storesPerThreadO = BrForQ * d / groupSize;
-    for (int i = 0; i < storesPerThreadO; i++) {
-        const int linearIdx = i * groupSize + localID;
-        const int x = linearIdx % d;
-        const int y = linearIdx / d;
-        const int dstX = x;
-        const int dstY = groupID * BrForQ + y;
-        const int dstIndex = dstY * d + dstX;
+    const uint storesPerThreadO = BrForQ * d / groupSize;
+    for (uint i = 0; i < storesPerThreadO; i++) {
+        const uint linearIdx = i * groupSize + localID;
+        const uint x = linearIdx % d;
+        const uint y = linearIdx / d;
+        const uint dstX = x;
+        const uint dstY = groupID * BrForQ + y;
+        const uint dstIndex = dstY * d + dstX;
         const float dstVal = sO[y][x] / sRowExpSum[y];
         dstO[dstIndex] = dstVal;
     }

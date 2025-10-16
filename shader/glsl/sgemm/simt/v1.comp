@@ -10,34 +10,34 @@ layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
 layout (binding = 1, std430) readonly buffer SrcMatB { float srcMatB[]; };
 layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 
-layout (constant_id = 2) const int M = 0;
-layout (constant_id = 3) const int N = 0;
-layout (constant_id = 4) const int K = 0;
+layout (constant_id = 2) const uint M = 0;
+layout (constant_id = 3) const uint N = 0;
+layout (constant_id = 4) const uint K = 0;
 
 shared float sharedA[gl_WorkGroupSize.y][gl_WorkGroupSize.x];
 shared float sharedB[gl_WorkGroupSize.x][gl_WorkGroupSize.y];
 
 void main() {
-    const ivec2 globalID = ivec2(gl_GlobalInvocationID.xy);
-    const ivec2 groupSize = ivec2(gl_WorkGroupSize.xy);
-    const ivec2 localID = ivec2(gl_LocalInvocationID.xy);
+    const uvec2 globalID = gl_GlobalInvocationID.xy;
+    const uvec2 groupSize = gl_WorkGroupSize.xy;
+    const uvec2 localID = gl_LocalInvocationID.xy;
 
     float acc = 0.0;
-    const int splitKCount = K / groupSize.x;
-    for (int iSplitK = 0; iSplitK < splitKCount; iSplitK++) {
+    const uint splitKCount = K / groupSize.x;
+    for (uint iSplitK = 0; iSplitK < splitKCount; iSplitK++) {
         // Load from srcMatA
-        const int srcX = iSplitK * groupSize.x + localID.x;
-        const int srcAIndex = globalID.y * K + srcX;
+        const uint srcX = iSplitK * groupSize.x + localID.x;
+        const uint srcAIndex = globalID.y * K + srcX;
         sharedA[localID.y][localID.x] = srcMatA[srcAIndex];
 
         // Load from srcMatB
-        const int srcY = iSplitK * groupSize.y + localID.y;
-        const int srcBIndex = srcY * N + globalID.x;
+        const uint srcY = iSplitK * groupSize.y + localID.y;
+        const uint srcBIndex = srcY * N + globalID.x;
         sharedB[localID.x][localID.y] = srcMatB[srcBIndex];// transposed
         barrier();
 
         // Compute
-        [[unroll]] for (int k = 0; k < groupSize.x; k++) {
+        [[unroll]] for (uint k = 0; k < groupSize.x; k++) {
             const float valA = sharedA[localID.y][k];
             const float valB = sharedB[localID.x][k];// transposed
             acc = fma(valA, valB, acc);
@@ -45,6 +45,6 @@ void main() {
         barrier();
     }
 
-    const int dstIndex = globalID.y * N + globalID.x;
+    const uint dstIndex = globalID.y * N + globalID.x;
     dstMat[dstIndex] = acc;
 }
