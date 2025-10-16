@@ -106,7 +106,7 @@ int main() {
         constexpr int groupSizeY = blockTileM / threadTileM;
         const int groupNumX = extentDst.width() / blockTileN;
         const int groupNumY = extentDst.height() / blockTileM;
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v6::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v7::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,           N,           K,           blockTileM,
                                              blockTileN, blockTileK, threadTileM, threadTileN, threadTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,

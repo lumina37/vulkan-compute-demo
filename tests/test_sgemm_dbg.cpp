@@ -123,7 +123,7 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
         constexpr int blockTileN = 128;
         constexpr int blockTileK = 16;
         constexpr int wrapTileM = 64;
-        constexpr int wrapTileN = 64;
+        constexpr int wrapTileN = 32;
         constexpr int threadTileM = 8;
         constexpr int threadTileN = 4;
         constexpr int wrapMIter = 2;

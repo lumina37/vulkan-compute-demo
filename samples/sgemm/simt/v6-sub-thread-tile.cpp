@@ -97,17 +97,23 @@ int main() {
 
         // Pipeline
         constexpr int blockTileM = 128;
-        constexpr int blockTileN = 64;
-        constexpr int blockTileK = 16;
+        constexpr int blockTileN = 128;
+        constexpr int blockTileK = 32;
         constexpr int threadTileM = 16;
-        constexpr int threadTileN = 4;
-        constexpr int threadTileK = 16;
+        constexpr int threadTileN = 8;
+        constexpr int threadTileK = 32;
+        constexpr int threadSubTileM = 8;
+        constexpr int threadSubTileN = 8;
+        constexpr int threadSubTileK = 8;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;
-        const int groupNum = (M / blockTileM) * (N / blockTileN) / (size / 512);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v7::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,           N,           K,          blockTileM,
-                                             blockTileN, blockTileK, threadTileM, threadTileN, threadTileK};
+        const int groupNumX = extentDst.width() / blockTileN;
+        const int groupNumY = extentDst.height() / blockTileM;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v6::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{
+            groupSizeX,     groupSizeY,    M,           N,           K,           blockTileM,
+            blockTileN,     blockTileK,    threadTileM, threadTileN, threadTileK, threadSubTileM,
+            threadSubTileN, threadSubTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -123,7 +129,7 @@ int main() {
         sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        sgemmCmdBufBox.recordDispatch(groupNum, 1);
+        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
         sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
         sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);

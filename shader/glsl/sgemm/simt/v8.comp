@@ -1,4 +1,4 @@
-// Double Buffer
+// Hide store global tail effect
 
 #version 460
 
@@ -98,13 +98,12 @@ void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VE
     }
 }
 
-void storeAccumulator(vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VEC]) {
-    const uvec2 groupID = gl_WorkGroupID.xy;
+void storeAccumulator(vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VEC], uvec2 blockID) {
     const uvec2 groupSize = gl_WorkGroupSize.xy;
     const uvec2 localID = gl_LocalInvocationID.xy;
 
-    const uint globalBaseY = groupID.y * BLOCK_TILE_M + localID.y;
-    const uint globalBaseVecX = groupID.x * BLOCK_TILE_N_VEC + localID.x;
+    const uint globalBaseY = blockID.y * BLOCK_TILE_M + localID.y;
+    const uint globalBaseVecX = blockID.x * BLOCK_TILE_N_VEC + localID.x;
     [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
         const uint globalCoordY = globalBaseY + iterTM * groupSize.y;
         [[unroll]] for (uint iterVecTN = 0; iterVecTN < THREAD_TILE_N_VEC; iterVecTN++) {
@@ -115,25 +114,14 @@ void storeAccumulator(vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VEC]) {
     }
 }
 
-void main() {
-    const uvec2 groupID = gl_WorkGroupID.xy;
-
+void computeBlock(uvec2 blockID, inout uint stage) {
     // Accumulator
     vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VEC];
     zeroFillAccumulator(regAccumulator);
 
-    // Prologue
-    uint stage = 0;
-    const uvec2 globalCoordA = uvec2(0, groupID.y * BLOCK_TILE_M);
-    loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K / 4, true, 0);// Load A
-
-    const uvec2 globalCoordB = uvec2(groupID.x * BLOCK_TILE_N_VEC, 0);
-    loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N / 4, false, 0);// Load B
-    barrier();
-
     // Main-loop
-    const uint blockBaseM = groupID.y * BLOCK_TILE_M;
-    const uint blockBaseN = groupID.x * BLOCK_TILE_N;
+    const uint blockBaseM = blockID.y * BLOCK_TILE_M;
+    const uint blockBaseN = blockID.x * BLOCK_TILE_N;
     [[unroll]] for (uint iterK = BLOCK_TILE_K; iterK < K; iterK += BLOCK_TILE_K) {
         const uint nextStage = (stage + 1) % STAGES;
 
@@ -153,5 +141,47 @@ void main() {
     computeWithShared(regAccumulator, stage);
 
     // Store results
-    storeAccumulator(regAccumulator);
+    storeAccumulator(regAccumulator, blockID);
+}
+
+void main() {
+    const uint groupCount = gl_NumWorkGroups.x;
+    const uint groupIndex = gl_WorkGroupID.x;
+    const uvec2 blockCount = uvec2(N / BLOCK_TILE_N, M / BLOCK_TILE_M);
+    const uint blockPerGroup = (blockCount.x * blockCount.y + groupCount - 1) / groupCount;
+
+    // Prologue
+    uint stage = 0;
+    uvec2 blockID = uvec2(groupIndex % blockCount.x, groupIndex / blockCount.x);
+
+    const uvec2 globalCoordA = uvec2(0, blockID.y * BLOCK_TILE_M);
+    loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K / 4, true, 0);// Load A
+
+    const uvec2 globalCoordB = uvec2(blockID.x * BLOCK_TILE_N_VEC, 0);
+    loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N / 4, false, 0);// Load B
+    barrier();
+
+    [[unroll]] for (uint iBlock = 1; iBlock < blockPerGroup; iBlock++) {
+        computeBlock(blockID, stage);
+
+        // Load next block
+        const uint nextBlockIndex = iBlock * groupCount + groupIndex;
+        const uint nextStage = (stage + 1) % STAGES;
+        if (nextBlockIndex >= blockCount.x * blockCount.y) {
+            break;
+        }
+        const uvec2 nextBlockID = uvec2(nextBlockIndex % blockCount.x, nextBlockIndex / blockCount.x);
+
+        const uvec2 globalCoordA = uvec2(0, nextBlockID.y * BLOCK_TILE_M);
+        loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K / 4, true, nextStage);// Load A
+
+        const uvec2 globalCoordB = uvec2(nextBlockID.x * BLOCK_TILE_N_VEC, 0);
+        loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N / 4, false, nextStage);// Load B
+
+        blockID = nextBlockID;
+        stage = nextStage;
+        barrier();
+    }
+
+    computeBlock(blockID, stage);
 }

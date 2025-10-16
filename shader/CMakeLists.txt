@@ -11,6 +11,7 @@ set(_VKC_GLSL_SRCS
         sgemm/simt/v5
         sgemm/simt/v6
         sgemm/simt/v7
+        sgemm/simt/v8
         sgemm/tcore/v0
         sgemm/tcore/v1
         sgemm/tcore/v2
