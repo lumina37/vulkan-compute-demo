@@ -16,16 +16,16 @@ void main() {
     const uvec2 globalID = gl_GlobalInvocationID.xy;
 
     float acc = 0.0;
-    for (uint i = 0; i < K; i++) {
-        const uint indexA = globalID.y * K + i;
-        const float valA = srcMatA[indexA];
+    for (uint iterK = 0; iterK < K; iterK++) {
+        const uint globalIndexA = globalID.y * K + iterK;
+        const float valA = srcMatA[globalIndexA];
 
-        const uint indexB = i * N + globalID.x;
-        const float valB = srcMatB[indexB];
+        const uint globalIndexB = iterK * N + globalID.x;
+        const float valB = srcMatB[globalIndexB];
 
         acc = fma(valA, valB, acc);
     }
 
-    const uint indexDst = globalID.y * N + globalID.x;
-    dstMat[indexDst] = acc;
+    const uint dstIndex = globalID.y * N + globalID.x;
+    dstMat[dstIndex] = acc;
 }

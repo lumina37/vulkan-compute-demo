@@ -25,9 +25,9 @@ shared float sharedA[BLOCK_TILE_M][BLOCK_TILE_K];
 shared float sharedB[BLOCK_TILE_N][BLOCK_TILE_K];
 
 void zeroFillAccumulator(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) {
-    [[unroll]] for (uint tm = 0; tm < THREAD_TILE_M; tm++) {
-        [[unroll]] for (uint tn = 0; tn < THREAD_TILE_N; tn++) {
-            regAccumulator[tm][tn] = 0.f;
+    [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
+        [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_N; iterTN++) {
+            regAccumulator[iterTM][iterTN] = 0;
         }
     }
 }
@@ -63,14 +63,14 @@ void loadGlobalToShared(uvec2 globalCoord, uvec2 globalExtent, uint globalRowStr
 void computeWithShared(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) {
     const uvec2 localID = gl_LocalInvocationID.xy;
 
-    [[unroll]] for (uint tm = 0; tm < THREAD_TILE_M; tm++) {
-        const uint yA = localID.y * THREAD_TILE_M + tm;
-        [[unroll]] for (uint tn = 0; tn < THREAD_TILE_N; tn++) {
-            const uint yB = localID.x * THREAD_TILE_N + tn;
-            [[unroll]] for (uint tk = 0; tk < BLOCK_TILE_K; tk++) {
-                const float valA = sharedA[yA][tk];
-                const float valB = sharedB[yB][tk];
-                regAccumulator[tm][tn] = fma(valA, valB, regAccumulator[tm][tn]);
+    [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
+        const uint sharedCoordYA = localID.y * THREAD_TILE_M + iterTM;
+        [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_N; iterTN++) {
+            const uint sharedCoordYB = localID.x * THREAD_TILE_N + iterTN;
+            [[unroll]] for (uint iterTK = 0; iterTK < BLOCK_TILE_K; iterTK++) {
+                const float valA = sharedA[sharedCoordYA][iterTK];
+                const float valB = sharedB[sharedCoordYB][iterTK];
+                regAccumulator[iterTM][iterTN] = fma(valA, valB, regAccumulator[iterTM][iterTN]);
             }
         }
     }
@@ -79,12 +79,12 @@ void computeWithShared(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N])
 void storeAccumulator(float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) {
     const uvec2 globalID = gl_GlobalInvocationID.xy;
 
-    [[unroll]] for (uint tm = 0; tm < THREAD_TILE_M; tm++) {
-        [[unroll]] for (uint tn = 0; tn < THREAD_TILE_N; tn++) {
-            const uint globalCoordY = globalID.y * THREAD_TILE_M + tm;
-            const uint globalCoordX = globalID.x * THREAD_TILE_N + tn;
+    [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
+        [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_N; iterTN++) {
+            const uint globalCoordY = globalID.y * THREAD_TILE_M + iterTM;
+            const uint globalCoordX = globalID.x * THREAD_TILE_N + iterTN;
             const uint dstIdx = globalCoordY * N + globalCoordX;
-            dstMat[dstIdx] = regAccumulator[tm][tn];
+            dstMat[dstIdx] = regAccumulator[iterTM][iterTN];
         }
     }
 }
@@ -100,12 +100,11 @@ void main() {
     const uint blockBaseM = groupID.y * BLOCK_TILE_M;
     const uint blockBaseN = groupID.x * BLOCK_TILE_N;
     const uint blockSplitKCount = K / BLOCK_TILE_K;
-    for (uint iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
-        const uint blockBaseK = iBlockSplitK * BLOCK_TILE_K;
-        const uvec2 globalCoordA = uvec2(blockBaseK, blockBaseM);
+    for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
+        const uvec2 globalCoordA = uvec2(iterK, blockBaseM);
         loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K, false, true);// Load A without transpose
 
-        const uvec2 globalCoordB = uvec2(blockBaseN, blockBaseK);
+        const uvec2 globalCoordB = uvec2(blockBaseN, iterK);
         loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N, true, false);// Load B with transpose
         barrier();
 

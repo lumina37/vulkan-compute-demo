@@ -13,9 +13,12 @@ layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 layout (constant_id = 2) const uint M = 0;
 layout (constant_id = 3) const uint N = 0;
 layout (constant_id = 4) const uint K = 0;
+layout (constant_id = 0) const uint BLOCK_TILE_M = 16;
+layout (constant_id = 1) const uint BLOCK_TILE_N = 16;
+layout (constant_id = 5) const uint BLOCK_TILE_K = 16;
 
-shared float sharedA[gl_WorkGroupSize.y][gl_WorkGroupSize.x];
-shared float sharedB[gl_WorkGroupSize.x][gl_WorkGroupSize.y];
+shared float sharedA[BLOCK_TILE_M][BLOCK_TILE_K];
+shared float sharedB[BLOCK_TILE_K][BLOCK_TILE_N];
 
 void main() {
     const uvec2 globalID = gl_GlobalInvocationID.xy;
@@ -23,23 +26,22 @@ void main() {
     const uvec2 localID = gl_LocalInvocationID.xy;
 
     float acc = 0.0;
-    const uint splitKCount = K / groupSize.x;
-    for (uint iSplitK = 0; iSplitK < splitKCount; iSplitK++) {
+    for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
         // Load from srcMatA
-        const uint srcX = iSplitK * groupSize.x + localID.x;
-        const uint srcAIndex = globalID.y * K + srcX;
-        sharedA[localID.y][localID.x] = srcMatA[srcAIndex];
+        const uvec2 globalCoordA = uvec2(iterK + localID.x, globalID.y);
+        const uint srcIndexA = globalCoordA.y * K + globalCoordA.x;
+        sharedA[localID.y][localID.x] = srcMatA[srcIndexA];
 
         // Load from srcMatB
-        const uint srcY = iSplitK * groupSize.y + localID.y;
-        const uint srcBIndex = srcY * N + globalID.x;
-        sharedB[localID.x][localID.y] = srcMatB[srcBIndex];// transposed
+        const uvec2 globalCoordB = uvec2(globalID.x, iterK + localID.y);
+        const uint srcIndexB = globalCoordB.y * N + globalCoordB.x;
+        sharedB[localID.x][localID.y] = srcMatB[srcIndexB];// transposed
         barrier();
 
         // Compute
-        [[unroll]] for (uint k = 0; k < groupSize.x; k++) {
-            const float valA = sharedA[localID.y][k];
-            const float valB = sharedB[localID.x][k];// transposed
+        [[unroll]] for (uint iterBK = 0; iterBK < BLOCK_TILE_K; iterBK++) {
+            const float valA = sharedA[localID.y][iterBK];
+            const float valB = sharedB[localID.x][iterBK];// transposed
             acc = fma(valA, valB, acc);
         }
         barrier();
