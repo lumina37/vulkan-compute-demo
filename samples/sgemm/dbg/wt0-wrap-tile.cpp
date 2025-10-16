@@ -165,6 +165,6 @@ int main() {
         std::println("============================");
         std::println("Size: {}", size);
         std::println("Dispatch timecost: {} ms", averageElapsedTime);
-        std::println("Performace: {} tflops", tflops);
+        std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
     }
 }

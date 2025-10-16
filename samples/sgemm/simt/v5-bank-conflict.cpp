@@ -107,7 +107,7 @@ int main() {
         const int groupNumX = extentDst.width() / blockTileN;
         const int groupNumY = extentDst.height() / blockTileM;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v5::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,           N,           K,           blockTileM,
+        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M,           N,           K,          blockTileM,
                                              blockTileN, blockTileK, threadTileM, threadTileN, threadTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
@@ -147,12 +147,14 @@ int main() {
             elapsedTimes.push_back(elapsedTime[0]);
         }
 
-        auto [meanTime, stdTime] = meanStd(elapsedTimes);
+        const auto [meanTime, stdTime] = meanStd(elapsedTimes);
         const float macs = (float)M * N * K * 2;
-        const float tflops = macs / meanTime / 1e9;
+        const float meanTflops = macs / meanTime / 1e9;
+        const float minTflops = macs / (meanTime + stdTime * 2) / 1e9;
+        const float maxTflops = macs / (meanTime - stdTime * 2) / 1e9;
         std::println("============================");
         std::println("Size: {}", size);
-        std::println("Dispatch timecost: {:.3f}(±{:.3f}) ms", meanTime, stdTime * 2);
-        std::println("Performace: {} tflops", tflops);
+        std::println("Dispatch timecost: {:.3f} ms", meanTime);
+        std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
     }
 }
