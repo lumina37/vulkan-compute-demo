@@ -99,7 +99,7 @@ int main() {
         constexpr int blockTileM = 128;
         constexpr int blockTileN = 128;
         constexpr int blockTileK = 16;
-        constexpr int threadTileM = 16;
+        constexpr int threadTileM = 8;
         constexpr int threadTileN = 8;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;

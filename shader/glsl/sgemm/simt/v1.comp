@@ -26,7 +26,7 @@ void main() {
     const uvec2 localID = gl_LocalInvocationID.xy;
 
     float acc = 0.0;
-    for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
+    [[unroll]] for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
         // Load from srcMatA
         const uvec2 globalCoordA = uvec2(iterK + localID.x, globalID.y);
         const uint srcIndexA = globalCoordA.y * K + globalCoordA.x;

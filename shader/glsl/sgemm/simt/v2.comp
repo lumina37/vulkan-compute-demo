@@ -99,8 +99,7 @@ void main() {
     // Main-loop
     const uint blockBaseM = groupID.y * BLOCK_TILE_M;
     const uint blockBaseN = groupID.x * BLOCK_TILE_N;
-    const uint blockSplitKCount = K / BLOCK_TILE_K;
-    for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
+    [[unroll]] for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
         const uvec2 globalCoordA = uvec2(iterK, blockBaseM);
         loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K, false, true);// Load A without transpose
 

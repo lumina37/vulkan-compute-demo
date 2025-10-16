@@ -65,7 +65,7 @@ void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VE
     vec4 regA[THREAD_TILE_K_VEC];// Only cache one row for row-major A
     vec4 regB[THREAD_TILE_K][THREAD_TILE_N_VEC];// Cache the whole B
 
-    for (uint iterBK = 0; iterBK < BLOCK_TILE_K; iterBK += THREAD_TILE_K) {
+    [[unroll]] for (uint iterBK = 0; iterBK < BLOCK_TILE_K; iterBK += THREAD_TILE_K) {
         // Load B
         [[unroll]] for (uint iterTK = 0; iterTK < THREAD_TILE_K; iterTK++) {
             const uint sharedCoordYB = iterBK + iterTK;
@@ -124,7 +124,7 @@ void main() {
     // Main-loop
     const uint blockBaseM = groupID.y * BLOCK_TILE_M;
     const uint blockBaseN = groupID.x * BLOCK_TILE_N;
-    for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
+    [[unroll]] for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
         const uvec2 globalCoordA = uvec2(iterK / 4, blockBaseM);
         loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K / 4, true);// Load A
 
