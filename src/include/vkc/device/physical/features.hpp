@@ -36,8 +36,7 @@ auto PhyDeviceFeatures_<TFeat...>::create(const PhyDeviceBox& phyDeviceBox) noex
 
 using DefaultPhyDeviceFeatures =
     PhyDeviceFeatures_<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
-                       vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
-                       vk::PhysicalDeviceCooperativeMatrixFeaturesKHR>;
+                       vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features>;
 
 }  // namespace vkc
 

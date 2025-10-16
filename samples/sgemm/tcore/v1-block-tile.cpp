@@ -33,7 +33,12 @@ int main() {
         }
     }
     vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
-    vkc::DefaultPhyDeviceFeatures phyDeviceFeatures = vkc::DefaultPhyDeviceFeatures::create(phyDeviceBox) | unwrap;
+
+    using PhyDeviceFeatures =
+        vkc::PhyDeviceFeatures_<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
+                                vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
+                                vk::PhysicalDeviceCooperativeMatrixFeaturesKHR>;
+    PhyDeviceFeatures phyDeviceFeatures = PhyDeviceFeatures::create(phyDeviceBox) | unwrap;
 
     const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
     auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
