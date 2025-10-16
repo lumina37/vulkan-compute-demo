@@ -1,0 +1,219 @@
+﻿#include <algorithm>
+#include <array>
+#include <iostream>
+#include <memory>
+#include <print>
+#include <random>
+#include <span>
+#include <thread>
+#include <vector>
+
+#include "../../vkc_helper.hpp"
+#include "shader.hpp"
+#include "vkc.hpp"
+
+template <size_t N>
+class FinetuneCaseGenerator {
+    using InputType = std::array<std::vector<int>, N>;
+
+    template <typename Func>
+    static void generateImpl(const InputType& input, std::array<int, N>& current, size_t depth, Func&& func) {
+        if (depth == N) {
+            func(current);
+            return;
+        }
+        for (int val : input[depth]) {
+            current[depth] = val;
+            generateImpl(input, current, depth + 1, func);
+        }
+    }
+
+public:
+    [[nodiscard]] static auto generate(const InputType& input) {
+        std::vector<std::array<int, N>> result;
+        std::array<int, N> current{};
+        generateImpl(input, current, 0, [&](const auto& arr) { result.push_back(arr); });
+        return result;
+    }
+};
+
+template <size_t N>
+[[nodiscard]] auto generateFinetuneCases(const std::array<std::vector<int>, N>& input) {
+    return FinetuneCaseGenerator<N>::generate(input);
+}
+
+int main() {
+    vkc::initVulkan() | unwrap;
+
+    constexpr int HEATUP_TIMES = 1;
+    constexpr int PERF_TIMES = 4;
+
+    // Device
+    vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
+    vkc::PhyDeviceSet phyDeviceSet = vkc::PhyDeviceSet::create(instBox) | unwrap;
+    vkc::PhyDeviceWithProps& phyDeviceWithProps = (phyDeviceSet.selectDefault() | unwrap).get();
+    vkc::PhyDeviceBox& phyDeviceBox = phyDeviceWithProps.getPhyDeviceBox();
+    vkc::DefaultPhyDeviceFeatures phyDeviceFeatures = vkc::DefaultPhyDeviceFeatures::create(phyDeviceBox) | unwrap;
+    const uint32_t computeQFamilyIdx = defaultComputeQFamilyIndex(phyDeviceBox) | unwrap;
+    auto pDeviceBox = std::make_shared<vkc::DeviceBox>(
+        vkc::DeviceBox::createWithExts(phyDeviceBox, {vk::QueueFlagBits::eCompute, computeQFamilyIdx}, {},
+                                       phyDeviceFeatures.getPFeature()) |
+        unwrap);
+    vkc::QueueBox queueBox = vkc::QueueBox::create(*pDeviceBox, vk::QueueFlagBits::eCompute) | unwrap;
+
+    const int size = 2048;
+    const int M = size;
+    const int K = size;
+    const int N = size;
+    const vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
+    const vkc::Extent extentB{N, K, vk::Format::eR32Sfloat};
+    const vkc::Extent extentDst{extentB.width(), extentA.height(), vk::Format::eR32Sfloat};
+
+    // Src data
+    std::mt19937 rdEngine;
+    rdEngine.seed(37);
+    std::uniform_real_distribution dist(0.0f, 1.0f);
+
+    std::vector<float> srcMatA(extentA.elemCount());
+    std::vector<float> srcMatB(extentB.elemCount());
+    for (auto& val : srcMatA) {
+        val = dist(rdEngine);
+    }
+    for (auto& val : srcMatB) {
+        val = dist(rdEngine);
+    }
+
+    // Descriptor & Layouts
+    vkc::StorageBufferBox srcMatABox =
+        vkc::StorageBufferBox::create(pDeviceBox, extentA.size(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StagingBufferBox srcMatAStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, extentA.size(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StorageBufferBox srcMatBBox =
+        vkc::StorageBufferBox::create(pDeviceBox, extentB.size(), vkc::StorageType::ReadOnly) | unwrap;
+    vkc::StagingBufferBox srcMatBStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, extentB.size(), vkc::StorageType::ReadOnly) | unwrap;
+    const std::array srcMatBoxRefs{std::ref(srcMatABox), std::ref(srcMatBBox)};
+    vkc::StorageBufferBox dstMatBox =
+        vkc::StorageBufferBox::create(pDeviceBox, extentDst.size(), vkc::StorageType::ReadWrite) | unwrap;
+    vkc::StagingBufferBox dstMatStagingBufferBox =
+        vkc::StagingBufferBox::create(pDeviceBox, extentDst.size(), vkc::StorageType::ReadWrite) | unwrap;
+    const std::array dstMatBoxRefs{std::ref(dstMatBox)};
+    const std::array dstStagingBufferRefs{std::ref(dstMatStagingBufferBox)};
+    srcMatAStagingBufferBox.upload((std::byte*)srcMatA.data()) | unwrap;
+    srcMatBStagingBufferBox.upload((std::byte*)srcMatB.data()) | unwrap;
+
+    const std::vector descPoolSizes = genPoolSizes(srcMatABox, srcMatBBox, dstMatBox);
+    vkc::DescPoolBox descPoolBox = vkc::DescPoolBox::create(pDeviceBox, descPoolSizes) | unwrap;
+
+    const std::array sgemmDLayoutBindings = genDescSetLayoutBindings(srcMatABox, srcMatBBox, dstMatBox);
+    vkc::DescSetLayoutBox sgemmDLayoutBox = vkc::DescSetLayoutBox::create(pDeviceBox, sgemmDLayoutBindings) | unwrap;
+    const std::array sgemmDLayoutBoxCRefs{std::cref(sgemmDLayoutBox)};
+    vkc::PipelineLayoutBox sgemmPLayoutBox = vkc::PipelineLayoutBox::create(pDeviceBox, sgemmDLayoutBoxCRefs) | unwrap;
+    vkc::DescSetsBox sgemmDescSetsBox =
+        vkc::DescSetsBox::create(pDeviceBox, descPoolBox, sgemmDLayoutBoxCRefs) | unwrap;
+    const std::array sgemmWriteDescSets = genWriteDescSets(srcMatABox, srcMatBBox, dstMatBox);
+    const std::array sgemmWriteDescSetss{std::span{sgemmWriteDescSets.begin(), sgemmWriteDescSets.end()}};
+    sgemmDescSetsBox.updateDescSets(sgemmWriteDescSetss);
+
+    // Command Buffer
+    vkc::FenceBox fenceBox = vkc::FenceBox::create(pDeviceBox) | unwrap;
+    auto pCommandPoolBox =
+        std::make_shared<vkc::CommandPoolBox>(vkc::CommandPoolBox::create(pDeviceBox, computeQFamilyIdx) | unwrap);
+    vkc::CommandBufferBox sgemmCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
+    vkc::TimestampQueryPoolBox queryPoolBox =
+        vkc::TimestampQueryPoolBox::create(pDeviceBox, 2, phyDeviceWithProps.getPhyDeviceProps().timestampPeriod) |
+        unwrap;
+
+    // std::array input{
+    //     std::vector{64, 128, 256},
+    //     std::vector{64, 128, 256},
+    //     std::vector{4, 8, 16, 32},
+    //     std::vector{8},
+    //     std::vector{8},
+    //     std::vector{8},
+    // };
+
+    std::array input{
+        std::vector{64},
+        std::vector{128},
+        std::vector{16},
+        std::vector{4, 8, 16, 32},
+        std::vector{4, 8, 16, 32},
+        std::vector{4, 8, 16, 32},
+    };
+    auto cases = generateFinetuneCases(input);
+
+    std::ranges::for_each(cases, [&](const auto& ftCase) {
+        auto [blockTileM, blockTileN, blockTileK, threadTileM, threadTileN, threadTileK] = ftCase;
+        // Pipeline
+        constexpr int threadSubTileM = 4;
+        constexpr int threadSubTileN = 8;
+        constexpr int threadSubTileK = 4;
+        const int groupSizeX = blockTileN / threadTileN;
+        const int groupSizeY = blockTileM / threadTileM;
+        const int groupNum = (M / blockTileM) * (N / blockTileN) / (size / 512);
+
+        const int smemSize = (blockTileM * blockTileK + blockTileK * blockTileN) * sizeof(float);
+        if (smemSize >= 49152) {
+            return;
+        }
+        if (threadTileK > blockTileK || threadTileM > blockTileM || threadTileN > blockTileN) {
+            return;
+        }
+
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v8::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{
+            groupSizeX,     groupSizeY,    M,           N,           K,           blockTileM,
+            blockTileN,     blockTileK,    threadTileM, threadTileN, threadTileK, threadSubTileM,
+            threadSubTileN, threadSubTileK};
+        vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
+                                                                            specConstantBox.getSpecInfo()) |
+                                            unwrap;
+
+        // Record Command Buffer
+        sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
+        sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
+        sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
+        sgemmCmdBufBox.recordPrepareReceive<vkc::StorageBufferBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatAStagingBufferBox, srcMatABox);
+        sgemmCmdBufBox.recordCopyStagingToBuffer(srcMatBStagingBufferBox, srcMatBBox);
+        sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
+        sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
+        sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+        sgemmCmdBufBox.recordDispatch(groupNum, 1);
+        sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
+        sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
+        sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
+        sgemmCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
+        sgemmCmdBufBox.end() | unwrap;
+
+        for (int i = 0; i < HEATUP_TIMES; i++) {
+            queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
+            fenceBox.wait() | unwrap;
+            fenceBox.reset() | unwrap;
+        }
+
+        std::vector<float> elapsedTimes;
+        for (int i = 0; i < PERF_TIMES; i++) {
+            queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
+            fenceBox.wait() | unwrap;
+            fenceBox.reset() | unwrap;
+
+            auto elapsedTime = queryPoolBox.getElaspedTimes() | unwrap;
+            elapsedTimes.push_back(elapsedTime[0]);
+        }
+
+        const auto [meanTime, stdTime] = meanStd(elapsedTimes);
+        const float macs = (float)M * N * K * 2;
+        const float meanTflops = macs / meanTime / 1e9;
+        const float minTflops = macs / (meanTime + stdTime * 2) / 1e9;
+        const float maxTflops = macs / (meanTime - stdTime * 2) / 1e9;
+        std::println("============================");
+        std::println("Params: {}", ftCase);
+        std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
+        std::flush(std::cout);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    });
+}

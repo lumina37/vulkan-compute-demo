@@ -96,13 +96,13 @@ int main() {
             unwrap;
 
         // Pipeline
-        constexpr int blockTileM = 128;
+        constexpr int blockTileM = 64;
         constexpr int blockTileN = 128;
         constexpr int blockTileK = 32;
         constexpr int threadTileM = 16;
         constexpr int threadTileN = 8;
-        constexpr int threadTileK = 32;
-        constexpr int threadSubTileM = 8;
+        constexpr int threadTileK = 8;
+        constexpr int threadSubTileM = 4;
         constexpr int threadSubTileN = 8;
         constexpr int threadSubTileK = 8;
         constexpr int groupSizeX = blockTileN / threadTileN;
