@@ -97,8 +97,8 @@ int main() {
 
         // Pipeline
         constexpr int blockTileM = 128;
-        constexpr int blockTileN = 128;
-        constexpr int blockTileK = 16;
+        constexpr int blockTileN = 256;
+        constexpr int blockTileK = 8;
         constexpr int wrapTileM = 64;
         constexpr int wrapTileN = 32;
         constexpr int threadTileM = 4;
@@ -117,7 +117,7 @@ int main() {
         }
         const int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         const int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::vx0::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::wt0::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSize,  M,           N,          K,         blockTileM,
                                              blockTileN, blockTileK,  wrapTileM,  wrapTileN, wrapMIter,
                                              wrapNIter,  threadTileM, threadTileN};
@@ -149,22 +149,24 @@ int main() {
             fenceBox.reset() | unwrap;
         }
 
-        float totalElapsedTime = 0.0f;
+        std::vector<float> elapsedTimes;
         for (int i = 0; i < PERF_TIMES; i++) {
             queueBox.submit(sgemmCmdBufBox, fenceBox) | unwrap;
             fenceBox.wait() | unwrap;
             fenceBox.reset() | unwrap;
 
             auto elapsedTime = queryPoolBox.getElaspedTimes() | unwrap;
-            totalElapsedTime += elapsedTime[0];
+            elapsedTimes.push_back(elapsedTime[0]);
         }
 
-        const float averageElapsedTime = totalElapsedTime / PERF_TIMES;
+        const auto [meanTime, stdTime] = meanStd(elapsedTimes);
         const float macs = (float)M * N * K * 2;
-        const float tflops = macs / averageElapsedTime / 1e9;
+        const float meanTflops = macs / meanTime / 1e9;
+        const float minTflops = macs / (meanTime + stdTime * 2) / 1e9;
+        const float maxTflops = macs / (meanTime - stdTime * 2) / 1e9;
         std::println("============================");
         std::println("Size: {}", size);
-        std::println("Dispatch timecost: {} ms", averageElapsedTime);
+        std::println("Dispatch timecost: {} ms", meanTime);
         std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
     }
 }

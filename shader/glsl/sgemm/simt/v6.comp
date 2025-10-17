@@ -67,11 +67,6 @@ void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VE
     const uvec2 groupSize = gl_WorkGroupSize.xy;
     const uvec2 localID = gl_LocalInvocationID.xy;
 
-    const uint threadSplitKCount = BLOCK_TILE_K / THREAD_TILE_K;
-
-    const uint subTileCountN = THREAD_TILE_N / THREAD_SUBTILE_N;
-    const uint subTileCountK = THREAD_TILE_K / THREAD_SUBTILE_K;
-
     vec4 regA[THREAD_SUBTILE_K_VEC];
     vec4 regB[THREAD_SUBTILE_K][THREAD_SUBTILE_N_VEC];
 
