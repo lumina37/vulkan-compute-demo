@@ -35,7 +35,7 @@ void sgemmRefImplWithRowMajorB(const std::span<const float> srcMatA, const std::
     }
 }
 
-void sgemmRefImplWithColMajorB(const std::span<const float> srcMatQ, const std::span<const float> srcMatK,
+void sgemmRefImplWithColMajorB(const std::span<const float> srcMatA, const std::span<const float> srcMatB,
                                const std::span<float> dstMat, const vkc::Extent extentA, const vkc::Extent extentB) {
     const int M = extentA.height();
     const int N = extentB.height();
@@ -44,9 +44,9 @@ void sgemmRefImplWithColMajorB(const std::span<const float> srcMatQ, const std::
     const auto kernelFn = [&](int tx, int ty) {
         float acc = 0;
         for (int k = 0; k < K; k++) {
-            acc += srcMatQ[ty * K + k] * srcMatK[tx * K + k];
+            acc += srcMatA[ty * K + k] * srcMatB[tx * K + k];
         }
-        dstMat[tx * N + ty] = acc;
+        dstMat[tx * M + ty] = acc;
     };
 
     for (int dstY = 0; dstY < M; dstY++) {
@@ -208,7 +208,7 @@ TEST_CASE("GLSL-SGEMM-GGML", "") {
     constexpr float maxValidAvgDiff = 0.0001f;
 
     constexpr int M = 512;
-    constexpr int N = 512;
+    constexpr int N = 256;
     constexpr int K = 256;
     constexpr vkc::Extent extentA{K, M, vk::Format::eR32Sfloat};
     constexpr vkc::Extent extentB{K, N, vk::Format::eR32Sfloat};
@@ -273,25 +273,26 @@ TEST_CASE("GLSL-SGEMM-GGML", "") {
     const std::array sgemmDLayoutBoxCRefs{std::cref(sgemmDLayoutBox)};
 
     struct GGMLPushConstant {
-        int M;
-        int N;
-        int K;
-        int stride_a;
-        int stride_b;
-        int stride_d;
+        unsigned int M;
+        unsigned int N;
+        unsigned int K;
+        unsigned int stride_a;
+        unsigned int stride_b;
+        unsigned int stride_d;
 
-        int batch_stride_a;
-        int batch_stride_b;
-        int batch_stride_d;
+        unsigned int batch_stride_a;
+        unsigned int batch_stride_b;
+        unsigned int batch_stride_d;
 
-        int k_split;
-        int ne02;
-        int ne12;
-        int broadcast2;
-        int broadcast3;
+        unsigned int k_split;
+        unsigned int ne02;
+        unsigned int ne12;
+        unsigned int broadcast2;
+        unsigned int broadcast3;
+        unsigned int padded_N;
     };
 
-    GGMLPushConstant sgemmPushConstant{M, N, K, K, K, M, M * K, K * N, M * N, K, 1, 1, 1, 1};
+    GGMLPushConstant sgemmPushConstant{M, N, K, K, K, M, M * K, K * N, M * N, K, 1, 1, 1, 1, N};
     vkc::PushConstantBox sgemmPushConstantBox = vkc::PushConstantBox{sgemmPushConstant};
     vkc::PipelineLayoutBox sgemmPLayoutBox =
         vkc::PipelineLayoutBox::createWithPushConstant(pDeviceBox, sgemmDLayoutBoxCRefs,
@@ -321,8 +322,8 @@ TEST_CASE("GLSL-SGEMM-GGML", "") {
         constexpr int threadTileN = 4;
         constexpr int threadTileK = 1;
         constexpr int warpSize = 32;
-        const int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileM);
-        const int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileN);
+        const int groupNumX = vkc::ceilDiv(extentDst.height(), blockTileM);
+        const int groupNumY = vkc::ceilDiv(extentDst.width(), blockTileN);
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::ggml::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSize,     blockTileM,  blockTileN,  blockTileK,  warpTileM, warpTileN,
                                              warpTileMIter, threadTileM, threadTileN, threadTileK, warpSize};

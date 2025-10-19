@@ -4,10 +4,10 @@
 #define FLOAT_TYPE float
 #define FLOAT_TYPE_VEC2 vec2
 #define FLOAT_TYPE_VEC4 vec4
+#define FLOAT_TYPE_VEC8 mat2x4
 #define DATA_A_F32 1
 #define LOAD_VEC_A 4
 #define LOAD_VEC_B 4
-#define A_TYPE vec4
 #define B_TYPE vec4
 #define D_TYPE float
 #define ACC_TYPE float
