@@ -19,7 +19,7 @@ set(_VKC_GLSL_SRCS
         sgemm/tcore/v4
         sgemm/tcore/v5
         sgemm/dbg/wt0
-        sgemm/dbg/wt1
+        sgemm/dbg/ggml
         flash_attention2/v0
         flash_attention2/v1
         prefix_sum/v0

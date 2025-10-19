@@ -14,7 +14,7 @@
 
 namespace rgs = std::ranges;
 
-void sgemmRefImpl(const std::span<const float> srcMatQ, const std::span<const float> srcMatK,
+void sgemmRefImpl(const std::span<const float> srcMatA, const std::span<const float> srcMatB,
                   const std::span<float> dstMat, const vkc::Extent extentA, const vkc::Extent extentB) {
     const int M = extentA.height();
     const int N = extentB.width();
@@ -23,7 +23,7 @@ void sgemmRefImpl(const std::span<const float> srcMatQ, const std::span<const fl
     const auto kernelFn = [&](int tx, int ty) {
         float acc = 0;
         for (int k = 0; k < K; k++) {
-            acc += srcMatQ[ty * K + k] * srcMatK[k * N + tx];
+            acc += srcMatA[ty * K + k] * srcMatB[k * N + tx];
         }
         dstMat[ty * N + tx] = acc;
     };

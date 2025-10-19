@@ -78,8 +78,32 @@ int main() {
         vkc::DescSetLayoutBox sgemmDLayoutBox =
             vkc::DescSetLayoutBox::create(pDeviceBox, sgemmDLayoutBindings) | unwrap;
         const std::array sgemmDLayoutBoxCRefs{std::cref(sgemmDLayoutBox)};
+
+        struct GGMLPushConstant {
+            int M;
+            int N;
+            int K;
+            int stride_a;
+            int stride_b;
+            int stride_d;
+
+            int batch_stride_a;
+            int batch_stride_b;
+            int batch_stride_d;
+
+            int k_split;
+            int ne02;
+            int ne12;
+            int broadcast2;
+            int broadcast3;
+        };
+
+        GGMLPushConstant sgemmPushConstant{M, N, K, K, K, M, M * K, K * N, M * N, K, 1, 1, 1, 1};
+        vkc::PushConstantBox sgemmPushConstantBox = vkc::PushConstantBox{sgemmPushConstant};
         vkc::PipelineLayoutBox sgemmPLayoutBox =
-            vkc::PipelineLayoutBox::create(pDeviceBox, sgemmDLayoutBoxCRefs) | unwrap;
+            vkc::PipelineLayoutBox::createWithPushConstant(pDeviceBox, sgemmDLayoutBoxCRefs,
+                                                           sgemmPushConstantBox.getPushConstantRange()) |
+            unwrap;
         vkc::DescSetsBox sgemmDescSetsBox =
             vkc::DescSetsBox::create(pDeviceBox, descPoolBox, sgemmDLayoutBoxCRefs) | unwrap;
         const std::array sgemmWriteDescSets = genWriteDescSets(srcMatABox, srcMatBBox, dstMatBox);
@@ -96,30 +120,29 @@ int main() {
             unwrap;
 
         // Pipeline
+        constexpr int groupSize = 128;
         constexpr int blockTileM = 128;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 128;
         constexpr int blockTileK = 16;
-        constexpr int threadTileM = 8;
-        constexpr int threadTileN = 8;
-        constexpr int threadTileK = 4;
-        constexpr int threadSubTileM = 4;
-        constexpr int threadSubTileN = 8;
-        constexpr int threadSubTileK = 4;
-        constexpr int groupSizeX = blockTileN / threadTileN;
-        constexpr int groupSizeY = blockTileM / threadTileM;
-        const int groupNumX = extentDst.width() / blockTileN;
-        const int groupNumY = extentDst.height() / blockTileM;
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v7::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{
-            groupSizeX,     groupSizeY,    M,           N,           K,           blockTileM,
-            blockTileN,     blockTileK,    threadTileM, threadTileN, threadTileK, threadSubTileM,
-            threadSubTileN, threadSubTileK};
+        constexpr int warpTileM = 64;
+        constexpr int warpTileN = 64;
+        constexpr int warpTileMIter = 2;
+        constexpr int threadTileM = 4;
+        constexpr int threadTileN = 4;
+        constexpr int threadTileK = 1;
+        constexpr int warpSize = 32;
+        const int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileM);
+        const int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileN);
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::ggml::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{groupSize,     blockTileM,  blockTileN,  blockTileK,  warpTileM, warpTileN,
+                                             warpTileMIter, threadTileM, threadTileN, threadTileK, warpSize};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
 
         // Record Command Buffer
         sgemmCmdBufBox.begin() | unwrap;
+        sgemmCmdBufBox.pushConstant(sgemmPushConstantBox, sgemmPLayoutBox);
         sgemmCmdBufBox.bindPipeline(sgemmPipelineBox);
         sgemmCmdBufBox.bindDescSets(sgemmDescSetsBox, sgemmPLayoutBox, vk::PipelineBindPoint::eCompute);
         sgemmCmdBufBox.recordResetQueryPool(queryPoolBox);
@@ -159,7 +182,7 @@ int main() {
         const float maxTflops = macs / (meanTime - stdTime * 2) / 1e9;
         std::println("============================");
         std::println("Size: {}", size);
-        std::println("Dispatch timecost: {:.3f} ms", meanTime);
+        std::println("Dispatch timecost: {} ms", meanTime);
         std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
     }
 }

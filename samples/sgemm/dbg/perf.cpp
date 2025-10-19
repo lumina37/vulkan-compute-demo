@@ -1,4 +1,4 @@
-#include <array>
+﻿#include <array>
 #include <iostream>
 #include <memory>
 #include <print>
@@ -155,11 +155,6 @@ int main() {
         const auto [meanTime, stdTime] = meanStd(elapsedTimes);
         const float macs = (float)M * N * K * 2;
         const float meanTflops = macs / meanTime / 1e9;
-        const float minTflops = macs / (meanTime + stdTime * 2) / 1e9;
-        const float maxTflops = macs / (meanTime - stdTime * 2) / 1e9;
-        std::println("============================");
-        std::println("Size: {}", size);
-        std::println("Dispatch timecost: {:.3f} ms", meanTime);
-        std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
+        std::println("{}", meanTflops);
     }
 }

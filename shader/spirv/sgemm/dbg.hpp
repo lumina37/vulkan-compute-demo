@@ -11,10 +11,10 @@ extern const std::span<std::byte> code;
 
 }  // namespace wt0
 
-namespace wt1 {
+namespace ggml {
 
 extern const std::span<std::byte> code;
 
-}  // namespace wt1
+}  // namespace ggml
 
 }  // namespace shader::sgemm::dbg
