@@ -22,20 +22,20 @@ layout (constant_id = 10) const uint THREAD_TILE_K = 16;
 layout (constant_id = 11) const uint THREAD_SUBTILE_M = 8;
 layout (constant_id = 12) const uint THREAD_SUBTILE_N = 8;
 layout (constant_id = 13) const uint THREAD_SUBTILE_K = 8;
-const uint BLOCK_TILE_N_VEC = BLOCK_TILE_N / 4;
-const uint THREAD_TILE_N_VEC = THREAD_TILE_N / 4;
-const uint THREAD_TILE_K_VEC = THREAD_TILE_K / 4;
-const uint THREAD_SUBTILE_N_VEC = THREAD_SUBTILE_N / 4;
-const uint THREAD_SUBTILE_K_VEC = THREAD_SUBTILE_K / 4;
+const uint BLOCK_TILE_VEC_N = BLOCK_TILE_N / 4;
+const uint BLOCK_TILE_VEC_K = BLOCK_TILE_K / 4;
+const uint THREAD_TILE_VEC_N = THREAD_TILE_N / 4;
+const uint THREAD_SUBTILE_VEC_N = THREAD_SUBTILE_N / 4;
+const uint THREAD_SUBTILE_VEC_K = THREAD_SUBTILE_K / 4;
 
-const uvec2 SHARED_EXTENT_A = uvec2(BLOCK_TILE_K / 4, BLOCK_TILE_M);
-const uvec2 SHARED_EXTENT_B = uvec2(BLOCK_TILE_N / 4, BLOCK_TILE_K);
-shared vec4 sharedA[BLOCK_TILE_M][BLOCK_TILE_K / 4];
-shared vec4 sharedB[BLOCK_TILE_K][BLOCK_TILE_N / 4];
+const uvec2 SHARED_EXTENT_A = uvec2(BLOCK_TILE_VEC_K, BLOCK_TILE_M);
+const uvec2 SHARED_EXTENT_B = uvec2(BLOCK_TILE_VEC_N, BLOCK_TILE_K);
+shared vec4 sharedA[BLOCK_TILE_M][BLOCK_TILE_VEC_K];
+shared vec4 sharedB[BLOCK_TILE_K][BLOCK_TILE_VEC_N];
 
-void zeroFillAccumulator(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VEC]) {
+void zeroFillAccumulator(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_VEC_N]) {
     [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
-        [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_N_VEC; iterTN++) {
+        [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_VEC_N; iterTN++) {
             regAccumulator[iterTM][iterTN] = vec4(0);
         }
     }
@@ -63,20 +63,20 @@ void loadGlobalToShared(uvec2 globalCoord, uvec2 globalExtent, uint globalRowStr
     }
 }
 
-void computeSubThreadTile(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VEC], uint iterTM, uint iterVecTN) {
+void computeSubThreadTile(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_VEC_N], uint iterTM, uint iterVecTN) {
     const uvec2 groupSize = gl_WorkGroupSize.xy;
     const uvec2 localID = gl_LocalInvocationID.xy;
 
-    vec4 regA[THREAD_SUBTILE_K_VEC];
-    vec4 regB[THREAD_SUBTILE_K][THREAD_SUBTILE_N_VEC];
+    vec4 regA[THREAD_SUBTILE_VEC_K];
+    vec4 regB[THREAD_SUBTILE_K][THREAD_SUBTILE_VEC_N];
 
     [[unroll]] for (uint iterBK = 0; iterBK < BLOCK_TILE_K; iterBK += THREAD_TILE_K) {
         [[unroll]] for (uint iterTK = 0; iterTK < THREAD_TILE_K; iterTK += THREAD_SUBTILE_K) {
             [[unroll]] for (uint iterSubTK = 0; iterSubTK < THREAD_SUBTILE_K; iterSubTK++) {
                 const uint sharedCoordYB = iterBK + iterTK + iterSubTK;
-                [[unroll]] for (uint iterSubVecTN = 0; iterSubVecTN < THREAD_SUBTILE_N_VEC; iterSubVecTN++) {
-                    const uint sharedCoordVecXB = (iterVecTN + iterSubVecTN) * groupSize.x + localID.x;
-                    regB[iterSubTK][iterSubVecTN] = sharedB[sharedCoordYB][sharedCoordVecXB];
+                [[unroll]] for (uint iterVecSubTN = 0; iterVecSubTN < THREAD_SUBTILE_VEC_N; iterVecSubTN++) {
+                    const uint sharedCoordVecXB = (iterVecTN + iterVecSubTN) * groupSize.x + localID.x;
+                    regB[iterSubTK][iterVecSubTN] = sharedB[sharedCoordYB][sharedCoordVecXB];
                 }
             }
 
@@ -84,19 +84,19 @@ void computeSubThreadTile(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N
                 const uint regCoordY = iterTM + iterSubTM;
                 const uint sharedCoordYA = (iterTM + iterSubTM) * groupSize.y + localID.y;
 
-                [[unroll]] for (uint iterVecSubTK = 0; iterVecSubTK < THREAD_SUBTILE_K_VEC; iterVecSubTK++) {
-                    const uint sharedCoordXA = (iterBK + iterTK) / 4 + iterVecSubTK;
-                    regA[iterVecSubTK] = sharedA[sharedCoordYA][sharedCoordXA];
+                [[unroll]] for (uint iterVecSubTK = 0; iterVecSubTK < THREAD_SUBTILE_VEC_K; iterVecSubTK++) {
+                    const uint sharedCoordVecXA = (iterBK + iterTK) / 4 + iterVecSubTK;
+                    regA[iterVecSubTK] = sharedA[sharedCoordYA][sharedCoordVecXA];
                 }
 
-                [[unroll]] for (uint iterVecSubTN = 0; iterVecSubTN < THREAD_SUBTILE_N_VEC; iterVecSubTN++) {
+                [[unroll]] for (uint iterVecSubTN = 0; iterVecSubTN < THREAD_SUBTILE_VEC_N; iterVecSubTN++) {
                     const uint regCoordVecX = iterVecTN + iterVecSubTN;
-                    [[unroll]] for (uint iterVecSubTK = 0; iterVecSubTK < THREAD_SUBTILE_K_VEC; iterVecSubTK++) {
-                        const uint regBaseVecYB = iterVecSubTK * 4;
-                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].x * regB[regBaseVecYB + 0][iterVecSubTN];
-                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].y * regB[regBaseVecYB + 1][iterVecSubTN];
-                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].z * regB[regBaseVecYB + 2][iterVecSubTN];
-                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].w * regB[regBaseVecYB + 3][iterVecSubTN];
+                    [[unroll]] for (uint iterVecSubTK = 0; iterVecSubTK < THREAD_SUBTILE_VEC_K; iterVecSubTK++) {
+                        const uint regBaseYB = iterVecSubTK * 4;
+                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].x * regB[regBaseYB + 0][iterVecSubTN];
+                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].y * regB[regBaseYB + 1][iterVecSubTN];
+                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].z * regB[regBaseYB + 2][iterVecSubTN];
+                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].w * regB[regBaseYB + 3][iterVecSubTN];
                     }
                 }
             }
@@ -104,23 +104,23 @@ void computeSubThreadTile(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N
     }
 }
 
-void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VEC]) {
+void computeWithShared(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_VEC_N]) {
     [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM += THREAD_SUBTILE_M) {
-        [[unroll]] for (uint iterVecTN = 0; iterVecTN < THREAD_TILE_N_VEC; iterVecTN += THREAD_SUBTILE_N_VEC) {
+        [[unroll]] for (uint iterVecTN = 0; iterVecTN < THREAD_TILE_VEC_N; iterVecTN += THREAD_SUBTILE_VEC_N) {
             computeSubThreadTile(regAccumulator, iterTM, iterVecTN);
         }
     }
 }
-void storeAccumulator(vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VEC]) {
+void storeAccumulator(vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_VEC_N]) {
     const uvec2 groupID = gl_WorkGroupID.xy;
     const uvec2 groupSize = gl_WorkGroupSize.xy;
     const uvec2 localID = gl_LocalInvocationID.xy;
 
     const uint globalBaseY = groupID.y * BLOCK_TILE_M + localID.y;
-    const uint globalBaseVecX = groupID.x * BLOCK_TILE_N_VEC + localID.x;
+    const uint globalBaseVecX = groupID.x * BLOCK_TILE_VEC_N + localID.x;
     [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
         const uint globalCoordY = globalBaseY + iterTM * groupSize.y;
-        [[unroll]] for (uint iterVecTN = 0; iterVecTN < THREAD_TILE_N_VEC; iterVecTN++) {
+        [[unroll]] for (uint iterVecTN = 0; iterVecTN < THREAD_TILE_VEC_N; iterVecTN++) {
             const uint globalCoordVecX = globalBaseVecX + iterVecTN * groupSize.x;
             const uint dstIdx = globalCoordY * N / 4 + globalCoordVecX;
             dstMat[dstIdx] = regAccumulator[iterTM][iterVecTN];
@@ -132,17 +132,17 @@ void main() {
     const uvec2 groupID = gl_WorkGroupID.xy;
 
     // Accumulator
-    vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_N_VEC];
+    vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_VEC_N];
     zeroFillAccumulator(regAccumulator);
 
     // Main-loop
     const uint blockBaseM = groupID.y * BLOCK_TILE_M;
-    const uint blockBaseN = groupID.x * BLOCK_TILE_N;
+    const uint blockBaseVecN = groupID.x * BLOCK_TILE_VEC_N;
     [[unroll]] for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
         const uvec2 globalCoordA = uvec2(iterK / 4, blockBaseM);
         loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K / 4, true);// Load A
 
-        const uvec2 globalCoordB = uvec2(blockBaseN / 4, iterK);
+        const uvec2 globalCoordB = uvec2(blockBaseVecN, iterK);
         loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N / 4, false);// Load B
         barrier();
 

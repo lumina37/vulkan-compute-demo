@@ -31,10 +31,9 @@ vkc_add_sample(vkc-bin-sgemm-tcore-v3-double-buffer sgemm/tcore/v3-double-buffer
 vkc_add_sample(vkc-bin-sgemm-tcore-v4-bank-conflict sgemm/tcore/v4-bank-conflict.cpp)
 vkc_add_sample(vkc-bin-sgemm-tcore-v5-coopmat2 sgemm/tcore/v5-coopmat2.cpp)
 
-vkc_add_sample(vkc-bin-sgemm-dbg-wt0 sgemm/dbg/wt0-wrap-tile.cpp)
+vkc_add_sample(vkc-bin-sgemm-dbg-simon sgemm/dbg/simon.cpp)
 vkc_add_sample(vkc-bin-sgemm-dbg-ggml sgemm/dbg/ggml.cpp)
-
+vkc_add_sample(vkc-bin-sgemm-dbg-v0-col-major sgemm/dbg/v0-col-major.cpp)
 vkc_add_sample(vkc-bin-sgemm-finetune sgemm/dbg/finetune.cpp)
-vkc_add_sample(vkc-bin-sgemm-perf sgemm/dbg/perf.cpp)
 vkc_add_sample(vkc-bin-gui gui.cpp)
 vkc_add_sample(vkc-bin-perf perf.cpp)

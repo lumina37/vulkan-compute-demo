@@ -13,7 +13,7 @@
 int main() {
     vkc::initVulkan() | unwrap;
 
-    constexpr std::array SIZES{1024, 2048, 4096};
+    constexpr std::array SIZES{1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 10240};
     constexpr int HEATUP_TIMES = 2;
     constexpr int PERF_TIMES = 5;
 
@@ -78,6 +78,7 @@ int main() {
         vkc::DescSetLayoutBox sgemmDLayoutBox =
             vkc::DescSetLayoutBox::create(pDeviceBox, sgemmDLayoutBindings) | unwrap;
         const std::array sgemmDLayoutBoxCRefs{std::cref(sgemmDLayoutBox)};
+
         vkc::PipelineLayoutBox sgemmPLayoutBox =
             vkc::PipelineLayoutBox::create(pDeviceBox, sgemmDLayoutBoxCRefs) | unwrap;
         vkc::DescSetsBox sgemmDescSetsBox =
@@ -97,30 +98,23 @@ int main() {
 
         // Pipeline
         constexpr int blockTileM = 128;
-        constexpr int blockTileN = 256;
-        constexpr int blockTileK = 8;
-        constexpr int wrapTileM = 64;
-        constexpr int wrapTileN = 32;
-        constexpr int threadTileM = 4;
-        constexpr int threadTileN = 4;
-        constexpr int wrapMIter = 2;
-        constexpr int wrapNIter = 2;
-        constexpr int wrapCountY = blockTileM / wrapTileM;
-        constexpr int wrapCountX = blockTileN / wrapTileN;
-        const int wrapSize = phyDeviceWithProps.getPhyDeviceProps().subgroupSize;
-        const int groupSize = wrapSize * (wrapCountX * wrapCountY);
-        const int wrapElemCount = wrapSize * (threadTileM * threadTileN * wrapMIter * wrapNIter);
-        constexpr int expectWrapElemCount = wrapTileM * wrapTileN;
-        if (wrapElemCount != expectWrapElemCount) {
-            std::println(std::cerr, "launch param error, {} != {}", wrapElemCount, expectWrapElemCount);
-            return -1;
-        }
-        const int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
-        const int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::wt0::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSize,  M,           N,          K,         blockTileM,
-                                             blockTileN, blockTileK,  wrapTileM,  wrapTileN, wrapMIter,
-                                             wrapNIter,  threadTileM, threadTileN};
+        constexpr int blockTileN = 128;
+        constexpr int blockTileK = 16;
+        constexpr int threadTileM = 16;
+        constexpr int threadTileN = 8;
+        constexpr int threadTileK = 8;
+        constexpr int threadSubTileM = 8;
+        constexpr int threadSubTileN = 8;
+        constexpr int threadSubTileK = 4;
+        constexpr int groupSizeX = blockTileM / threadTileM;
+        constexpr int groupSizeY = blockTileN / threadTileN;
+        const int groupNumX = extentDst.height() / blockTileM;
+        const int groupNumY = extentDst.width() / blockTileN;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::v0::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{
+            groupSizeX,     groupSizeY,    M,           N,           K,           blockTileM,
+            blockTileN,     blockTileK,    threadTileM, threadTileN, threadTileK, threadSubTileM,
+            threadSubTileN, threadSubTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;

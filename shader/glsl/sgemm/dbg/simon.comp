@@ -1,5 +1,5 @@
 // Wrap-tile
-// Same with https://github.com/siboehm/SGEMM_CUDA/blob/master/src/kernels/10_kernel_warptiling.cuh
+// Reference: https://github.com/siboehm/SGEMM_CUDA/blob/master/src/kernels/10_kernel_warptiling.cuh
 
 #version 460
 

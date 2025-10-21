@@ -1,8 +1,10 @@
 set(_VKC_GLSL_SRCS
         gauss_filter/v0
         gauss_filter/v1
+
         grayscale/ro
         grayscale/rw
+
         sgemm/simt/v0
         sgemm/simt/v1
         sgemm/simt/v2
@@ -12,16 +14,21 @@ set(_VKC_GLSL_SRCS
         sgemm/simt/v6
         sgemm/simt/v7
         sgemm/simt/v8
+
         sgemm/tcore/v0
         sgemm/tcore/v1
         sgemm/tcore/v2
         sgemm/tcore/v3
         sgemm/tcore/v4
         sgemm/tcore/v5
-        sgemm/dbg/wt0
+
+        sgemm/dbg/simon
         sgemm/dbg/ggml
+        sgemm/dbg/v0
+
         flash_attention2/v0
         flash_attention2/v1
+
         prefix_sum/v0
         topk/v0
 )

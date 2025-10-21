@@ -5,16 +5,22 @@
 
 namespace shader::sgemm::dbg {
 
-namespace wt0 {
+namespace simon {
 
 extern const std::span<std::byte> code;
 
-}  // namespace wt0
+}  // namespace simon
 
 namespace ggml {
 
 extern const std::span<std::byte> code;
 
 }  // namespace ggml
+
+namespace v0 {
+
+extern const std::span<std::byte> code;
+
+}  // namespace v0
 
 }  // namespace shader::sgemm::dbg

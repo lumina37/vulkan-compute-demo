@@ -25,6 +25,7 @@ layout (constant_id = 13) const uint THREAD_SUBTILE_K = 8;
 const uint BLOCK_TILE_VEC_N = BLOCK_TILE_N / 4;
 const uint BLOCK_TILE_VEC_K = BLOCK_TILE_K / 4;
 const uint THREAD_TILE_VEC_N = THREAD_TILE_N / 4;
+const uint THREAD_TILE_VEC_K = THREAD_TILE_K / 4;
 const uint THREAD_SUBTILE_VEC_N = THREAD_SUBTILE_N / 4;
 const uint THREAD_SUBTILE_VEC_K = THREAD_SUBTILE_K / 4;
 const uint STAGES = 2;

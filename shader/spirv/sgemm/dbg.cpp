@@ -5,15 +5,15 @@
 
 namespace shader::sgemm::dbg {
 
-namespace wt0 {
+namespace simon {
 
 namespace _detail {
-#include "spirv/sgemm/dbg/wt0.h"
+#include "spirv/sgemm/dbg/simon.h"
 }
 
 const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
 
-}  // namespace wt0
+}  // namespace simon
 
 namespace ggml {
 
@@ -24,5 +24,15 @@ namespace _detail {
 const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
 
 }  // namespace ggml
+
+namespace v0 {
+
+namespace _detail {
+#include "spirv/sgemm/dbg/v0.h"
+}
+
+const std::span<std::byte> code{(std::byte*)_detail::code, sizeof(_detail::code)};
+
+}  // namespace v0
 
 }  // namespace shader::sgemm::dbg
