@@ -25,6 +25,7 @@ set(_VKC_GLSL_SRCS
         sgemm/dbg/simon
         sgemm/dbg/ggml
         sgemm/dbg/v0
+        sgemm/dbg/v1
 
         flash_attention2/v0
         flash_attention2/v1
