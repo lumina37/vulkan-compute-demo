@@ -78,16 +78,16 @@ void computeSubThreadTile(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_V
     [[unroll]] for (uint iterBK = 0; iterBK < BLOCK_TILE_K; iterBK += THREAD_TILE_K) {
         [[unroll]] for (uint iterTK = 0; iterTK < THREAD_TILE_K; iterTK += THREAD_SUBTILE_K) {
             [[unroll]] for (uint iterSubTK = 0; iterSubTK < THREAD_SUBTILE_K; iterSubTK++) {
-                const uint sharedCoordYA = iterBK + iterTK + iterSubTK;
-                const uint sharedCoordYB = sharedCoordYA;
+                const uint sharedCoordYB = iterBK + iterTK + iterSubTK;
+                [[unroll]] for (uint iterVecSubTN = 0; iterVecSubTN < THREAD_SUBTILE_VEC_N; iterVecSubTN++) {
+                    const uint sharedCoordVecXB = (iterVecTN + iterVecSubTN) * groupSize.x + localID.x;
+                    regB[iterVecSubTN] = sharedB[stage][sharedCoordYB][sharedCoordVecXB];
+                }
+
+                const uint sharedCoordYA = sharedCoordYB;
                 [[unroll]] for (uint iterSubTM = 0; iterSubTM < THREAD_SUBTILE_M; iterSubTM++) {
                     const uint sharedCoordXA = (iterTM + iterSubTM) * groupSize.y + localID.y;
                     regA = sharedA[stage][sharedCoordYA][sharedCoordXA];
-
-                    [[unroll]] for (uint iterVecSubTN = 0; iterVecSubTN < THREAD_SUBTILE_VEC_N; iterVecSubTN++) {
-                        const uint sharedCoordVecXB = (iterVecTN + iterVecSubTN) * groupSize.x + localID.x;
-                        regB[iterVecSubTN] = sharedB[stage][sharedCoordYB][sharedCoordVecXB];
-                    }
 
                     const uint regCoordY = iterTM + iterSubTM;
                     [[unroll]] for (uint iterVecSubTN = 0; iterVecSubTN < THREAD_SUBTILE_VEC_N; iterVecSubTN++) {
