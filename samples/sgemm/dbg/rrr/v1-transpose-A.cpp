@@ -6,14 +6,14 @@
 #include <span>
 #include <vector>
 
-#include "../../vkc_helper.hpp"
+#include "../../../vkc_helper.hpp"
 #include "shader.hpp"
 #include "vkc.hpp"
 
 int main() {
     vkc::initVulkan() | unwrap;
 
-    constexpr std::array SIZES{1024, 2048, 4096};
+    constexpr std::array SIZES{1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 10240};
     constexpr int HEATUP_TIMES = 2;
     constexpr int PERF_TIMES = 5;
 
@@ -97,30 +97,23 @@ int main() {
 
         // Pipeline
         constexpr int blockTileM = 128;
-        constexpr int blockTileN = 256;
-        constexpr int blockTileK = 8;
-        constexpr int wrapTileM = 64;
-        constexpr int wrapTileN = 32;
-        constexpr int threadTileM = 4;
-        constexpr int threadTileN = 4;
-        constexpr int wrapMIter = 2;
-        constexpr int wrapNIter = 2;
-        constexpr int wrapCountY = blockTileM / wrapTileM;
-        constexpr int wrapCountX = blockTileN / wrapTileN;
-        const int wrapSize = phyDeviceWithProps.getPhyDeviceProps().subgroupSize;
-        const int groupSize = wrapSize * (wrapCountX * wrapCountY);
-        const int wrapElemCount = wrapSize * (threadTileM * threadTileN * wrapMIter * wrapNIter);
-        constexpr int expectWrapElemCount = wrapTileM * wrapTileN;
-        if (wrapElemCount != expectWrapElemCount) {
-            std::println(std::cerr, "launch param error, {} != {}", wrapElemCount, expectWrapElemCount);
-            return -1;
-        }
-        const int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
-        const int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::simon::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSize,  M,           N,          K,         blockTileM,
-                                             blockTileN, blockTileK,  wrapTileM,  wrapTileN, wrapMIter,
-                                             wrapNIter,  threadTileM, threadTileN};
+        constexpr int blockTileN = 64;
+        constexpr int blockTileK = 16;
+        constexpr int threadTileM = 8;
+        constexpr int threadTileN = 8;
+        constexpr int threadTileK = 4;
+        constexpr int threadSubTileM = 8;
+        constexpr int threadSubTileN = 8;
+        constexpr int threadSubTileK = 4;
+        constexpr int groupSizeX = blockTileN / threadTileN;
+        constexpr int groupSizeY = blockTileM / threadTileM;
+        const int groupNumX = extentDst.width() / blockTileN;
+        const int groupNumY = extentDst.height() / blockTileM;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::rrr::v1::code) | unwrap;
+        vkc::SpecConstantBox specConstantBox{
+            groupSizeX,     groupSizeY,    M,           N,           K,           blockTileM,
+            blockTileN,     blockTileK,    threadTileM, threadTileN, threadTileK, threadSubTileM,
+            threadSubTileN, threadSubTileK};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -166,7 +159,7 @@ int main() {
         const float maxTflops = macs / (meanTime - stdTime * 2) / 1e9;
         std::println("============================");
         std::println("Size: {}", size);
-        std::println("Dispatch timecost: {} ms", meanTime);
+        std::println("Dispatch timecost: {:.3f} ms", meanTime);
         std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
     }
 }

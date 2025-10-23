@@ -6,7 +6,7 @@
 #include <span>
 #include <vector>
 
-#include "../../vkc_helper.hpp"
+#include "../../../vkc_helper.hpp"
 #include "shader.hpp"
 #include "vkc.hpp"
 
@@ -110,7 +110,7 @@ int main() {
         constexpr int groupSizeY = blockTileN / threadTileN;
         const int groupNumX = extentDst.height() / blockTileM;
         const int groupNumY = extentDst.width() / blockTileN;
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::v0::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::rcc::v0::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{
             groupSizeX,     groupSizeY,    M,           N,           K,           blockTileM,
             blockTileN,     blockTileK,    threadTileM, threadTileN, threadTileK, threadSubTileM,

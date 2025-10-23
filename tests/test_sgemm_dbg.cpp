@@ -179,7 +179,8 @@ TEST_CASE("GLSL-SGEMM-GGML", "") {
         constexpr int warpSize = 32;
         const int groupNumX = vkc::ceilDiv(extentDst.height(), blockTileM);
         const int groupNumY = vkc::ceilDiv(extentDst.width(), blockTileN);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::ggml::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox =
+            vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::rcc::ggml::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSize,     blockTileM,  blockTileN,  blockTileK,  warpTileM, warpTileN,
                                              warpTileMIter, threadTileM, threadTileN, threadTileK, warpSize};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
@@ -220,7 +221,7 @@ TEST_CASE("GLSL-SGEMM-GGML", "") {
     }
 }
 
-TEST_CASE("GLSL-SGEMM-Col-Major", "") {
+TEST_CASE("GLSL-SGEMM-RCC", "") {
     vkc::initVulkan() | unwrap;
 
     constexpr float maxValidDiff = 0.001f;
@@ -317,7 +318,7 @@ TEST_CASE("GLSL-SGEMM-Col-Major", "") {
         constexpr int groupSizeY = blockTileN / threadTileN;
         const int groupNumX = extentDst.height() / blockTileM;
         const int groupNumY = extentDst.width() / blockTileN;
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::v0::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::rcc::v0::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{
             groupSizeX,     groupSizeY,    M,           N,           K,           blockTileM,
             blockTileN,     blockTileK,    threadTileM, threadTileN, threadTileK, threadSubTileM,
@@ -359,7 +360,7 @@ TEST_CASE("GLSL-SGEMM-Col-Major", "") {
     }
 }
 
-TEST_CASE("GLSL-SGEMM-Row-Major", "") {
+TEST_CASE("GLSL-SGEMM-RRR", "") {
     vkc::initVulkan() | unwrap;
 
     constexpr float maxValidDiff = 0.001f;
@@ -463,7 +464,8 @@ TEST_CASE("GLSL-SGEMM-Row-Major", "") {
         }
         constexpr int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileN);
         constexpr int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileM);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::simon::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox =
+            vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::rrr::simon::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSize,  M,           N,          K,         blockTileM,
                                              blockTileN, blockTileK,  wrapTileM,  wrapTileN, wrapMIter,
                                              wrapNIter,  threadTileM, threadTileN};
@@ -517,7 +519,7 @@ TEST_CASE("GLSL-SGEMM-Row-Major", "") {
         constexpr int groupSizeY = blockTileM / threadTileM;
         const int groupNumX = extentDst.width() / blockTileN;
         const int groupNumY = extentDst.height() / blockTileM;
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::v1::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::rrr::v1::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{
             groupSizeX,     groupSizeY,    M,           N,           K,           blockTileM,
             blockTileN,     blockTileK,    threadTileM, threadTileN, threadTileK, threadSubTileM,

@@ -22,10 +22,11 @@ set(_VKC_GLSL_SRCS
         sgemm/tcore/v4
         sgemm/tcore/v5
 
-        sgemm/dbg/simon
-        sgemm/dbg/ggml
-        sgemm/dbg/v0
-        sgemm/dbg/v1
+        sgemm/dbg/rrr/simon
+        sgemm/dbg/rrr/v0
+        sgemm/dbg/rrr/v1
+        sgemm/dbg/rcc/ggml
+        sgemm/dbg/rcc/v0
 
         flash_attention2/v0
         flash_attention2/v1

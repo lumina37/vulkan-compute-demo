@@ -6,7 +6,7 @@
 #include <span>
 #include <vector>
 
-#include "../../vkc_helper.hpp"
+#include "../../../vkc_helper.hpp"
 #include "shader.hpp"
 #include "vkc.hpp"
 
@@ -133,7 +133,8 @@ int main() {
         constexpr int warpSize = 32;
         const int groupNumX = vkc::ceilDiv(extentDst.width(), blockTileM);
         const int groupNumY = vkc::ceilDiv(extentDst.height(), blockTileN);
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::ggml::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox =
+            vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::rcc::ggml::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{groupSize,     blockTileM,  blockTileN,  blockTileK,  warpTileM, warpTileN,
                                              warpTileMIter, threadTileM, threadTileN, threadTileK, warpSize};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,

@@ -134,12 +134,8 @@ int main() {
     // };
 
     std::array input{
-        std::vector{64},
-        std::vector{128},
-        std::vector{16},
-        std::vector{4, 8, 16, 32},
-        std::vector{4, 8, 16, 32},
-        std::vector{4, 8, 16, 32},
+        std::vector{128},          std::vector{64},           std::vector{16},
+        std::vector{4, 8, 16, 32}, std::vector{4, 8, 16, 32}, std::vector{4, 8, 16, 32},
     };
     auto cases = generateFinetuneCases(input);
 
@@ -151,7 +147,8 @@ int main() {
         constexpr int threadSubTileK = 4;
         const int groupSizeX = blockTileN / threadTileN;
         const int groupSizeY = blockTileM / threadTileM;
-        const int groupNum = (M / blockTileM) * (N / blockTileN) / (size / 512);
+        const int groupNumX = extentDst.width() / blockTileN;
+        const int groupNumY = extentDst.height() / blockTileM;
 
         const int smemSize = (blockTileM * blockTileK + blockTileK * blockTileN) * sizeof(float);
         if (smemSize >= 49152) {
@@ -161,7 +158,7 @@ int main() {
             return;
         }
 
-        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v8::code) | unwrap;
+        vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::dbg::rrr::v1::code) | unwrap;
         vkc::SpecConstantBox specConstantBox{
             groupSizeX,     groupSizeY,    M,           N,           K,           blockTileM,
             blockTileN,     blockTileK,    threadTileM, threadTileN, threadTileK, threadSubTileM,
@@ -181,7 +178,7 @@ int main() {
         sgemmCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
         sgemmCmdBufBox.recordPrepareShaderWrite(dstMatBoxRefs);
         sgemmCmdBufBox.recordTimestampStart(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
-        sgemmCmdBufBox.recordDispatch(groupNum, 1);
+        sgemmCmdBufBox.recordDispatch(groupNumX, groupNumY);
         sgemmCmdBufBox.recordTimestampEnd(queryPoolBox, vk::PipelineStageFlagBits::eComputeShader) | unwrap;
         sgemmCmdBufBox.recordPrepareSend(dstMatBoxRefs);
         sgemmCmdBufBox.recordCopyBufferToStaging(dstMatBox, dstMatStagingBufferBox);
