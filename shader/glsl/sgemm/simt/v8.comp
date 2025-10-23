@@ -36,8 +36,8 @@ shared vec4 sharedB[STAGES][BLOCK_TILE_K][BLOCK_TILE_VEC_N];
 
 void zeroFillAccumulator(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_VEC_N]) {
     [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
-        [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_VEC_N; iterTN++) {
-            regAccumulator[iterTM][iterTN] = vec4(0);
+        [[unroll]] for (uint iterVecTN = 0; iterVecTN < THREAD_TILE_VEC_N; iterVecTN++) {
+            regAccumulator[iterTM][iterVecTN] = vec4(0);
         }
     }
 }

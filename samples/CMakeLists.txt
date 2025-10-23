@@ -34,6 +34,7 @@ vkc_add_sample(vkc-bin-sgemm-tcore-v5-coopmat2 sgemm/tcore/v5-coopmat2.cpp)
 vkc_add_sample(vkc-bin-sgemm-dbg-finetune sgemm/dbg/finetune.cpp)
 vkc_add_sample(vkc-bin-sgemm-dbg-rcc-ggml sgemm/dbg/rcc/ggml.cpp)
 vkc_add_sample(vkc-bin-sgemm-dbg-rcc-v0 sgemm/dbg/rcc/v0-col-major.cpp)
+vkc_add_sample(vkc-bin-sgemm-dbg-rcc-v1 sgemm/dbg/rcc/v1-transpose-A.cpp)
 vkc_add_sample(vkc-bin-sgemm-dbg-rrr-simon sgemm/dbg/rrr/simon.cpp)
 vkc_add_sample(vkc-bin-sgemm-dbg-rrr-v1 sgemm/dbg/rrr/v1-transpose-A.cpp)
 
