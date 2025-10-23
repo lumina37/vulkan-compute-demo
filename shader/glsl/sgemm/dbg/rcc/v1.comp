@@ -1,4 +1,5 @@
-// Double Buffer but with A/B/C in Row/Col/Col-major (RCC)
+// A/B/C in Row/Col/Col-major (RCC)
+// sharedA is transposed
 
 #version 460
 

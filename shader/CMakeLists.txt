@@ -27,6 +27,7 @@ set(_VKC_GLSL_SRCS
         sgemm/dbg/rrr/v1
         sgemm/dbg/rcc/ggml
         sgemm/dbg/rcc/v0
+        sgemm/dbg/rcc/v1
 
         flash_attention2/v0
         flash_attention2/v1

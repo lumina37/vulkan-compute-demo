@@ -1,4 +1,4 @@
-// A: row-major, B: col-major, C: col-major
+// A/B/C in Row/Col/Col-major (RCC)
 // Reference: https://github.com/ggml-org/llama.cpp/blob/master/ggml/src/ggml-vulkan/vulkan-shaders/mul_mm.comp
 
 #version 450
