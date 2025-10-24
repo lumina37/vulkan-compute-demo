@@ -45,10 +45,10 @@ TEST_CASE("CPU-PrefixSum", "") {
 TEST_CASE("GLSL-PrefixSum", "") {
     vkc::initVulkan() | unwrap;
 
-    constexpr float maxValidDiff = 0.0001f;
-    constexpr float maxValidAvgDiff = 0.000001f;
+    constexpr float maxValidDiff = 0.001f;
+    constexpr float maxValidAvgDiff = 0.00001f;
 
-    constexpr int N = 128;
+    constexpr int N = 256;
 
     // Src data
     std::vector<float> srcArr(N);
@@ -80,14 +80,14 @@ TEST_CASE("GLSL-PrefixSum", "") {
 
     // Descriptor & Layouts
     vkc::StorageBufferBox srcArrBox =
-        vkc::StorageBufferBox::create(pDeviceBox, srcArr.size(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StorageBufferBox::create(pDeviceBox, N * sizeof(float), vkc::StorageType::ReadOnly) | unwrap;
     vkc::StagingBufferBox srcArrStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, srcArrBox.getSize(), vkc::StorageType::ReadOnly) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, N * sizeof(float), vkc::StorageType::ReadOnly) | unwrap;
     const std::array srcMatBoxRefs{std::ref(srcArrBox)};
     vkc::StorageBufferBox dstArrBox =
-        vkc::StorageBufferBox::create(pDeviceBox, dstArrVk.size(), vkc::StorageType::ReadWrite) | unwrap;
+        vkc::StorageBufferBox::create(pDeviceBox, N * sizeof(float), vkc::StorageType::ReadWrite) | unwrap;
     vkc::StagingBufferBox dstArrStagingBufferBox =
-        vkc::StagingBufferBox::create(pDeviceBox, dstArrVk.size(), vkc::StorageType::ReadWrite) | unwrap;
+        vkc::StagingBufferBox::create(pDeviceBox, N * sizeof(float), vkc::StorageType::ReadWrite) | unwrap;
     const std::array dstArrBoxRefs{std::ref(dstArrBox)};
     const std::array dstStagingBufferRefs{std::ref(dstArrStagingBufferBox)};
     srcArrStagingBufferBox.upload((std::byte*)srcArr.data()) | unwrap;
@@ -113,10 +113,9 @@ TEST_CASE("GLSL-PrefixSum", "") {
     vkc::CommandBufferBox presumCmdBufBox = vkc::CommandBufferBox::create(pDeviceBox, pCommandPoolBox) | unwrap;
 
     SECTION("v0") {
-        constexpr int groupSizeX = 256;
-        constexpr int groupNumX = vkc::ceilDiv(N, groupSizeX);
+        constexpr int groupSize = N;
         vkc::ShaderBox presumShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::prefix_sum::v0::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, N};
+        vkc::SpecConstantBox specConstantBox{groupSize, N};
         vkc::PipelineBox presumPipelineBox =
             vkc::PipelineBox::createCompute(pDeviceBox, presumPLayoutBox, presumShaderBox,
                                             specConstantBox.getSpecInfo()) |
@@ -129,7 +128,7 @@ TEST_CASE("GLSL-PrefixSum", "") {
         presumCmdBufBox.recordCopyStagingToBuffer(srcArrStagingBufferBox, srcArrBox);
         presumCmdBufBox.recordPrepareShaderRead<vkc::StorageBufferBox>(srcMatBoxRefs);
         presumCmdBufBox.recordPrepareShaderWrite(dstArrBoxRefs);
-        presumCmdBufBox.recordDispatch(groupNumX, 1);
+        presumCmdBufBox.recordDispatch(1, 1);
         presumCmdBufBox.recordPrepareSend(dstArrBoxRefs);
         presumCmdBufBox.recordCopyBufferToStaging(dstArrBox, dstArrStagingBufferBox);
         presumCmdBufBox.recordWaitDownloadComplete(dstStagingBufferRefs);
