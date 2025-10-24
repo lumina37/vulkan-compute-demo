@@ -107,8 +107,8 @@ void storeAccumulator(float regAccumulator[THREAD_TILE_N][THREAD_TILE_M]) {
     const uvec2 groupSize = gl_WorkGroupSize.xy;
     const uvec2 localID = gl_LocalInvocationID.xy;
 
-    const uint globalBaseY = groupID.y * BLOCK_TILE_M + localID.y;
-    const uint globalBaseX = groupID.x * BLOCK_TILE_N + localID.x;
+    const uint globalBaseY = groupID.y * BLOCK_TILE_N + localID.y;
+    const uint globalBaseX = groupID.x * BLOCK_TILE_M + localID.x;
     [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_N; iterTN++) {
         const uint globalCoordY = globalBaseY + iterTN * groupSize.y;
         [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
