@@ -96,12 +96,11 @@ int main() {
             unwrap;
 
         // Pipeline
-        constexpr int groupSizeX = 16;
-        constexpr int groupSizeY = 16;
-        const int groupNumX = extentDst.width() / groupSizeX;
-        const int groupNumY = extentDst.height() / groupSizeY;
+        constexpr int groupSize = 16;
+        const int groupNumX = extentDst.width() / groupSize;
+        const int groupNumY = extentDst.height() / groupSize;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v1::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K};
+        vkc::SpecConstantBox specConstantBox{groupSize, M, N, K};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;

@@ -4,21 +4,20 @@
 
 #extension GL_EXT_control_flow_attributes : enable
 
-layout (local_size_x_id = 0, local_size_y_id = 1) in;
+layout (local_size_x_id = 0, local_size_y_id = 0) in;
 
 layout (binding = 0, std430) readonly buffer SrcMatA { float srcMatA[]; };
 layout (binding = 1, std430) readonly buffer SrcMatB { float srcMatB[]; };
 layout (binding = 2, std430) writeonly buffer DstMat { float dstMat[]; };
 
-layout (constant_id = 2) const uint M = 0;
-layout (constant_id = 3) const uint N = 0;
-layout (constant_id = 4) const uint K = 0;
-layout (constant_id = 0) const uint BLOCK_TILE_M = 16;
-layout (constant_id = 1) const uint BLOCK_TILE_N = 16;
-layout (constant_id = 5) const uint BLOCK_TILE_K = 16;
+layout (constant_id = 1) const uint M = 0;
+layout (constant_id = 2) const uint N = 0;
+layout (constant_id = 3) const uint K = 0;
+layout (constant_id = 0) const uint BLOCK_TILE_MN = 16;
+layout (constant_id = 4) const uint BLOCK_TILE_K = 16;
 
-shared float sharedA[BLOCK_TILE_M][BLOCK_TILE_K];
-shared float sharedB[BLOCK_TILE_K][BLOCK_TILE_N];
+shared float sharedA[BLOCK_TILE_MN][BLOCK_TILE_K];
+shared float sharedB[BLOCK_TILE_K][BLOCK_TILE_MN];
 
 void main() {
     const uvec2 globalID = gl_GlobalInvocationID.xy;

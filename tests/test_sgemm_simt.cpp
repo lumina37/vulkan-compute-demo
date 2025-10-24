@@ -189,12 +189,11 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
     }
 
     SECTION("v1") {
-        constexpr int groupSizeX = 16;
-        constexpr int groupSizeY = 16;
-        const int groupNumX = extentDst.width() / groupSizeX;
-        const int groupNumY = extentDst.height() / groupSizeY;
+        constexpr int groupSize = 16;
+        const int groupNumX = extentDst.width() / groupSize;
+        const int groupNumY = extentDst.height() / groupSize;
         vkc::ShaderBox sgemmShaderBox = vkc::ShaderBox::create(pDeviceBox, shader::sgemm::simt::v1::code) | unwrap;
-        vkc::SpecConstantBox specConstantBox{groupSizeX, groupSizeY, M, N, K};
+        vkc::SpecConstantBox specConstantBox{groupSize, M, N, K};
         vkc::PipelineBox sgemmPipelineBox = vkc::PipelineBox::createCompute(pDeviceBox, sgemmPLayoutBox, sgemmShaderBox,
                                                                             specConstantBox.getSpecInfo()) |
                                             unwrap;
@@ -233,9 +232,9 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
 
     SECTION("v2") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
-        constexpr int threadTileM = 8;
+        constexpr int threadTileM = 16;
         constexpr int threadTileN = 8;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;
@@ -282,11 +281,11 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
 
     SECTION("v3") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
-        constexpr int threadTileM = 8;
+        constexpr int threadTileM = 16;
         constexpr int threadTileN = 8;
-        constexpr int threadTileK = 4;
+        constexpr int threadTileK = 8;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;
         const int groupNumX = extentDst.width() / blockTileN;
@@ -332,11 +331,11 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
 
     SECTION("v4") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
-        constexpr int threadTileM = 8;
+        constexpr int threadTileM = 16;
         constexpr int threadTileN = 8;
-        constexpr int threadTileK = 4;
+        constexpr int threadTileK = 8;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;
         const int groupNumX = extentDst.width() / blockTileN;
@@ -382,9 +381,9 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
 
     SECTION("v5") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
-        constexpr int threadTileM = 8;
+        constexpr int threadTileM = 16;
         constexpr int threadTileN = 8;
         constexpr int threadTileK = 8;
         constexpr int groupSizeX = blockTileN / threadTileN;
@@ -432,14 +431,14 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
 
     SECTION("v6") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
         constexpr int threadTileM = 16;
-        constexpr int threadTileN = 16;
-        constexpr int threadTileK = 16;
+        constexpr int threadTileN = 8;
+        constexpr int threadTileK = 8;
         constexpr int threadSubTileM = 8;
-        constexpr int threadSubTileN = 8;
-        constexpr int threadSubTileK = 8;
+        constexpr int threadSubTileN = 4;
+        constexpr int threadSubTileK = 4;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;
         const int groupNumX = extentDst.width() / blockTileN;
@@ -487,14 +486,14 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
 
     SECTION("v7") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
         constexpr int threadTileM = 16;
-        constexpr int threadTileN = 16;
-        constexpr int threadTileK = 16;
+        constexpr int threadTileN = 8;
+        constexpr int threadTileK = 8;
         constexpr int threadSubTileM = 8;
-        constexpr int threadSubTileN = 8;
-        constexpr int threadSubTileK = 8;
+        constexpr int threadSubTileN = 4;
+        constexpr int threadSubTileK = 4;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;
         const int groupNumX = extentDst.width() / blockTileN;
@@ -542,14 +541,14 @@ TEST_CASE("GLSL-SGEMM-SIMT", "") {
 
     SECTION("v8") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
         constexpr int threadTileM = 16;
-        constexpr int threadTileN = 16;
-        constexpr int threadTileK = 16;
+        constexpr int threadTileN = 8;
+        constexpr int threadTileK = 8;
         constexpr int threadSubTileM = 8;
-        constexpr int threadSubTileN = 8;
-        constexpr int threadSubTileK = 8;
+        constexpr int threadSubTileN = 4;
+        constexpr int threadSubTileK = 4;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;
         constexpr int groupNum = (M / blockTileM) * (N / blockTileN) / 4;
