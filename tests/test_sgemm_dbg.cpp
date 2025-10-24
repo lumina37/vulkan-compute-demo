@@ -306,14 +306,14 @@ TEST_CASE("GLSL-SGEMM-RCC", "") {
 
     SECTION("v0") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
         constexpr int threadTileM = 16;
-        constexpr int threadTileN = 16;
-        constexpr int threadTileK = 16;
+        constexpr int threadTileN = 8;
+        constexpr int threadTileK = 8;
         constexpr int threadSubTileM = 8;
-        constexpr int threadSubTileN = 8;
-        constexpr int threadSubTileK = 8;
+        constexpr int threadSubTileN = 4;
+        constexpr int threadSubTileK = 4;
         constexpr int groupSizeX = blockTileM / threadTileM;
         constexpr int groupSizeY = blockTileN / threadTileN;
         const int groupNumX = extentDst.height() / blockTileM;
@@ -361,14 +361,14 @@ TEST_CASE("GLSL-SGEMM-RCC", "") {
 
     SECTION("v1") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
         constexpr int threadTileM = 16;
-        constexpr int threadTileN = 16;
-        constexpr int threadTileK = 16;
+        constexpr int threadTileN = 8;
+        constexpr int threadTileK = 8;
         constexpr int threadSubTileM = 8;
-        constexpr int threadSubTileN = 8;
-        constexpr int threadSubTileK = 8;
+        constexpr int threadSubTileN = 4;
+        constexpr int threadSubTileK = 4;
         constexpr int groupSizeX = blockTileM / threadTileM;
         constexpr int groupSizeY = blockTileN / threadTileN;
         const int groupNumX = extentDst.height() / blockTileM;
@@ -562,14 +562,14 @@ TEST_CASE("GLSL-SGEMM-RRR", "") {
 
     SECTION("v1") {
         constexpr int blockTileM = 64;
-        constexpr int blockTileN = 64;
+        constexpr int blockTileN = 32;
         constexpr int blockTileK = 16;
         constexpr int threadTileM = 16;
-        constexpr int threadTileN = 16;
-        constexpr int threadTileK = 16;
+        constexpr int threadTileN = 8;
+        constexpr int threadTileK = 8;
         constexpr int threadSubTileM = 8;
-        constexpr int threadSubTileN = 8;
-        constexpr int threadSubTileK = 8;
+        constexpr int threadSubTileN = 4;
+        constexpr int threadSubTileK = 4;
         constexpr int groupSizeX = blockTileN / threadTileN;
         constexpr int groupSizeY = blockTileM / threadTileM;
         const int groupNumX = extentDst.width() / blockTileN;
