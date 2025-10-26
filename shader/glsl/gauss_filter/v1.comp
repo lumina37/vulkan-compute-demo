@@ -11,16 +11,16 @@ layout (binding = 0) uniform texture2D srcTex;
 layout (binding = 1) uniform sampler srcSampler;
 layout (binding = 2, rgba8) uniform writeonly image2D dstImage;
 
+layout (constant_id = 0) const int GROUP_SIZE = 128;
 layout (constant_id = 1) const int MAX_HALF_KSIZE = 128;
 
-const int GROUP_SIZE_X = int(gl_WorkGroupSize.x);
-const int SHARED_MEM_SIZE = GROUP_SIZE_X + 2 * MAX_HALF_KSIZE;
-const int ALIGNED_SHARED_MEM_SIZE = (SHARED_MEM_SIZE + (GROUP_SIZE_X - 1)) & ((~GROUP_SIZE_X) + 1);
+const int SHARED_MEM_SIZE = GROUP_SIZE + 2 * MAX_HALF_KSIZE;
+const int ALIGNED_SHARED_MEM_SIZE = (SHARED_MEM_SIZE + (GROUP_SIZE - 1)) & ((~GROUP_SIZE) + 1);
 // Each thread should sample multiple times across cols
-const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE_X;
+const int SAMPLE_TIMES = ALIGNED_SHARED_MEM_SIZE / GROUP_SIZE;
 
 // Gather multiple rows for each X
-shared vec4 rowsGathered[SHARED_MEM_SIZE];
+shared vec4 sharedColSum[SHARED_MEM_SIZE];
 
 void main() {
     const ivec2 globalTID = ivec2(gl_GlobalInvocationID.xy);
@@ -32,28 +32,28 @@ void main() {
 
     const ivec2 groupTID = ivec2(gl_LocalInvocationID);
     const ivec2 groupID = ivec2(gl_WorkGroupID);
-    const int srcStartX = groupID.x * GROUP_SIZE_X + groupTID.x - MAX_HALF_KSIZE;
+    const int srcStartX = groupID.x * GROUP_SIZE + groupTID.x - MAX_HALF_KSIZE;
     const int srcStartY = groupID.y;
 
     // Gather col cache for each `[srcStartX, srcStartX + GROUP_SIZE, srcStartX + 2*GROUP_SIZE, ...]` cols
-    for (int iSample = 0; iSample < SAMPLE_TIMES; iSample++) {
-        const int smemWriteX = GROUP_SIZE_X * iSample + groupTID.x;
-        if (smemWriteX < SHARED_MEM_SIZE) {
+    for (int iterSharedMem = 0; iterSharedMem < ALIGNED_SHARED_MEM_SIZE; iterSharedMem += GROUP_SIZE) {
+        const int sharedX = iterSharedMem + groupTID.x;
+        if (sharedX < SHARED_MEM_SIZE) {
             // Gather from `[srcStartY-halfKSize, srcStartY+halfKSise]` rows
-            const ivec2 glb2shrCoord = ivec2(srcStartX + GROUP_SIZE_X * iSample, srcStartY - halfKSize);
-            const vec2 glb2shrNormCoord = (vec2(glb2shrCoord) + 0.5) * invDstSize;
+            const ivec2 globalCoord = ivec2(srcStartX + iterSharedMem, srcStartY - halfKSize);
+            const vec2 globalNormCoord = (vec2(globalCoord) + 0.5) * invDstSize;
             float accWeight = exp(-float(halfKSize * halfKSize) / pc.sigma2);
-            vec4 acc = texture(sampler2D(srcTex, srcSampler), glb2shrNormCoord) * accWeight;
+            vec4 acc = texture(sampler2D(srcTex, srcSampler), globalNormCoord) * accWeight;
             for (int y = 1 - halfKSize; y <= halfKSize; y += 2) {
                 const float weightUp = exp(-float(y * y) / pc.sigma2);
                 const float weightDown = exp(-float((y + 1) * (y + 1)) / pc.sigma2);
                 const float weight = weightUp + weightDown;
-                const float yOffset = (float(y + halfKSize) + weightDown / weight) * invDstSize.y;
-                const vec4 srcVal = texture(sampler2D(srcTex, srcSampler), vec2(glb2shrNormCoord.x, glb2shrNormCoord.y + yOffset));
+                const float offsetY = (float(y + halfKSize) + weightDown / weight) * invDstSize.y;
+                const vec4 srcVal = texture(sampler2D(srcTex, srcSampler), vec2(globalNormCoord.x, globalNormCoord.y + offsetY));
                 acc += srcVal * weight;
                 accWeight += weight;
             }
-            rowsGathered[smemWriteX] = acc / accWeight;
+            sharedColSum[sharedX] = acc / accWeight;
         }
     }
 
@@ -69,8 +69,8 @@ void main() {
     float accWeight = 0.0;
     for (int x = -halfKSize; x <= halfKSize; x++) {
         const float weight = exp(-float(x * x) / pc.sigma2);
-        const int smemX = MAX_HALF_KSIZE + groupTID.x + x;
-        const vec4 srcVal = rowsGathered[smemX];
+        const int sharedX = MAX_HALF_KSIZE + groupTID.x + x;
+        const vec4 srcVal = sharedColSum[sharedX];
         acc += srcVal * weight;
         accWeight += weight;
     }

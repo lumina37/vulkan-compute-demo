@@ -25,10 +25,10 @@ void main() {
     float accWeight = 0.0;
     for (int y = -halfKSize; y <= halfKSize; y++) {
         for (int x = -halfKSize; x <= halfKSize; x++) {
-            const ivec2 offset = ivec2(x, y);
-            const ivec2 inCoord = globalID + offset;
-            const vec4 srcVal = texture(sampler2D(srcTex, srcSampler), (vec2(inCoord) + 0.5) * invDstSize);
-            const float weight = exp(-float(dot(offset, offset)) / pc.sigma2);
+            const ivec2 srcOffset = ivec2(x, y);
+            const ivec2 srcCoord = globalID + srcOffset;
+            const vec4 srcVal = texture(sampler2D(srcTex, srcSampler), (vec2(srcCoord) + 0.5) * invDstSize);
+            const float weight = exp(-float(dot(srcOffset, srcOffset)) / pc.sigma2);
             acc += srcVal * weight;
             accWeight += weight;
         }
