@@ -15,7 +15,7 @@ layout (constant_id = 3) const uint N = 0;
 layout (constant_id = 4) const uint K = 0;
 layout (constant_id = 5) const uint BLOCK_TILE_M = 128;
 layout (constant_id = 6) const uint BLOCK_TILE_N = 128;
-layout (constant_id = 7) const uint BLOCK_TILE_K = 128;
+layout (constant_id = 7) const uint BLOCK_TILE_K = 32;
 layout (constant_id = 8) const uint THREAD_TILE_M = 16;
 layout (constant_id = 9) const uint THREAD_TILE_N = 16;
 layout (constant_id = 10) const uint THREAD_TILE_K = 16;
@@ -74,30 +74,30 @@ void computeSubThreadTile(inout vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_V
     [[unroll]] for (uint iterBK = 0; iterBK < BLOCK_TILE_K; iterBK += THREAD_TILE_K) {
         [[unroll]] for (uint iterTK = 0; iterTK < THREAD_TILE_K; iterTK += THREAD_SUBTILE_K) {
             [[unroll]] for (uint iterSubTK = 0; iterSubTK < THREAD_SUBTILE_K; iterSubTK++) {
-                const uint sharedCoordYB = iterBK + iterTK + iterSubTK;
+                const uint sharedCoordKB = iterBK + iterTK + iterSubTK;
                 [[unroll]] for (uint iterVecSubTN = 0; iterVecSubTN < THREAD_SUBTILE_VEC_N; iterVecSubTN++) {
-                    const uint sharedCoordVecXB = (iterVecTN + iterVecSubTN) * groupSize.x + localID.x;
-                    regB[iterSubTK][iterVecSubTN] = sharedB[stage][sharedCoordYB][sharedCoordVecXB];
+                    const uint sharedCoordVecNB = (iterVecTN + iterVecSubTN) * groupSize.x + localID.x;
+                    regB[iterSubTK][iterVecSubTN] = sharedB[stage][sharedCoordKB][sharedCoordVecNB];
                 }
             }
 
             [[unroll]] for (uint iterSubTM = 0; iterSubTM < THREAD_SUBTILE_M; iterSubTM++) {
-                const uint regCoordY = iterTM + iterSubTM;
-                const uint sharedCoordYA = (iterTM + iterSubTM) * groupSize.y + localID.y;
+                const uint regCoordM = iterTM + iterSubTM;
+                const uint sharedCoordMA = (iterTM + iterSubTM) * groupSize.y + localID.y;
 
                 [[unroll]] for (uint iterVecSubTK = 0; iterVecSubTK < THREAD_SUBTILE_VEC_K; iterVecSubTK++) {
-                    const uint sharedCoordVecXA = (iterBK + iterTK) / 4 + iterVecSubTK;
-                    regA[iterVecSubTK] = sharedA[stage][sharedCoordYA][sharedCoordVecXA];
+                    const uint sharedCoordVecKA = (iterBK + iterTK) / 4 + iterVecSubTK;
+                    regA[iterVecSubTK] = sharedA[stage][sharedCoordMA][sharedCoordVecKA];
                 }
 
                 [[unroll]] for (uint iterVecSubTN = 0; iterVecSubTN < THREAD_SUBTILE_VEC_N; iterVecSubTN++) {
-                    const uint regCoordVecX = iterVecTN + iterVecSubTN;
+                    const uint regCoordVecN = iterVecTN + iterVecSubTN;
                     [[unroll]] for (uint iterVecSubTK = 0; iterVecSubTK < THREAD_SUBTILE_VEC_K; iterVecSubTK++) {
-                        const uint regBaseYB = iterVecSubTK * 4;
-                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].x * regB[regBaseYB + 0][iterVecSubTN];
-                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].y * regB[regBaseYB + 1][iterVecSubTN];
-                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].z * regB[regBaseYB + 2][iterVecSubTN];
-                        regAccumulator[regCoordY][regCoordVecX] += regA[iterVecSubTK].w * regB[regBaseYB + 3][iterVecSubTN];
+                        const uint regBaseKB = iterVecSubTK * 4;
+                        regAccumulator[regCoordM][regCoordVecN] += regA[iterVecSubTK].x * regB[regBaseKB + 0][iterVecSubTN];
+                        regAccumulator[regCoordM][regCoordVecN] += regA[iterVecSubTK].y * regB[regBaseKB + 1][iterVecSubTN];
+                        regAccumulator[regCoordM][regCoordVecN] += regA[iterVecSubTK].z * regB[regBaseKB + 2][iterVecSubTN];
+                        regAccumulator[regCoordM][regCoordVecN] += regA[iterVecSubTK].w * regB[regBaseKB + 3][iterVecSubTN];
                     }
                 }
             }
@@ -117,13 +117,13 @@ void storeAccumulator(vec4 regAccumulator[THREAD_TILE_M][THREAD_TILE_VEC_N], uve
     const uvec2 groupSize = gl_WorkGroupSize.xy;
     const uvec2 localID = gl_LocalInvocationID.xy;
 
-    const uint globalBaseY = blockID.y * BLOCK_TILE_M + localID.y;
-    const uint globalBaseVecX = blockID.x * BLOCK_TILE_VEC_N + localID.x;
+    const uint globalBaseM = blockID.y * BLOCK_TILE_M + localID.y;
+    const uint globalBaseVecN = blockID.x * BLOCK_TILE_VEC_N + localID.x;
     [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
-        const uint globalCoordY = globalBaseY + iterTM * groupSize.y;
+        const uint globalCoordM = globalBaseM + iterTM * groupSize.y;
         [[unroll]] for (uint iterVecTN = 0; iterVecTN < THREAD_TILE_VEC_N; iterVecTN++) {
-            const uint globalCoordVecX = globalBaseVecX + iterVecTN * groupSize.x;
-            const uint dstIdx = globalCoordY * N / 4 + globalCoordVecX;
+            const uint globalCoordVecN = globalBaseVecN + iterVecTN * groupSize.x;
+            const uint dstIdx = globalCoordM * N / 4 + globalCoordVecN;
             dstMat[dstIdx] = regAccumulator[iterTM][iterVecTN];
         }
     }

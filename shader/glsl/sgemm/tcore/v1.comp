@@ -66,13 +66,12 @@ void computeWithShared(inout coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_M
     coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA;
     coopmat<float16_t, gl_ScopeSubgroup, MMA_K, MMA_N, gl_MatrixUseB> matB;
 
-    const uint wrapSplitKCount = BLOCK_TILE_K / MMA_K;
-    for (uint iWarpSplitK = 0; iWarpSplitK < wrapSplitKCount; iWarpSplitK++) {
-        const uvec2 sharedCoordA = uvec2(iWarpSplitK * MMA_K, subgroupID.y * MMA_M);
+    for (uint iterBK = 0; iterBK < BLOCK_TILE_K; iterBK += MMA_K) {
+        const uvec2 sharedCoordA = uvec2(iterBK, subgroupID.y * MMA_M);
         const uint sharedOffsetA = sharedCoordA.y * BLOCK_TILE_K + sharedCoordA.x;
         coopMatLoad(matA, sharedA, sharedOffsetA, BLOCK_TILE_K, gl_CooperativeMatrixLayoutRowMajor);
 
-        const uvec2 sharedCoordB = uvec2(subgroupID.x * MMA_N, iWarpSplitK * MMA_K);
+        const uvec2 sharedCoordB = uvec2(subgroupID.x * MMA_N, iterBK);
         const uint sharedOffsetB = sharedCoordB.y * BLOCK_TILE_N + sharedCoordB.x;
         coopMatLoad(matB, sharedB, sharedOffsetB, BLOCK_TILE_N, gl_CooperativeMatrixLayoutRowMajor);
 
@@ -85,9 +84,9 @@ void storeAccumulator(coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUs
     const uint subgroupIndex = gl_SubgroupID;
     const uvec2 subgroupID = uvec2(subgroupIndex % WARP_COUNT_N, subgroupIndex / WARP_COUNT_N);
 
-    const uint globalCoordY = groupID.y * BLOCK_TILE_M + subgroupID.y * MMA_M;
-    const uint globalCoordX = groupID.x * BLOCK_TILE_N + subgroupID.x * MMA_N;
-    const uint globalOffset = globalCoordY * N + globalCoordX;
+    const uint globalCoordM = groupID.y * BLOCK_TILE_M + subgroupID.y * MMA_M;
+    const uint globalCoordN = groupID.x * BLOCK_TILE_N + subgroupID.x * MMA_N;
+    const uint globalOffset = globalCoordM * N + globalCoordN;
     coopMatStore(coopmatAcc, dstMat, globalOffset, N, gl_CooperativeMatrixLayoutRowMajor);
 }
 
@@ -99,14 +98,11 @@ void main() {
 
     const uint blockBaseM = groupID.y * BLOCK_TILE_M;
     const uint blockBaseN = groupID.x * BLOCK_TILE_N;
-    const uint blockSplitKCount = K / BLOCK_TILE_K;
-    for (uint iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
-        const uint blockBaseK = iBlockSplitK * BLOCK_TILE_K;
-
-        const uvec2 globalCoordA = uvec2(blockBaseK, blockBaseM);
+    for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
+        const uvec2 globalCoordA = uvec2(iterK, blockBaseM);
         loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K, true);// Load A
 
-        const uvec2 globalCoordB = uvec2(blockBaseN, blockBaseK);
+        const uvec2 globalCoordB = uvec2(blockBaseN, iterK);
         loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N, false);// Load B
         barrier();
 

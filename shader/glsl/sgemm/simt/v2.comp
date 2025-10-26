@@ -15,7 +15,7 @@ layout (constant_id = 3) const uint N = 0;
 layout (constant_id = 4) const uint K = 0;
 layout (constant_id = 5) const uint BLOCK_TILE_M = 128;
 layout (constant_id = 6) const uint BLOCK_TILE_N = 128;
-layout (constant_id = 7) const uint BLOCK_TILE_K = 128;
+layout (constant_id = 7) const uint BLOCK_TILE_K = 32;
 layout (constant_id = 8) const uint THREAD_TILE_M = 16;
 layout (constant_id = 9) const uint THREAD_TILE_N = 16;
 
@@ -64,12 +64,12 @@ void computeWithShared(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N])
     const uvec2 localID = gl_LocalInvocationID.xy;
 
     [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
-        const uint sharedCoordYA = localID.y * THREAD_TILE_M + iterTM;
+        const uint sharedCoordMA = localID.y * THREAD_TILE_M + iterTM;
         [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_N; iterTN++) {
-            const uint sharedCoordYB = localID.x * THREAD_TILE_N + iterTN;
+            const uint sharedCoordNB = localID.x * THREAD_TILE_N + iterTN;
             [[unroll]] for (uint iterTK = 0; iterTK < BLOCK_TILE_K; iterTK++) {
-                const float valA = sharedA[sharedCoordYA][iterTK];
-                const float valB = sharedB[sharedCoordYB][iterTK];
+                const float valA = sharedA[sharedCoordMA][iterTK];
+                const float valB = sharedB[sharedCoordNB][iterTK];
                 regAccumulator[iterTM][iterTN] = fma(valA, valB, regAccumulator[iterTM][iterTN]);
             }
         }
@@ -81,9 +81,9 @@ void storeAccumulator(float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) {
 
     [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
         [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_N; iterTN++) {
-            const uint globalCoordY = globalID.y * THREAD_TILE_M + iterTM;
-            const uint globalCoordX = globalID.x * THREAD_TILE_N + iterTN;
-            const uint dstIdx = globalCoordY * N + globalCoordX;
+            const uint globalCoordM = globalID.y * THREAD_TILE_M + iterTM;
+            const uint globalCoordN = globalID.x * THREAD_TILE_N + iterTN;
+            const uint dstIdx = globalCoordM * N + globalCoordN;
             dstMat[dstIdx] = regAccumulator[iterTM][iterTN];
         }
     }

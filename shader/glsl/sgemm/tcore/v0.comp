@@ -30,14 +30,11 @@ void main() {
     coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator> coopmatAcc;
     coopmatAcc = coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUseAccumulator>(0.0);
 
-    const uint blockSplitKCount = K / MMA_K;
     const uint blockBaseM = groupID.y * MMA_M;
     const uint blockBaseN = groupID.x * MMA_N;
-    for (uint iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
-        const uint blockBaseK = iBlockSplitK * MMA_K;
-
-        coopMatLoad(matA, srcMatA, blockBaseM * K + blockBaseK, K, gl_CooperativeMatrixLayoutRowMajor);
-        coopMatLoad(matB, srcMatB, blockBaseK * N + blockBaseN, N, gl_CooperativeMatrixLayoutRowMajor);
+    for (uint iterK = 0; iterK < K; iterK += MMA_K) {
+        coopMatLoad(matA, srcMatA, blockBaseM * K + iterK, K, gl_CooperativeMatrixLayoutRowMajor);
+        coopMatLoad(matB, srcMatB, iterK * N + blockBaseN, N, gl_CooperativeMatrixLayoutRowMajor);
 
         coopmatAcc = coopMatMulAdd(matA, matB, coopmatAcc);
     }

@@ -76,10 +76,9 @@ void computeWithShared(inout coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_M
     coopmat<float16_t, gl_ScopeSubgroup, MMA_M, MMA_K, gl_MatrixUseA> matA[ACC_COUNT_K];
     coopmat<float16_t, gl_ScopeSubgroup, MMA_K, MMA_N, gl_MatrixUseB> matB[ACC_COUNT_K][ACC_COUNT_N];
 
-    const uint wrapSplitKCount = BLOCK_TILE_K / WRAP_TILE_K;
-    for (uint iWarpSplitK = 0; iWarpSplitK < wrapSplitKCount; iWarpSplitK++) {
-        const uvec2 sharedCoordABase = uvec2(iWarpSplitK * WRAP_TILE_K, subgroupID.y * WRAP_TILE_M);
-        const uvec2 sharedCoordBBase = uvec2(subgroupID.x * WRAP_TILE_N, iWarpSplitK * WRAP_TILE_K);
+    for (uint iterBK = 0; iterBK < BLOCK_TILE_K; iterBK += WRAP_TILE_K) {
+        const uvec2 sharedCoordABase = uvec2(iterBK, subgroupID.y * WRAP_TILE_M);
+        const uvec2 sharedCoordBBase = uvec2(subgroupID.x * WRAP_TILE_N, iterBK);
         for (uint iAccK = 0; iAccK < ACC_COUNT_K; iAccK++) {
             for (uint iAccN = 0; iAccN < ACC_COUNT_N; iAccN++) {
                 const uvec2 sharedCoordB = sharedCoordBBase + uvec2(iAccN * MMA_N, iAccK * MMA_K);
@@ -109,13 +108,13 @@ void storeAccumulator(coopmat<float, gl_ScopeSubgroup, MMA_M, MMA_N, gl_MatrixUs
     const uint subgroupIndex = gl_SubgroupID;
     const uvec2 subgroupID = uvec2(subgroupIndex % WARP_COUNT_N, subgroupIndex / WARP_COUNT_N);
 
-    const uint globalBaseY = groupID.y * BLOCK_TILE_M + subgroupID.y * WRAP_TILE_M;
-    const uint globalBaseX = groupID.x * BLOCK_TILE_N + subgroupID.x * WRAP_TILE_N;
+    const uint globalBaseM = groupID.y * BLOCK_TILE_M + subgroupID.y * WRAP_TILE_M;
+    const uint globalBaseN = groupID.x * BLOCK_TILE_N + subgroupID.x * WRAP_TILE_N;
     for (uint iAccM = 0; iAccM < ACC_COUNT_M; iAccM++) {
-        const uint globalCoordY = globalBaseY + iAccM * MMA_M;
+        const uint globalCoordM = globalBaseM + iAccM * MMA_M;
         for (uint iAccN = 0; iAccN < ACC_COUNT_N; iAccN++) {
-            const uint globalCoordX = globalBaseX + iAccN * MMA_N;
-            const uint globalOffset = globalCoordY * N + globalCoordX;
+            const uint globalCoordN = globalBaseN + iAccN * MMA_N;
+            const uint globalOffset = globalCoordM * N + globalCoordN;
             coopMatStore(coopmatAcc[iAccM][iAccN], dstMat, globalOffset, N, gl_CooperativeMatrixLayoutRowMajor);
         }
     }
@@ -129,14 +128,11 @@ void main() {
 
     const uint blockBaseM = groupID.y * BLOCK_TILE_M;
     const uint blockBaseN = groupID.x * BLOCK_TILE_N;
-    const uint blockSplitKCount = K / BLOCK_TILE_K;
-    for (uint iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
-        const uint blockBaseK = iBlockSplitK * BLOCK_TILE_K;
-
-        const uvec2 globalCoordA = uvec2(blockBaseK, blockBaseM);
+    for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
+        const uvec2 globalCoordA = uvec2(iterK, blockBaseM);
         loadGlobalToShared(globalCoordA, SHARED_EXTENT_A, K, true);// Load A
 
-        const uvec2 globalCoordB = uvec2(blockBaseN, blockBaseK);
+        const uvec2 globalCoordB = uvec2(blockBaseN, iterK);
         loadGlobalToShared(globalCoordB, SHARED_EXTENT_B, N, false);// Load B
         barrier();
 

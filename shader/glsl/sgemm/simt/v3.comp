@@ -15,7 +15,7 @@ layout (constant_id = 3) const uint N = 0;
 layout (constant_id = 4) const uint K = 0;
 layout (constant_id = 5) const uint BLOCK_TILE_M = 128;
 layout (constant_id = 6) const uint BLOCK_TILE_N = 128;
-layout (constant_id = 7) const uint BLOCK_TILE_K = 128;
+layout (constant_id = 7) const uint BLOCK_TILE_K = 32;
 layout (constant_id = 8) const uint THREAD_TILE_M = 16;
 layout (constant_id = 9) const uint THREAD_TILE_N = 16;
 layout (constant_id = 10) const uint THREAD_TILE_K = 16;
@@ -61,25 +61,25 @@ void computeWithShared(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N])
     float regA[THREAD_TILE_K];// Only cache one row for row-major A
     float regB[THREAD_TILE_K][THREAD_TILE_N];// Cache the whole B
 
-    const uint sharedBaseYA = localID.y * THREAD_TILE_M;
-    const uint sharedBaseXB = localID.x * THREAD_TILE_N;
+    const uint sharedBaseMA = localID.y * THREAD_TILE_M;
+    const uint sharedBaseNB = localID.x * THREAD_TILE_N;
     [[unroll]] for (uint iterBK = 0; iterBK < BLOCK_TILE_K; iterBK += THREAD_TILE_K) {
         // Load B
         [[unroll]] for (uint iterTK = 0; iterTK < THREAD_TILE_K; iterTK++) {
-            const uint sharedCoordYB = iterBK + iterTK;
+            const uint sharedCoordKB = iterBK + iterTK;
             [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_N; iterTN++) {
-                const uint sharedCoordXB = sharedBaseXB + iterTN;
-                regB[iterTK][iterTN] = sharedB[sharedCoordYB][sharedCoordXB];
+                const uint sharedCoordNB = sharedBaseNB + iterTN;
+                regB[iterTK][iterTN] = sharedB[sharedCoordKB][sharedCoordNB];
             }
         }
 
         // For each row in A
         [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
             // Load A
-            const uint sharedCoordYA = sharedBaseYA + iterTM;
+            const uint sharedCoordMA = sharedBaseMA + iterTM;
             [[unroll]] for (uint iterTK = 0; iterTK < THREAD_TILE_K; iterTK++) {
-                const uint sharedCoordXA = iterBK + iterTK;
-                regA[iterTK] = sharedA[sharedCoordYA][sharedCoordXA];
+                const uint sharedCoordKA = iterBK + iterTK;
+                regA[iterTK] = sharedA[sharedCoordMA][sharedCoordKA];
             }
 
             // Actual compute
@@ -95,13 +95,13 @@ void computeWithShared(inout float regAccumulator[THREAD_TILE_M][THREAD_TILE_N])
 void storeAccumulator(float regAccumulator[THREAD_TILE_M][THREAD_TILE_N]) {
     const uvec2 globalID = gl_GlobalInvocationID.xy;
 
-    const uint globalBaseY = globalID.y * THREAD_TILE_M;
-    const uint globalBaseX = globalID.x * THREAD_TILE_N;
+    const uint globalBaseM = globalID.y * THREAD_TILE_M;
+    const uint globalBaseN = globalID.x * THREAD_TILE_N;
     [[unroll]] for (uint iterTM = 0; iterTM < THREAD_TILE_M; iterTM++) {
-        const uint globalCoordY = globalBaseY + iterTM;
+        const uint globalCoordM = globalBaseM + iterTM;
         [[unroll]] for (uint iterTN = 0; iterTN < THREAD_TILE_N; iterTN++) {
-            const uint globalCoordX = globalBaseX + iterTN;
-            const uint dstIdx = globalCoordY * N + globalCoordX;
+            const uint globalCoordN = globalBaseN + iterTN;
+            const uint dstIdx = globalCoordM * N + globalCoordN;
             dstMat[dstIdx] = regAccumulator[iterTM][iterTN];
         }
     }

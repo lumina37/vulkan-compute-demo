@@ -25,7 +25,7 @@ void zeroFillAccumulator(inout coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, B
     coopmatAcc = coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_N, gl_MatrixUseAccumulator>(0.0);
 }
 
-void computeWithCoopmat(inout coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_N, gl_MatrixUseAccumulator> coopmatAcc, uint iBlockSplitK) {
+void computeWithCoopmat(inout coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_N, gl_MatrixUseAccumulator> coopmatAcc, uint iterK) {
     const uvec2 groupID = gl_WorkGroupID.xy;
 
     tensorLayoutNV<2> layoutA = createTensorLayoutNV(2);
@@ -35,10 +35,10 @@ void computeWithCoopmat(inout coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BL
     layoutB = setTensorLayoutDimensionNV(layoutB, K, N);
 
     coopmat<float16_t, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_K, gl_MatrixUseA> matA;
-    coopMatLoadTensorNV(matA, srcMatA, 0, sliceTensorLayoutNV(layoutA, BLOCK_TILE_M * groupID.y, BLOCK_TILE_M, iBlockSplitK * BLOCK_TILE_K, BLOCK_TILE_K));
+    coopMatLoadTensorNV(matA, srcMatA, 0, sliceTensorLayoutNV(layoutA, BLOCK_TILE_M * groupID.y, BLOCK_TILE_M, iterK, BLOCK_TILE_K));
 
     coopmat<float16_t, gl_ScopeWorkgroup, BLOCK_TILE_K, BLOCK_TILE_N, gl_MatrixUseB> matB;
-    coopMatLoadTensorNV(matB, srcMatB, 0, sliceTensorLayoutNV(layoutB, iBlockSplitK * BLOCK_TILE_K, BLOCK_TILE_K, BLOCK_TILE_N * groupID.x, BLOCK_TILE_N));
+    coopMatLoadTensorNV(matB, srcMatB, 0, sliceTensorLayoutNV(layoutB, iterK, BLOCK_TILE_K, BLOCK_TILE_N * groupID.x, BLOCK_TILE_N));
 
     coopmatAcc = coopMatMulAdd(matA, matB, coopmatAcc);
 }
@@ -58,9 +58,8 @@ void main() {
     coopmat<float, gl_ScopeWorkgroup, BLOCK_TILE_M, BLOCK_TILE_N, gl_MatrixUseAccumulator> coopmatAcc;
     zeroFillAccumulator(coopmatAcc);
 
-    const uint blockSplitKCount = K / BLOCK_TILE_K;
-    for (uint iBlockSplitK = 0; iBlockSplitK < blockSplitKCount; iBlockSplitK++) {
-        computeWithCoopmat(coopmatAcc, iBlockSplitK);
+    for (uint iterK = 0; iterK < K; iterK += BLOCK_TILE_K) {
+        computeWithCoopmat(coopmatAcc, iterK);
     }
 
     storeAccumulator(coopmatAcc);
