@@ -14,8 +14,8 @@ int main() {
     vkc::initVulkan() | unwrap;
 
     constexpr std::array SIZES{1024, 2048, 4096};
-    constexpr int HEATUP_TIMES = 2;
-    constexpr int PERF_TIMES = 5;
+    constexpr int HEATUP_TIMES = 1;
+    constexpr int PERF_TIMES = 3;
 
     // Device
     vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;

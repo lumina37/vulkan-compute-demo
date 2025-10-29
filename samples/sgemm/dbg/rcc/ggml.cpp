@@ -14,8 +14,8 @@ int main() {
     vkc::initVulkan() | unwrap;
 
     constexpr std::array SIZES{1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 10240};
-    constexpr int HEATUP_TIMES = 2;
-    constexpr int PERF_TIMES = 5;
+    constexpr int HEATUP_TIMES = 1;
+    constexpr int PERF_TIMES = 3;
 
     // Device
     vkc::InstanceBox instBox = vkc::InstanceBox::create() | unwrap;
@@ -181,9 +181,10 @@ int main() {
         const float meanTflops = macs / meanTime / 1e9;
         const float minTflops = macs / (meanTime + stdTime * 2) / 1e9;
         const float maxTflops = macs / (meanTime - stdTime * 2) / 1e9;
-        std::println("============================");
-        std::println("Size: {}", size);
-        std::println("Dispatch timecost: {} ms", meanTime);
-        std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
+        // std::println("============================");
+        // std::println("Size: {}", size);
+        // std::println("Dispatch timecost: {:.3f} ms", meanTime);
+        // std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
+        std::println("{}", meanTflops);
     }
 }
