@@ -25,4 +25,19 @@ template <CSupportDraftDescSetLayoutBinding... TBox>
     return genDescSetLayoutBindingHelper(std::index_sequence_for<TBox...>{});
 }
 
+template <CSupportStaticDraftDescSetLayoutBinding... TBox>
+[[nodiscard]] static constexpr auto genDescSetLayoutBindings() noexcept {
+    constexpr auto genDescSetLayoutBinding = []<CSupportStaticDraftDescSetLayoutBinding T>(const size_t index) {
+        vk::DescriptorSetLayoutBinding binding = T::draftDescSetLayoutBinding();
+        binding.setBinding((uint32_t)index);
+        return binding;
+    };
+
+    const auto genDescSetLayoutBindingHelper = [&]<size_t... Is>(std::index_sequence<Is...>) {
+        return std::array { genDescSetLayoutBinding.template operator()<TBox>(Is)... };
+    };
+
+    return genDescSetLayoutBindingHelper(std::index_sequence_for<TBox...>{});
+}
+
 }  // namespace vkc

@@ -45,6 +45,35 @@ template <CSupportGetDescType... TBox>
     return poolSizes;
 }
 
+template <CSupportStaticGetDescType... TBox>
+[[nodiscard]] static constexpr auto genPoolSizes() noexcept {
+    std::map<vk::DescriptorType, int> poolSizeMap;
+
+    const auto appendPoolSize = [&]<CSupportStaticGetDescType T>() {
+        vk::DescriptorType descType = T::getDescType();
+        if (!poolSizeMap.contains(descType)) {
+            poolSizeMap[descType] = 1;
+            return;
+        }
+        poolSizeMap[descType]++;
+    };
+
+    (appendPoolSize.template operator()<TBox>(), ...);
+
+    constexpr auto transKV2PoolSize = [](const auto& pair) {
+        auto [descType, count] = pair;
+        vk::DescriptorPoolSize poolSize;
+        poolSize.setType(descType);
+        poolSize.setDescriptorCount(count);
+        return poolSize;
+    };
+
+    const std::vector<vk::DescriptorPoolSize> poolSizes =
+        poolSizeMap | rgs::views::transform(transKV2PoolSize) | rgs::to<std::vector>();
+
+    return poolSizes;
+}
+
 class DescPoolBox {
     DescPoolBox(std::shared_ptr<DeviceBox>&& pDeviceBox, vk::DescriptorPool descPool) noexcept;
 
