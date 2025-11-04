@@ -1,6 +1,5 @@
 #include <ranges>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "vkc/device/logical.hpp"
