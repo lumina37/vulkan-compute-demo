@@ -1,9 +1,8 @@
 #pragma once
 
-#include <cstddef>
-
 #include "vkc/helper/format.hpp"
 #include "vkc/helper/math.hpp"
+#include "vkc/helper/std.hpp"
 #include "vkc/helper/vulkan.hpp"
 
 namespace vkc {
