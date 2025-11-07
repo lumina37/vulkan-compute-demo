@@ -29,7 +29,7 @@ InstanceBox::~InstanceBox() noexcept {
 
 std::expected<InstanceBox, Error> InstanceBox::create() noexcept {
     constexpr std::string_view validationLayerName{"VK_LAYER_KHRONOS_validation"};
-    if constexpr (ENABLE_DEBUG) {
+    if constexpr (DEBUG_ENABLED) {
         constexpr std::array enableLayerNames{validationLayerName};
         return createWithExts({}, enableLayerNames);
     } else {

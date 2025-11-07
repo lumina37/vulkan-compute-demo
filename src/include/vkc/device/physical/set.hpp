@@ -92,7 +92,7 @@ auto PhyDeviceSet_<TProps>::select(const FnJudge& judge) noexcept
         auto scoreRes = judge(deviceWithProps);
         if (!scoreRes) return std::unexpected{std::move(scoreRes.error())};
 
-        if constexpr (ENABLE_DEBUG) {
+        if constexpr (DEBUG_ENABLED) {
             auto printRes = printDeviceInfo(deviceWithProps, scoreRes.value());
             if (!printRes) return std::unexpected{std::move(printRes.error())};
         }

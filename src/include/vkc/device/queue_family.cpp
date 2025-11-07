@@ -24,7 +24,7 @@ std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhyDeviceBox& ph
     const auto isQueueFamilyOK = [](const vk::QueueFamilyProperties& queueFamilyProp) {
         if (!(queueFamilyProp.queueFlags & vk::QueueFlagBits::eCompute)) return false;
 
-        if constexpr (ENABLE_DEBUG) {
+        if constexpr (DEBUG_ENABLED) {
             if (queueFamilyProp.timestampValidBits == 0) return false;
         }
 
@@ -43,7 +43,7 @@ std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhyDeviceBox& ph
         const float score = -(float)std::popcount((uint32_t)queueFamilyProp.queueFlags);
         scores.emplace_back(score, idx);
 
-        if constexpr (ENABLE_DEBUG) {
+        if constexpr (DEBUG_ENABLED) {
             std::println("Candidate queue family: {}. Score: {}", idx, score);
         }
     }

@@ -11,6 +11,7 @@ enum class ECode {
     eNoSupport = 2,        // Feature Not Supported
     eNoImpl = 3,           // Not Implemented
     eResourceInvalid = 4,  // Resource is Invalid
+    eOutOfMemory = 5,      // Out of memory
 };
 
 enum class ECate {
