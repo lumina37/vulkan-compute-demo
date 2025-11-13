@@ -52,7 +52,7 @@ std::expected<WindowBox, Error> WindowBox::create(const vk::Extent2D extent) noe
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-    auto window = glfwCreateWindow((int)extent.width, (int)extent.height, "Vulkan Graphics Demo", nullptr, nullptr);
+    auto window = glfwCreateWindow((int)extent.width, (int)extent.height, "Vulkan GUI Demo", nullptr, nullptr);
     if (window == nullptr) {
         return std::unexpected{Error{ECate::eGLFW, 0, "failed to create GLFW window"}};
     }

@@ -101,7 +101,7 @@ int main() {
         constexpr int blockTileK = 16;
         constexpr int threadTileM = 8;
         constexpr int threadTileN = 8;
-        constexpr int threadTileK = 4;
+        constexpr int threadTileK = 16;
         constexpr int threadSubTileM = 4;
         constexpr int threadSubTileN = 8;
         constexpr int threadSubTileK = 4;
@@ -157,10 +157,9 @@ int main() {
         const float meanTflops = macs / meanTime / 1e9;
         const float minTflops = macs / (meanTime + stdTime * 2) / 1e9;
         const float maxTflops = macs / (meanTime - stdTime * 2) / 1e9;
-        // std::println("============================");
-        // std::println("Size: {}", size);
-        // std::println("Dispatch timecost: {:.3f} ms", meanTime);
-        // std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
-        std::println("{}", meanTflops);
+        std::println("============================");
+        std::println("Size: {}", size);
+        std::println("Dispatch timecost: {:.3f} ms", meanTime);
+        std::println("Performace: {:.4f} ({:.4f}~{:.4f}) tflops", meanTflops, minTflops, maxTflops);
     }
 }

@@ -135,7 +135,7 @@ int main() {
 
     std::array input{
         std::vector{128},          std::vector{64},           std::vector{16},
-        std::vector{4, 8, 16, 32}, std::vector{4, 8, 16, 32}, std::vector{4, 8, 16, 32},
+        std::vector{4, 8, 16}, std::vector{4, 8, 16}, std::vector{4, 8, 16},
     };
     auto cases = generateFinetuneCases(input);
 
