@@ -1,5 +1,7 @@
 #pragma once
 
+#include <expected>
+
 #include <vulkan/vulkan.hpp>
 
 #include "vkc/helper/error.hpp"
