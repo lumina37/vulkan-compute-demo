@@ -40,7 +40,7 @@ std::expected<uint32_t, Error> defaultComputeQFamilyIndex(const PhyDeviceBox& ph
             continue;
         }
 
-        const float score = -(float)std::popcount((uint32_t)queueFamilyProp.queueFlags);
+        const float score = (float)std::popcount((uint32_t)queueFamilyProp.queueFlags);
         scores.emplace_back(score, idx);
 
         if constexpr (DEBUG_ENABLED) {
