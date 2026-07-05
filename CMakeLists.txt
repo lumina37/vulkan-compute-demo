@@ -19,7 +19,7 @@ find_package(Python3 REQUIRED)
 FetchContent_Declare(
         stb
         GIT_REPOSITORY https://github.com/nothings/stb.git
-        GIT_TAG fede005abaf93d9d7f3a679d1999b2db341b360f
+        GIT_TAG 31c1ad37456438565541f4919958214b6e762fb4
 )
 FetchContent_MakeAvailable(stb)
 
@@ -36,7 +36,7 @@ if (VKC_ENABLE_TESTS)
     FetchContent_Declare(
             Catch2
             GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-            GIT_TAG v3.8.0
+            GIT_TAG v3.15.1
     )
     FetchContent_MakeAvailable(Catch2)
     include(Catch)

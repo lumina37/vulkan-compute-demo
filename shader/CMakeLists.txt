@@ -1,6 +1,6 @@
 add_custom_target(_vkc-shader
         COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/compile_shaders.py"
-            --glslang "${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}"
+            --compiler "${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}"
         COMMENT "Compiling shaders"
 )
 
