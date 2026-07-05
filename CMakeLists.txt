@@ -14,6 +14,7 @@ option(VKC_VERBOSE_WARNING "Show verbose compiler warnings" OFF)
 include(FetchContent)
 
 find_package(Vulkan)
+find_package(Python3 REQUIRED)
 
 FetchContent_Declare(
         stb

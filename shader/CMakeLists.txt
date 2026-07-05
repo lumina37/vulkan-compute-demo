@@ -1,60 +1,8 @@
-set(_VKC_GLSL_SRCS
-        gauss_filter/v0
-        gauss_filter/v1
-
-        grayscale/ro
-        grayscale/rw
-
-        sgemm/simt/v0
-        sgemm/simt/v1
-        sgemm/simt/v2
-        sgemm/simt/v3
-        sgemm/simt/v4
-        sgemm/simt/v5
-        sgemm/simt/v6
-        sgemm/simt/v7
-        sgemm/simt/v8
-
-        sgemm/tcore/v0
-        sgemm/tcore/v1
-        sgemm/tcore/v2
-        sgemm/tcore/v3
-        sgemm/tcore/v4
-        sgemm/tcore/v5
-
-        sgemm/dbg/rrr/simon
-        sgemm/dbg/rrr/v0
-        sgemm/dbg/rrr/v1
-        sgemm/dbg/rcc/ggml
-        sgemm/dbg/rcc/v0
-        sgemm/dbg/rcc/v1
-
-        flash_attention2/v0
-        flash_attention2/v1
-
-        prefix_sum/v0
-        topk/v0
+add_custom_target(_vkc-shader
+        COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/compile_shaders.py"
+            --glslang "${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}"
+        COMMENT "Compiling shaders"
 )
-set(_VKC_SPIRV_SHADERS)
-
-function(vkc_add_glsl2spirv name)
-    set(__VKC_IN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/glsl/${name}.comp)
-    set(__VKC_OUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/spirv/${name}.h)
-    list(APPEND _VKC_SPIRV_SHADERS ${__VKC_OUT_PATH})
-    set(_VKC_SPIRV_SHADERS ${_VKC_SPIRV_SHADERS} PARENT_SCOPE)
-    add_custom_command(
-            OUTPUT ${__VKC_OUT_PATH}
-            COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} -V ${__VKC_IN_PATH} --vn code --target-env vulkan1.3 -o ${__VKC_OUT_PATH}
-            MAIN_DEPENDENCY ${__VKC_IN_PATH}
-            COMMENT "Compile shader - ${name}"
-    )
-endfunction()
-
-foreach (__VKC_GLSL_SRC ${_VKC_GLSL_SRCS})
-    vkc_add_glsl2spirv(${__VKC_GLSL_SRC})
-endforeach ()
-
-add_custom_target(_vkc-shader DEPENDS ${_VKC_SPIRV_SHADERS})
 
 file(GLOB_RECURSE _VKC_SHADER_SRCS "*.cpp")
 
