@@ -8,6 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+# logging
 _FORMATTER = logging.Formatter(
     "<{asctime}> [{levelname}] {message}",
     "%Y-%m-%d %H:%M:%S",
@@ -20,7 +21,7 @@ logger = logging.getLogger("compile_shaders")
 logger.setLevel(logging.INFO)
 logger.addHandler(_HANDLER)
 
-
+# path
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _GLSL_DIR = _SCRIPT_DIR / "glsl"
 _SPIRV_DIR = _SCRIPT_DIR / "spirv"
@@ -62,19 +63,22 @@ _SHADERS = [
 def find_glslang() -> Path | None:
     if found := shutil.which("glslangValidator"):
         return Path(found)
-    candidates: list[Path] = []
+
     if sdk := os.environ.get("VULKAN_SDK"):
         bin_dir = Path(sdk) / "Bin"
-        candidates += [bin_dir / "glslangValidator", bin_dir / "glslangValidator.exe"]
-    candidates += [Path("glslangValidator"), Path("glslangValidator.exe")]
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
+        for candidate in [
+            bin_dir / "glslangValidator",
+            bin_dir / "glslangValidator.exe",
+        ]:
+            if candidate.is_file():
+                return candidate
+
     return None
 
 
-def compile_shader(glslang: Path, src: Path, dst: Path, target_env: str = "vulkan1.3") -> bool:
+def compile_shader(glslang: Path, src: Path, dst: Path) -> bool:
     dst.parent.mkdir(parents=True, exist_ok=True)
+
     result = subprocess.run(
         [
             str(glslang),
@@ -83,29 +87,38 @@ def compile_shader(glslang: Path, src: Path, dst: Path, target_env: str = "vulka
             "--vn",
             "code",
             "--target-env",
-            target_env,
+            "vulkan1.3",
             "-o",
             str(dst),
         ],
         capture_output=True,
         text=True,
     )
+
     if result.returncode != 0:
-        logger.error("Failed: %s", src)
+        logger.error("Compilation failed: %s", src)
         if result.stderr:
             logger.error(result.stderr)
         return False
     if result.stderr:
         logger.warning(result.stderr)
+
     return True
 
 
 def needs_rebuild(dst: Path, src: Path) -> bool:
-    if not dst.exists():
+    try:
+        dst_mtime = os.stat(dst).st_mtime
+    except FileNotFoundError:
         return True
-    if src.stat().st_mtime > dst.stat().st_mtime:
-        return True
-    return False
+
+    try:
+        src_mtime = os.stat(src).st_mtime
+    except FileNotFoundError:
+        logger.error("Shader src not found: %s", src)
+        return False
+
+    return src_mtime > dst_mtime
 
 
 def main() -> None:
@@ -115,9 +128,12 @@ def main() -> None:
     args = parser.parse_args()
 
     glslang = Path(args.glslang) if args.glslang else find_glslang()
-    if not glslang or not glslang.is_file():
-        logger.error("glslangValidator not found: %s", glslang or "(auto-detect failed)")
-        sys.exit(1)
+    if not glslang:
+        logger.error("glslangValidator not found")
+        return
+    if not glslang.is_file():
+        logger.error("glslangValidator is not a file: %s", glslang)
+        return
 
     compiled, skipped, errors = 0, 0, 0
     for name in _SHADERS:
