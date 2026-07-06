@@ -13,7 +13,7 @@
 int main() {
     vkc::initVulkan() | unwrap;
 
-    constexpr std::array SIZES{1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 10240};
+    constexpr std::array SIZES{1024, 2048, 3072, 4096};
     constexpr int HEATUP_TIMES = 1;
     constexpr int PERF_TIMES = 3;
 

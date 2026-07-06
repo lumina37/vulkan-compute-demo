@@ -57,7 +57,6 @@ _SHADER_INFOS: list[ShaderInfo] = [
     ShaderInfo("sgemm/simt/v5"),
     ShaderInfo("sgemm/simt/v6"),
     ShaderInfo("sgemm/simt/v7"),
-    ShaderInfo("sgemm/simt/v8"),
     ShaderInfo("sgemm/tcore/v0"),
     ShaderInfo("sgemm/tcore/v1"),
     ShaderInfo("sgemm/tcore/v2"),

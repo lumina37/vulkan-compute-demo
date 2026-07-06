@@ -22,7 +22,6 @@ vkc_add_sample(vkc-bin-sgemm-simt-v4-float4 sgemm/simt/v4-float4.cpp)
 vkc_add_sample(vkc-bin-sgemm-simt-v5-bank-conflict sgemm/simt/v5-bank-conflict.cpp)
 vkc_add_sample(vkc-bin-sgemm-simt-v6-sub-thread-tile sgemm/simt/v6-sub-thread-tile.cpp)
 vkc_add_sample(vkc-bin-sgemm-simt-v7-double-buffer sgemm/simt/v7-double-buffer.cpp)
-vkc_add_sample(vkc-bin-sgemm-simt-v8-hide-s2g sgemm/simt/v8-hide-s2g.cpp)
 
 vkc_add_sample(vkc-bin-sgemm-tcore-v0-naive sgemm/tcore/v0-naive.cpp)
 vkc_add_sample(vkc-bin-sgemm-tcore-v1-block-tile sgemm/tcore/v1-block-tile.cpp)
